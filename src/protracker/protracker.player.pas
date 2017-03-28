@@ -19,6 +19,7 @@ uses
 	{$ELSE}
 		BASS,
 	{$ENDIF}
+	SysUtils,
 	Generics.Collections,
 	hkaFileUtils,
 	ProTracker.Util,
@@ -348,7 +349,7 @@ uses
 	{$IFDEF WINDOWS}
 	Windows,
 	{$ENDIF}
-	Classes, SysUtils, Math,
+	Classes, Math,
 //	WaveIOX,
 	SDL2,
 	ProTracker.Editor,

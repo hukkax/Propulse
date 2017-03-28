@@ -105,12 +105,13 @@ implementation
 
 uses
 	{$IFDEF WINDOWS}
-	Windows, soxr,
+	Windows,
 	{$ENDIF}
 	BuildInfo,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config,
-	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio;
+	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio,
+	soxr;
 
 
 procedure TWindow.DialogCallback(ID: Word; Button: TDialogButton;
