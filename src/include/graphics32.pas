@@ -120,7 +120,7 @@ uses
 
 // Result := (A shl 24) or (R shl 16) or (G shl  8) or B;
 function Color32(R, G, B: Byte; A: Byte = $FF): TColor32;
-{$IFNDEF CPUX64}
+{$IFDEF CPU32}
 asm
 	MOV		AH, A
 	SHL		EAX, 16

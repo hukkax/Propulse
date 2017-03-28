@@ -486,9 +486,9 @@ function AudioInit(WinHandle: Cardinal): Boolean;
 var
 	info: BASS_INFO;
 	device: BASS_DEVICEINFO;
+	ver: DWord;
 	Minbuf: Integer;
 	S: AnsiString;
-	flags: Cardinal;
 begin
 	Result := False;
 	MainWindow := WinHandle;
@@ -509,10 +509,18 @@ begin
 
 	if not BASS_Init(Options.Audio.Device, outputFreq,
 		BASS_DEVICE_STEREO or BASS_DEVICE_LATENCY or BASS_DEVICE_DMIX,
-        WinHandle, nil) then
+        MainWindow, nil) then
 	begin
 		Log(TEXT_ERROR + 'Error initializing audio device!');
 		Exit;
+	end
+	else
+	begin
+		ver := BASS_GetVersion;
+		S := Format('Using BASS %d.%d.%d.%d', [
+			ver shr 24 and $FF, ver shr 16 and $FF,
+			ver shr 8 and $FF,  ver and $FF
+		]);
 	end;
 
 	BASS_GetDeviceInfo(BASS_GetDevice, device);
@@ -532,8 +540,10 @@ begin
 		// User set buffer
 		BASS_SetConfig(BASS_CONFIG_BUFFER, Options.Audio.Buffer);
 
-	Log('Using audio device: %s', [device.name]);
-	Log('%d Hz, 16 bit stereo, %d ms buffer',
+	S := S + ' with device: ' + device.name;
+	Log(S);
+
+	Log('Audio: %d Hz, 16 bit stereo, %d ms buffer',
 		[outputFreq, BASS_GetConfig(BASS_CONFIG_BUFFER)]);
 	if (Options.Audio.Buffer > 0) and (Options.Audio.Buffer < Minbuf) then
 		Log(TEXT_WARNING + 'audio buffer is below the %d ms recommended minimum', [Minbuf]);

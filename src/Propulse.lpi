@@ -280,10 +280,12 @@
       <Unit39>
         <Filename Value="include\graphics32.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="Graphics32"/>
       </Unit39>
       <Unit40>
         <Filename Value="include\graphics32_lowlevel.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="Graphics32_LowLevel"/>
       </Unit40>
       <Unit41>
         <Filename Value="include\hkafileutils.pas"/>

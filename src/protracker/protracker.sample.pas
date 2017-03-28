@@ -1270,7 +1270,7 @@ begin
 				i := PutVal8(F, i, Ord(Name[L]));
 
 			i := PutString(F, i, 'ANNO');
-			i := PutVal32R(F, i, 16);
+			i := PutVal32R(F, i, 14);
 			i := PutString(F, i, 'Propulse ' + Copy(ProTracker.Util.VERSION, 1, 5)); // 'PoroTracker 0.x.x'
 			//i := PutVal8(F, i, 0); // even padding
 

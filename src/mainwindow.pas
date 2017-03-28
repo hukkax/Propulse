@@ -1297,7 +1297,7 @@ begin
 	Log('');
 	Log('2016-2017 hukka (Joel Toivonen)');
 	Log('http://hukka.yiff.fi/porotracker/');
-	Log('Playroutine based on pt2play.c by 8bitbubsy (Olav Sorensen)');
+	Log('Contains code based on work by 8bitbubsy (Olav Sorensen)');
 	Log('');
 
 	if not NewSDL then
@@ -1307,19 +1307,10 @@ begin
 		Log('');
 	end;
 
-	Dir := Format('Using SDL v%d.%d.%d',[sdlVersion.major, sdlVersion.minor, sdlVersion.patch]);
+	Dir := Format('Using SDL %d.%d.%d',[sdlVersion.major, sdlVersion.minor, sdlVersion.patch]);
 	if vsync60HzPresent then
 		Dir := Dir + ' with 60Hz vsync';
 	Log(Dir);
-
-	if not AudioInit(0) then
-	begin
-		{$IFDEF UNIX}
-	    writeln('Could not initialize audio; quitting!');
-		{$ENDIF}
-		HALT;
-	end;
-
 
 	Options.Features.SOXR := (soxr_version <> '');
 	if not Options.Features.SOXR then
@@ -1332,7 +1323,17 @@ begin
 	    Log(TEXT_WARNING + 'Resampling features disabled.');
 	end
 	else
-		Log('Using SOXR version ' + soxr_version);
+		Log('Using SOXR ' + soxr_version);
+
+	if not AudioInit(0) then
+	begin
+		{$IFDEF UNIX}
+	    writeln('Could not initialize audio; quitting!');
+		{$ENDIF}
+		HALT;
+	end;
+
+
 	Log('');
 
 
