@@ -1,0 +1,25 @@
+Propulse Tracker current status
+===============================
+
+- Some mouse and keyboard input issues (including broken default shortcuts)
+  due to change from Delphi's form event based input handling to SDL2
+- Some graphical issues may still exist due to changes to graphics API
+- libSOXR support is not implemented yet on non-Windows platforms
+- Program tries to load/save config and data files from the executable's
+  path instead of a sane location for the current OS; this needs fixing
+- No splash screen yet
+- Mac support needs someone to work on, I don't have access to one
+
+Regressions/changes from PoroTracker 0.8.9.3
+============================================
+
+- Settings for audio API and graphics rendering API removed
+- Setting "use OS file requesters" removed
+- Setting "task priority" only available on Windows
+- Window scaling (pixel doubling) is changed via settings instead of simply
+  resizing the window
+- Font file must be a 256-color PCX for now
+- Exploring to a file's location or launching URLs only functional on Windows
+
+-- 
+hukka 2017-03-29 - hukkax@gmail.com - https://github.com/hukkax/Propulse

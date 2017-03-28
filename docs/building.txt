@@ -1,11 +1,22 @@
 Propulse Tracker build instructions
 ===================================
 
+Requirements:
+
+- FreePascal 3.0+
+- Lazarus (not strictly required, but I haven't tried building without)
+- SDL2 (preferably v2.0.5 or newer)
+- BASS
+- Generics.Collections for FreePascal (may already be integrated to current
+  FPC trunk but I haven't verified)
+- libSOXR (if building on Windows)
+
 Windows:
 
 - Install FreePascal 3.x and Lazarus
 - Open Propulse.lps in Lazarus
 - Press Shift-F9 to build
+- Probably complain to me if it didn't work
 
 Linux:
 
@@ -22,6 +33,5 @@ Mac:
   No idea for now, sorry; the source may need some additional work to
   build/run on a Mac.
 
-
 -- 
-hukka 2017-03-28 - hukkax@gmail.com - https://github.com/hukkax/Propulse
+hukka 2017-03-29 - hukkax@gmail.com - https://github.com/hukkax/Propulse
