@@ -1,4 +1,27 @@
 Propulse Tracker build instructions
 ===================================
 
-TBD
+Windows:
+
+- Install FreePascal 3.x and Lazarus
+- Open Propulse.lps in Lazarus
+- Press Shift-F9 to build
+
+Linux:
+
+- Install SDL2 development packages (2.0.5 or newer)
+- Download the "stuff" Linux build of BASS (the official 2.4.12 Linux build
+  has a crash bug on some systems, including mine):
+  http://www.un4seen.com/stuff/bass-linux.zip
+- Extract the appropriate libbass.so into the project's root directory 
+  (not src!)
+- Follow the above instructions for building on Windows
+
+Mac:
+
+  No idea for now, sorry; the source may need some additional work to
+  build/run on a Mac.
+
+
+-- 
+hukka 2017-03-28 - hukkax@gmail.com - https://github.com/hukkax/Propulse
