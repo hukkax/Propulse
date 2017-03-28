@@ -1,0 +1,440 @@
+ Schism Tracker:
+ = Center line
+ [ Center and draw box around line
+ | Normal text
+ # Red text
+ % Horizontal line
+ ! Impulse Tracker only
+ : Schism Tracker only
+ ; Unknown
+ + Unknown
+
+ PoroTracker:
+ § Implemented in PoroTracker
+ * White text
+@
+
+[PoroTracker Help
+§
+=Last modified: 2017-02-22
+§
+* Global Keys:
+§
+§   Escape            Context menu
+§   F1                Help
+|   F1                Help (Context sensitive!)
+:   Ctrl-F1           System Configuration
+|   F2                Pattern editor / Pattern Editor Options
+§   F2                Pattern editor
+§   F3                Sample list
+|   Ctrl-F3           Sample Library
+§   F5                Play song
+|   Ctrl-F5           Play song
+§   F6                Play current pattern
+|   Shift-F6          Play Song from Current Order
+|   F7                Play from mark / current row
+§   F7                Play from current row
+:   Shift-F8          Pause / resume playback
+§   F8                Stop playback
+§   F9                Load module (also Ctrl-L, Ctrl-O)
+§   F10               Save module (also Ctrl-W)
+§   Shift-F10         Render audio (Song to WAV; Selection to WAV/sample)
+§   F11               Orderlist
+§   Ctrl-F11, F4      View message log
+§   F12               Song variables & program settings
+|   Ctrl-F12          Palette Configuration
+:   Shift-F12         Font Editor
+§
+|
+|   { }               Decrease/Increase playback speed
+:   Ctrl-[ ]          Decrease/Increase playback tempo
+|   [ ]               Decrease/Increase global volume
+|   Alt-F1 -> Alt-F8  Toggle channels 1->8
+§   Ctrl-1..Ctrl-4    Toggle channels 1-4
+§
+§   Ctrl-N            New song
+§   Ctrl-P            Calculate approximate song length
+§
+|   Ctrl-E            Refresh screen and reset cache identification
+:   Ctrl-G            Go to order/pattern/row given time
+|   Ctrl-I            Reinitialise sound driver
+§   Alt-Enter         Toggle fullscreen mode
+§   Ctrl-M            Toggle mouse cursor
+§   Ctrl-Q            Quit PoroTracker
+§   Ctrl-S            Save current song
+§
+
+@Editor
+[   Pattern Edit   
+* Effects:
+§
+§ PT   IT   Description
+%
+§ 0xy  Jxy  Arpeggio with halftones x and y (if nonzero parameters)
+§ 1xx  Fxx  Pitch slide up by xx
+§ 2xx  Exx  Pitch slide down by xx
+§ 3xx  Gxx  Slide to note with speed xx
+§ 4xy  Hxy  Vibrato with speed x, depth y
+§ 5xy  Lxy  Dual Command: 300 + Axy
+§ 6xy  Kxy  Dual Command: 400 + Axy
+§ 7xy  Rxy  Tremolo with speed x, depth y
+§ 8xx  Xxx  Unused (may be used for sync)
+§ 9xx  Oxx  Set sample offset
+§ Axy  Dxy  Volume slide (x for slide up, y for slide down)
+§ Bxx  Bxx  Jump to order (hex)
+§ Cxx  ---  Volume (use the volume column)
+§ Dxx  Cxx  Break to row xx of next pattern
+§ Exx  Zxx  Extended effects (see below)
+§ Fxx  Axx  Set song speed/tempo (1..31 = speed, >31 = beats per minute)
+§
+* Extended effects:
+§
+§ E0x  S0x  Set filter on (x=0) or off (x>0)
+§ E1x  FFx  Fine pitch slide up by x
+§ E2x  EFx  Fine pitch slide down by x
+§ E3x  S1x  Set glissando on (x=1) or off (x=0)
+§ E4x  S3x  Set vibrato waveform to type x (0=sine, 1=saw, 2=square)
+§ E5x  S2x  Set finetune value (F..8 = -1..-8, 7..1 = +7..+1)
+§ E6x  SBx  Set/Jump to loop (0=set loop point, >0=jump x times to loop point)
+§ E7x  S4x  Set tremolo waveform (0=sine, 1=saw, 2=square)
+§ E8x  S8x  Unused
+§ E9x  Q0x  Retrigger note every x ticks
+§ EAx  DxF  Fine volume slide up by x
+§ EBx  DFx  Fine volume slide down by x
+§ ECx  SCx  Note cut after x ticks
+§ EDx  SDx  Note delay for x ticks
+§ EEx  S6x  Pattern delay for x ticks
+§ EFx  Z0x  Invert sample at speed x (requires loop, modifies sample data!)
+§
+* Pattern Edit Keys:
+§
+§   Numpad +,-       Next/Previous pattern  (*)
+|   Shift +,-        Next/Previous 4 pattern  (*)
+|   Ctrl +,-         Next/Previous order's pattern  (*)
+§   0-9              Change octave/volume/instrument
+§   0-9, A-F         Change effect value
+§   A-F              Change effect
+§   . (Period)       Clear field(s)
+§   Spacebar         Use last note/instrument/volume/effect/effect value
+§   Shift+Key        Preview note
+§
+§   Enter            Get default note/instrument/volume/effect
+§   < or Ctrl-Up     Decrease instrument
+§   > or Ctrl-Down   Increase instrument
+§   Numpad /,*       Select octave
+§   , (Comma)        Toggle edit mask for current field
+§
+§   Ins/Del          Insert/Delete a row to/from current channel
+§   Alt-Ins/Del      Insert/Delete an entire row to/from pattern  (*)
+§
+§   Up/Down          Move up/down by the skipvalue (set with Alt 0-9)
+|   Ctrl-Home/End    Move up/down by 1 row
+§   Alt-Up/Down      Slide pattern up/down by 1 row
+§   Left/Right       Move cursor left/right
+§   Alt-Left/Right   Move forwards/backwards one channel
+§   Tab/Shift-Tab    Move forwards/backwards to note column
+§   PgUp/PgDn        Move up/down 16 lines
+|   PgUp/PgDn        Move up/down n lines (n=Row Hilight Major)
+§   Ctrl-PgUp/PgDn   Move to top/bottom of pattern
+§   Home             Move to first visible row/top row/first channel
+§                    or start of column/start of line/start of pattern
+§   End              Move to last visible row/bottom row
+§                    or end of column/end of line/end of pattern
+|   Backspace        Move to previous position (accounts for Multichannel)
+|
+|   Alt-N            Toggle Multichannel mode for current channel
+| 2*Alt-N            Multichannel Selection menu
+|
+|   Alt-Enter        Store pattern data
+|   Alt-Backspace    Revert pattern data (*)
+|   Ctrl-Backspace   Undo - any function with (*) can be undone
+|
+|   Ctrl-C           Toggle centralise cursor
+|   Ctrl-H           Toggle current row hilight
+|   Ctrl-V           Toggle default volume display
+|
+§
+* Block Functions:
+§
+§   Alt-B            Mark beginning of block
+§   Alt-E            Mark end of block
+|   Alt-D            Quick mark n/2n/4n/... lines (n=Row Hilight Major)
+§   Alt-L            Mark entire column/pattern
+§   Shift-Arrows     Mark block
+§
+§   Alt-U            Unmark block
+|   Alt-U            Unmark block/Release clipboard memory
+§
+§   Alt-Q            Raise notes by a semitone/Increase column values (*)
+§   Alt-A            Lower notes by a semitone/Decrease column values (*)
+§   Shift-Alt-Q      Raise notes by an octave  (*)
+§   Shift-Alt-A      Lower notes by an octave  (*)
+§   Alt-S            Set Sample (*)
+|   Alt-V            Set volume/panning  (*)
+|   Alt-W            Wipe vol/pan not associated with a note/instrument (*)
+|   Alt-K            Slide volume/panning column (*)
+| 2*Alt-K            Wipe all volume/panning controls (*)
+|   Alt-J            Volume amplifier (*) / Fast volume attenuate (*)
+§   Alt-Z            Cut block  (*)
+§   Alt-Y            Swap block (*)
+§   Alt-X            Slide effect value   (*)
+§ 2*Alt-X            Wipe all effect data (*)
+§
+§   Alt-C            Copy block into clipboard
+:   Shift-L          Copy block to clipboard honoring current mute-settings
+§   Alt-P            Paste data from clipboard  (*)
+§   Alt-O            Overwrite with data from clipboard  (*)
+§   Alt-M            Mix each row from clipboard with pattern data  (*)
+| 2*Alt-M            Mix each field from clipboard with pattern data
+§   Shift-Alt-P,O,M  Using the Shift key operates on the current column only
+§
+§   Alt-F            Double block length (*)
+§   Alt-G            Halve block length  (*)
+|
+|   Alt-I            Select Template mode / Fast volume amplify  (*)
+|   Ctrl-J           Toggle fast volume mode
+:   Ctrl-U           Selection volume vary / Fast volume vary (*)
+:   Ctrl-K           Selection effect vary / Fast effect vary (*)
+§
+* Playback Functions:
+§
+§   4                Play note under cursor
+§   8                Play row
+|
+§   F7               Play from current row
+|   Ctrl-F6          Play from current row
+|   Ctrl-F7          Set/Clear playback mark (for use with F7)
+§
+§   Alt-F9           Toggle current channel
+§   Alt-F10          Solo/unsolo current channel
+|
+!   Scroll Lock      Toggle playback tracing
+:   Scroll Lock      Toggle playback tracing (also Ctrl-F)
+§
+
+@OrderList
+[         Order List        
+§
+* Order Keys:
+§
+§   Space             Set order list length
+§   Enter             Edit pattern under cursor
+|   N                 Insert next pattern
+:   Shift-N           Copy current pattern to new pattern, and insert order
+§   Ins               Insert a pattern
+§   Del               Delete a pattern
+§   Tab/Shift-Tab     Move to Pattern Editor
+|   Ctrl-F7           Play this Order next
+|
+|   Alt-F11           Lock/unlock order list
+|   Alt-R             Sort order list
+|   Alt-U             Search for unused patterns
+:
+:   Ctrl-B            Link (diskwriter) this pattern to the current sample
+:   Ctrl-O            Copy (diskwriter) this pattern to the current sample
+:
+:   C                 Continue to next position of current pattern
+:
+:   Alt-Enter         Save order list
+:   Alt-Backspace     Swap order list with saved order list
+§
+
+@SampleList
+[    Sample List    
+§
+* Sample List Keys:
+§
+§   Enter        Load new sample
+§   Tab          Move between options
+§   PgUp/PgDn    Move up/down (when not on list)
+§
+|   Alt-A        Convert Signed to/from Unsigned samples
+§   Alt-B        Pre-Loop cut sample
+§   Alt-C        Clear Sample Name
+§   Alt-D        Delete Sample
+§   Alt-E        Resize Sample
+§   Alt-F        Resize Sample (using default settings)
+§   Alt-G        Reverse Sample
+|   Alt-H        Centralise Sample
+§   Alt-I        Invert Sample
+§   Alt-L        Post-Loop cut sample
+§   Alt-M        Sample amplifier
+|   Alt-N        Toggle Multichannel playback
+§   Alt-O/T/W    Save current sample to disk
+§   Alt-P        Copy sample
+|   Alt-Q        Toggle sample quality
+§   Alt-R        Replace current sample in song
+§   Alt-S        Swap sample (in song also)
+|   Alt-X        Exchange sample (only in Sample List)
+:   Alt-Y        Text to sample data
+§
+§   Alt-Ins      Insert sample slot (updates pattern data)
+§   Alt-Del      Remove sample slot (updates pattern data)
+§   Alt-Up/Down  Swap sample with previous/next
+:
+:   Alt-F9       Toggle current sample
+:   Alt-F10      Solo current sample
+|
+|   < >          Decrease/Increase playback channel
+|
+|   Alt-Grey +   Increase C-5 Frequency by 1 octave
+|   Alt-Grey -   Decrease C-5 Frequency by 1 octave
+|   Ctrl-Grey +  Increase C-5 Frequency by 1 semitone
+|   Ctrl-Grey -  Decrease C-5 Frequency by 1 semitone
+§
+
+@Configuration
+[  Configuration  
+§
+§ (* An asterisk indicates that PoroTracker needs to be restarted for
+§    changes to this setting to take effect.)
+
+* Audio settings
+§
+# Audio driver: *
+§ Choose between DirectSound (default) or two WASAPI modes.
+§ WASAPI is a more modern audio API supported from Windows Vista onwards and
+§ may allow a smaller audio buffer to be used. Note that the WASAPI
+§ implementation in PoroTracker is not completely finished yet.
+§
+# Audio device: *
+§ The device index of the audio device to be used. Uses the system default
+§ audio device by default.
+§
+# Sampling rate: *
+§ Sets the audio device sampling rate.
+§
+# Audio buffer: *
+§ This is the audio buffer size in milliseconds. Too low values will cause
+§ dropouts and crackling, while large values increase audio latency.
+§ Defaults to the minimum recommended length for the audio device.
+§
+# Amplification:
+§ Sets the amplification level for the internal mixer of the module player
+§ engine. Too large values cause clipping, while too low values decrease the
+§ dynamic range of the audio output. Default: 6.00. During playback the VU
+§ meter in the pattern editor screen will flash red to indicate that clipping
+§ occurred.
+§
+# Stereo separation:
+§ The percentage of stereo separation to apply. Real Amigas have 100% stereo
+§ separation, but a smaller amount is much more headphone friendly.
+§
+# Lowpass filter:
+§ PoroTracker emulates the Amiga's lowpass filter. This setting specifies
+§ whether to set the filter on by default.
+§
+# Highpass filter:
+§ Amigas also contain a slight highpass filter, which can be enabled here.
+§
+# LED filter:
+§
+# Timing mode:
+§ Works like the CIA/VBL setting in original ProTracker; best left at CIA.
+§
+# Play EFX (Invert Loop) like:
+§ The Invert Loop effect plays differently in the ProTracker editor as opposed
+§ to other programs that use the ProTracker module playback routines. You can
+§ choose either playback behavior here.
+§
+
+* Display settings
+§
+# Display driver: *
+§ Choose between Direct2D or OpenGL accelerated graphics. Direct2D may work
+§ slightly faster and better but requires a patched Windows Vista at minimum.
+§
+# Font:
+§ Changes the font used.
+§
+# Mouse pointer:
+§ Change between the system default mouse pointer, a custom mouse sprite as
+§ specified in mouse.bmp, or none altogether.
+§
+# Show sizes/offsets as:
+# Show sample sizes/offsets in:
+§ These control how various numeric size and offset information is displayed.
+§ Sample sizes can be shown as either bytes and words, in either decimal or
+§ hexadecimal.
+§
+# Splash screen: *
+§ Determines whether to show the About screen at startup or jump straight to
+§ the pattern editor.
+§
+
+* Editor settings
+§
+# Effect commands:
+§ Choose if you want to use ProTracker or Impulse Tracker commands when
+§ tracking. For example, volume fade is Axx in PT and Dxx in IT. This
+§ setting only affects display and editing, not file saving.
+§
+# Home and End keys behavior:
+§ Affects navigation in the pattern editor; either the traditional style or
+§ PoroTracker's own method.
+§
+# Show empty command parameters as:
+§ Optionally hides the trailing zeroes in empty effect slots.
+§
+# Consider note B-3 as invalid:
+§ Notes played at B-3 may sound odd on real Amigas; while PoroTracker doesn't
+§ emulate this behavior (nor does any other PC replayer that I know of), you
+§ can at least choose to colorize the notes differently.
+§
+
+* Program settings
+§
+# Task priority:
+§ You can choose to give a higher processing priority to PoroTracker to
+§ lessen the chance of audio dropouts. (On by default)
+§
+# File requesters to use:
+§ You can use standard Windows file requesters for all file operations.
+§
+
+* Resampling settings
+§
+§ TBD
+§
+
+* Key bindings
+§
+§ You can redefine most key bindings in PoroTracker to suit your needs.
+§
+
+* Color palette
+§
+§ Modify the color palette to your liking and optionally change which colors
+§ are used to draw various parts of the user interface. Color settings can
+§ be also saved as presets.
+§
+
+@Splash
+[   Credits and acknowledgments   
+§
+=(C) 2016-2017 Joel Toivonen
+=(hukka of exec/void/svenonacid)
+§
+=http://hukka.yiff.fi/porotracker
+=http://hukka.ncn.fi
+=email: hukkax@gmail.com
+§
+§
+=Playroutine based on
+=pt2play.c by Olav Sorensen (8bitbubsy)
+=http://16-bits.org
+§
+§
+=Additional contributions and thanks:
+=8bitbubsy
+=muzzy
+=wuffe
+=Tempest
+§
+=Original BLEP and filter code:
+=aciddose
+§
+=BASS audio library by Ian Luck
+=http://un4seen.com
+§
+@EOF

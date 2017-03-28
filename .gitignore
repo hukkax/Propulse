@@ -45,3 +45,22 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Custom
+backup
+lib
+data/bookmarks-modules.ini
+data/bookmarks-samples.ini
+data/keyboard.ini
+data/palette/Propulse.ini
+data/propulse.ini
+*.bak
+*.dll
+*.exe
+*.rar
+*.dbg
+*.so
+*.s
+*.o
+*.ppu
+*.pdf
