@@ -52,7 +52,6 @@ lib
 data/bookmarks-modules.ini
 data/bookmarks-samples.ini
 data/keyboard.ini
-data/palette/Propulse.ini
 data/propulse.ini
 *.bak
 *.dll
