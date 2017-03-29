@@ -5,8 +5,6 @@ Propulse Tracker current status
   based input handling to SDL2
 - Some graphical glitches may exist due to changes to graphics API
 - libSOXR support is not implemented yet on non-Windows platforms
-- Program tries to load/save config and data files from the executable's
-  path instead of a sane location for the current OS; this needs fixing
 - No splash screen yet
 - Render to wav is not functional yet
 - Mac support needs someone to work on, I don't have access to one
