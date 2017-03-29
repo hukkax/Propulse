@@ -71,7 +71,6 @@ implementation
 uses
 	SDL2, Graphics32,
 	Layout,
-	Menus,
 	ShortcutManager,
 	Screen.Editor,
 	Screen.FileReq,
@@ -187,9 +186,9 @@ begin
 
 	for P := 0 to High(PaletteRGB) do
 	begin
-{		PaletteRGB[P, 0] := RedComponent  (Console.Palette[P]) div 4;
+		PaletteRGB[P, 0] := RedComponent  (Console.Palette[P]) div 4;
 		PaletteRGB[P, 1] := GreenComponent(Console.Palette[P]) div 4;
-		PaletteRGB[P, 2] := BlueComponent (Console.Palette[P]) div 4; !!!}
+		PaletteRGB[P, 2] := BlueComponent (Console.Palette[P]) div 4;
 		S := Format('Color %.2d ', [P]);
 		for C := 0 to 2 do
 			PaletteConfig.AddByte('Palette', S + Cn[C+1],

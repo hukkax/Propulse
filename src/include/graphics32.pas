@@ -103,8 +103,11 @@ type
 		constructor Create;
 	end;
 
-	function Color32(R, G, B: Byte; A: Byte = $FF): TColor32;
-	function Gray32(Intensity: Byte; Alpha: Byte = $FF): TColor32;
+	function Color32(R, G, B: Byte; A: Byte = $FF): TColor32; inline;
+	function Gray32(Intensity: Byte; Alpha: Byte = $FF): TColor32; inline;
+	function RedComponent(Color: TColor32): Byte; inline;
+	function GreenComponent(Color: TColor32): Byte; inline;
+	function BlueComponent(Color: TColor32): Byte; inline;
 
 
 implementation
@@ -137,6 +140,19 @@ function Gray32(Intensity: Byte; Alpha: Byte = $FF): TColor32;
 begin
 	Result := Alpha shl 24 + Intensity shl 16 +
 		Intensity shl 8 + Intensity;
+end;
+
+function RedComponent(Color: TColor32): Byte;
+begin
+	Result := (Color and $FF0000) shr 16;
+end;
+function GreenComponent(Color: TColor32): Byte;
+begin
+	Result := (Color and $00FF00) shr 8;
+end;
+function BlueComponent(Color: TColor32): Byte;
+begin
+	Result := Color and $0000FF;
 end;
 
 { ============================================================================}

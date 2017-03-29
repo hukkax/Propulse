@@ -320,8 +320,8 @@ end;
 function TCWENumericEdit.TextInput(var Key: Char): Boolean;
 begin
 	Result := False;
-	if (Ord(Key) < 32) {or (HiWord(GetKeyState(SDLK_CONTROL)) <> 0)} then Exit; // !!!
-	if Pos(Key, AllowedNumberKeys) < 1 then Exit;
+	if (Ord(Key) < 32) or (ModKeys(ssCtrl)) or
+		(Pos(Key, AllowedNumberKeys) < 1) then Exit;
 
 	Caption[Cursor.X+1] := AnsiChar(Key);
 	if Cursor.X < MaxLength then

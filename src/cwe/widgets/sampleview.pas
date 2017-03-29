@@ -217,15 +217,15 @@ end;
 
 procedure TSampleView.Paint;
 var
-	x1, y1, x2, y2, w, x, y: Cardinal;
+	x1, y1, x2, y2, x, y: Cardinal;
 	Col: TColor32;
 
-	procedure GetLoopBoxColor(Hovered: Boolean);
+	function GetLoopBoxColor(Hovered: Boolean): TColor32;
 	begin
 		if Hovered then
-			Col := Console.Palette[COLOR_LOOP_HOVER]
+			Result := Console.Palette[COLOR_LOOP_HOVER]
 		else
-			Col := Console.Palette[COLOR_LOOP];
+			Result := Console.Palette[COLOR_LOOP];
 	end;
 
 begin
@@ -247,7 +247,6 @@ begin
 		y2 := PixelRect.Bottom - 1;
 		x1 := PixelRect.Left;
 		x2 := PixelRect.Right  - 1;
-		w := x2 - x1;
 
 		// Show loop points if sample is looping
 		//
@@ -268,11 +267,11 @@ begin
 
 			with Console.Bitmap do
 			begin
-				GetLoopBoxColor(MouseAction = MOUSE_SETLOOP_L);
+				Col := GetLoopBoxColor(MouseAction = MOUSE_SETLOOP_L);
 				VertLine(x, y1, y2, Col);
 				FillRect(BoxL, Col);
 
-				GetLoopBoxColor(MouseAction = MOUSE_SETLOOP_R);
+				Col := GetLoopBoxColor(MouseAction = MOUSE_SETLOOP_R);
 				VertLine(y, y1, y2, Col);
 				FillRect(BoxR, Col);
 			end;

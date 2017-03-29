@@ -189,7 +189,7 @@ type
 implementation
 
 uses
-	MainWindow, Math, Menus, DateUtils,
+	MainWindow, DateUtils,
 	{$IFDEF WINDOWS}Windows, ShellAPI,{$ENDIF}
 	TextMode,
 	ProTracker.Util;
@@ -1109,7 +1109,7 @@ end;
 function TCWEEdit.TextInput(var Key: Char): Boolean;
 begin
 	Result := False;
-	if (Ord(Key) < 32) {or (HiWord(GetKeyState(VK_CONTROL)) <> 0) !!!} then Exit;
+	if (Ord(Key) < 32) or (ModKeys(ssCtrl)) then Exit;
 	if (AllowedChars <> '') and (Pos(Key, AllowedChars) < 1) then Exit;
 	if Length(Caption) >= 255 then Exit;
 

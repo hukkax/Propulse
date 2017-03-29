@@ -1,6 +1,11 @@
 unit MainWindow;
 
 {$mode delphi}
+{$IFNDEF FPC}
+type
+	PtrInt  = Integer;
+	PtrUInt = Cardinal;
+{$ENDIF}
 
 interface
 

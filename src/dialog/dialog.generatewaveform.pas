@@ -12,7 +12,8 @@ uses
 
 
 type
-	TGenerateWaveformSettings = record
+	TGenerateWaveformSettings = class
+	public
 		Waveform:	TWavetype;
 		Length:		Integer;		// length in samples
 		SampleNote: Byte;
@@ -20,7 +21,7 @@ type
 		DestOctave: Byte;
 
 		procedure DialogCallback(ID: Word; Button: TDialogButton;
-			ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
+			Tag: Integer; Data: Variant; Dlg: TCWEDialog);
 	end;
 
 	procedure Dialog_GenerateWaveform;
@@ -35,9 +36,8 @@ uses
 var
 	GenerateWaveformSettings: TGenerateWaveformSettings;
 
-
 procedure TGenerateWaveformSettings.DialogCallback(ID: Word; Button: TDialogButton;
-	ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
+	Tag: Integer; Data: Variant; Dlg: TCWEDialog);
 begin
 	if Dlg <> nil then Exit;
 
@@ -95,7 +95,7 @@ begin
 
 		AddResultButton(btnOK,     'OK',     1, H-2, True);
 		AddResultButton(btnCancel, 'Cancel', W-9, H-2);
-//		ButtonCallback := GenerateWaveformSettings.DialogCallback; !!!
+		ButtonCallback := GenerateWaveformSettings.DialogCallback;
 
 		Dialog.ActiveControl := List;
 		Show;
@@ -103,6 +103,8 @@ begin
 end;
 
 initialization
+
+	GenerateWaveformSettings := TGenerateWaveformSettings.Create;
 
 	with GenerateWaveformSettings do
 	begin
@@ -112,6 +114,10 @@ initialization
 		DestNote   := 0;
 		DestOctave := 3;
 	end;
+
+finalization
+
+	GenerateWaveformSettings.Free;
 
 end.
 

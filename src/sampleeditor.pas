@@ -3,7 +3,7 @@ unit SampleEditor;
 interface
 
 uses
-	Types, Classes, Math,
+	{Types, }Classes, Math,
 	CWE.Core,
 	Screen.Samples, SampleView;
 
@@ -564,8 +564,8 @@ begin
 	Sam := GetCurrentSample;
 	if Sam = nil then Exit;
 
-	Sam.ValidateCoords(X1, X2);
-	Sam.GetFloatData(X1, X2, buf);
+	Sam.ValidateCoords(X1{%H-}, X2{%H-});
+	Sam.GetFloatData(X1, X2, buf{%H-});
 	Filter(buf, Hz, LP);
 
 	for i := X1 to X2 do
