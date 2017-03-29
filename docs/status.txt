@@ -6,7 +6,6 @@ Propulse Tracker current status
 - Some graphical glitches may exist due to changes to graphics API
 - libSOXR support is not implemented yet on non-Windows platforms
 - No splash screen yet
-- Render to wav is not functional yet
 - Mac support needs someone to work on, I don't have access to one
 
 Regressions/changes from PoroTracker 0.8.9.3
@@ -21,4 +20,4 @@ Regressions/changes from PoroTracker 0.8.9.3
 - Exploring to a file's location or launching URLs only functional on Windows
 
 -- 
-hukka 2017-03-29 - hukkax@gmail.com - https://github.com/hukkax/Propulse
+hukka 2017-03-30 - hukkax@gmail.com - https://github.com/hukkax/Propulse
