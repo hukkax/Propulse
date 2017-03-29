@@ -187,6 +187,7 @@ uses
 	Screen.Log,
 	Screen.FileReq,
 	Screen.Editor,
+	CWE.Dialogs,
 	Dialog.RenderAudio;
 
 {$IFDEF TIMING}
@@ -367,7 +368,10 @@ begin
 	end;
 
 	if LowerCase(ExtractFileExt(Fn)) = '.wav' then
-		TAudioRender.SongToWAV(Fn)
+	begin
+		if ModalDialog.Dialog = nil then
+			Dialog_Render(False, Fn);
+	end
 	else
 	begin
 		Module.SaveToFile(Fn);

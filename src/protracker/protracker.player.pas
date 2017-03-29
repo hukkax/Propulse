@@ -351,6 +351,7 @@ uses
 	{$ENDIF}
 	Classes, Math,
 //	WaveIOX,
+	fpwavwriter, fpwavformat,
 	SDL2,
 	ProTracker.Editor,
 	ProTracker.Format.IT,
@@ -3271,14 +3272,29 @@ end;
 function TPTModule.PatternToWAV(const Filename: String; Period: Word; Rows: Byte;
 	Normalize, BoostHighs: Boolean): Cardinal;
 var
-//	Wav: TWavWriter; !!!
+	Wav: TWavWriter;
 	Buf: TArray<SmallInt>;
 begin
 	Result := 0;
-{	Wav := TWavWriter.Create(Filename, outputFreq, 2, 16);
+
+	Wav := TWavWriter.Create;
+	Wav.fmt.Format := AUDIO_FORMAT_PCM;
+	Wav.fmt.BitsPerSample := 16;
+	Wav.fmt.Channels := 2;
+	Wav.fmt.SampleRate := outputFreq;
+	Wav.fmt.ByteRate := outputFreq * 4;
+	Wav.fmt.BlockAlign := 2;
+
+	if not Wav.StoreToFile(Filename) then
+	begin
+		Log(TEXT_ERROR + 'Error creating WAV file!');
+		Wav.Free;
+		Exit;
+	end;
+
 	Result := RenderPattern(Buf, Rows, True, Normalize, BoostHighs);
-	Wav.WriteWordData(@Buf[0], Length(Buf));
-	Wav.Free;}
+	Wav.WriteBuf(Buf[0], Length(Buf)*2);
+	Wav.Free;
 end;
 
 // Renders song to a WAV file
@@ -3287,7 +3303,7 @@ end;
 //   Result: amount of samples written
 //
 function TPTModule.RenderToWAV(const Filename: String; Loops: Byte = 1; Tail: Byte = 0): Cardinal;
-{var
+var
 	i: Integer;
 	Wav: TWavWriter;
 	Len, TailedLen: Cardinal;
@@ -3295,10 +3311,27 @@ function TPTModule.RenderToWAV(const Filename: String; Loops: Byte = 1; Tail: By
 	sV, sMin, sMax: SmallInt;
 	Amp, CurrAmp: Single;
 label
-	Done; !!! }
+	Done;
 begin
 	Result := 0;
-{	Len := GetLength(Loops, True);
+
+	Wav := TWavWriter.Create;
+	Wav.fmt.Format := AUDIO_FORMAT_PCM;
+	Wav.fmt.BitsPerSample := 16;
+	Wav.fmt.Channels := 2;
+	Wav.fmt.SampleRate := outputFreq;
+	Wav.fmt.ByteRate := outputFreq * 4;
+	Wav.fmt.BlockAlign := 2;
+
+	if not Wav.StoreToFile(Filename) then
+	begin
+		Log(TEXT_ERROR + 'Error creating WAV file!');
+		Wav.Free;
+		Exit;
+	end;
+
+	Len := GetLength(Loops, True);
+	TailedLen := Len + (Tail * outputFreq);
 
 	Mixing := False;
 	DisableMixer := True;
@@ -3313,9 +3346,6 @@ begin
 	PlayMode := PLAY_SONG;
 	InitPlay(OrderList[0]);
 
-	TailedLen := Len + (Tail * outputFreq);
-
-	Wav := nil;
 	Stream := TMemoryStream.Create;
 	sMin := 0; sMax := 0;
 
@@ -3360,8 +3390,6 @@ begin
 	Stream.Seek(0, soFromBeginning);
 	RenderInfo.SamplesRendered := 0;
 
-	Wav := TWavWriter.Create(Filename, outputFreq, 2, 16);
-
 	while (not RenderInfo.Canceled) and (RenderInfo.SamplesRendered <= TailedLen) do
 	begin
 		Stream.ReadBuffer(MixBuffer[0], samplesPerFrame*4);
@@ -3377,7 +3405,7 @@ begin
 		end;
 
 		// write to file
-		Wav.WriteWordData(@MixBuffer[0], samplesPerFrame * 2);
+		Wav.WriteBuf(MixBuffer[0], samplesPerFrame * 4);
 
 		Inc(RenderInfo.SamplesRendered, samplesPerFrame);
 		if Assigned(OnProgress) then
@@ -3402,7 +3430,7 @@ Done:
 	begin
 		Result := TailedLen;
 		Log('Rendered module to %s.', [Filename]);
-	end;}
+	end;
 end;
 
 function TPTModule.GetLength(Loops: Byte = 0; InSamples: Boolean = False): Cardinal;

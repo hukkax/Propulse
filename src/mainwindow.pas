@@ -32,7 +32,7 @@ type
 		keyControlsPrevious,	keyControlsNext,
 		keySongLength,			keySongNew,
 		keyMouseCursor,			keySaveCurrent,
-		keyRenderSong,			keyCleanup,
+		keyRenderToSample,		keyCleanup,
 		keyToggleChannel1,		keyToggleChannel2,
 		keyToggleChannel3,		keyToggleChannel4
 	);
@@ -665,9 +665,9 @@ begin
 			if not InModalDialog then
 				Dialog_ModuleInfo;
 
-		keyRenderSong:
+		keyRenderToSample:
 			if not InModalDialog then
-				Dialog_Render;
+				Dialog_Render(True);
 
 		keyToggleChannel1:	Editor.ToggleChannel(0);
 		keyToggleChannel2:	Editor.ToggleChannel(1);
@@ -1005,7 +1005,9 @@ begin
 			AddCmd2(FILESORT_NAME,				'Sort by name');
 			AddCmd2(FILESORT_SIZE,				'Sort by size');
 			AddCmd2(FILESORT_DATE,				'Sort by date');
+			{$IFDEF WINDOWS}
 			AddCmd2(FILE_EXPLORE,				'Show file in Explorer');
+			{$ENDIF}
 		end;
 
 		Section := GlobalKeys;
@@ -1017,7 +1019,7 @@ begin
 		AddCmd(Ord(keyScreenSave), 				'Save module');
 		AddCmd(Ord(keySongLength), 				'Show length/size');
 		AddCmd(Ord(keyCleanup), 				'Cleanup');
-		AddCmd(Ord(keyRenderSong), 				'Render audio...');
+		AddCmd(Ord(keyRenderToSample),			'Selection to sample');
 
 		AddSection('Screens');
 		if CurrentScreen <> Help then
@@ -1315,7 +1317,7 @@ begin
 		Bind(keyPlaybackNextPattern, 	'Playback.NextPattern', 	'Ctrl+Right');
 		Bind(keySongLength, 			'Song.Length', 				'Ctrl+P');
 		Bind(keySongNew, 				'Song.New', 				'Ctrl+N');
-		Bind(keyRenderSong, 			'Song.Render', 				'Shift+F10');
+		Bind(keyRenderToSample, 		'Song.RenderToSample',		'Shift+F10');
 		Bind(keySaveCurrent, 			'Song.SaveCurrent', 		'Ctrl+S');
 		Bind(keyMouseCursor, 			'Program.MouseCursor', 		'Ctrl+M');
 		Bind(keyToggleChannel1, 		'Playback.ToggleChannel.1',	'Ctrl+1');

@@ -102,7 +102,7 @@ type
 		procedure	UpdateVUMeter(Len: Integer);
 		procedure	UpdateTimeDisplay;
 		procedure 	UpdateInfoLabels(Repaint: Boolean = False);
-		procedure 	MessageText(const S: String);
+		procedure 	MessageText(const S: String; LogIt: Boolean = False);
 
 		procedure 	ToggleChannel(Channel: Byte);
 		procedure 	SetOctave(Hi: Boolean);
@@ -429,7 +429,7 @@ begin
 		Inc(B^);
 end;
 
-procedure TEditorScreen.MessageText(const S: String);
+procedure TEditorScreen.MessageText(const S: String; LogIt: Boolean = False);
 begin
 	if S = '' then
 	begin
@@ -440,6 +440,7 @@ begin
 	begin
 		Window.MessageTextTimer := 2000 div Window.TimerInterval;
 		lblMessage.SetCaption(S);
+		if LogIt then Log(S);
 	end;
 end;
 

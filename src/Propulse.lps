@@ -11,7 +11,7 @@
         <UnitName Value="Propulse"/>
         <TopLine Value="5"/>
         <CursorPos X="68" Y="13"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
@@ -22,7 +22,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="687"/>
         <CursorPos X="20" Y="705"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
@@ -32,7 +32,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="224"/>
         <CursorPos X="22" Y="248"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit2>
       <Unit3>
@@ -41,7 +41,7 @@
         <UnitName Value="ShortcutManager"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="7"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
       <Unit4>
@@ -51,7 +51,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="295"/>
         <CursorPos X="31" Y="300"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit4>
       <Unit5>
@@ -61,7 +61,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="148"/>
         <CursorPos Y="166"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit5>
       <Unit6>
@@ -69,9 +69,9 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Player"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="98"/>
-        <CursorPos X="50" Y="289"/>
-        <UsageCount Value="36"/>
+        <TopLine Value="1099"/>
+        <CursorPos X="5" Y="1103"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit6>
       <Unit7>
@@ -79,16 +79,19 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Sample"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="1247"/>
-        <CursorPos X="38" Y="1273"/>
-        <UsageCount Value="36"/>
+        <TopLine Value="1215"/>
+        <CursorPos Y="1234"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit7>
       <Unit8>
         <Filename Value="protracker\protracker.editor.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Editor"/>
-        <UsageCount Value="36"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="352"/>
+        <CursorPos Y="374"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit8>
       <Unit9>
@@ -98,14 +101,14 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="615"/>
         <CursorPos X="34" Y="631"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit9>
       <Unit10>
         <Filename Value="cwe\widgets\cwe.widgets.scrollers.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="CWE.Widgets.Scrollers"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit10>
       <Unit11>
@@ -115,19 +118,17 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="176"/>
         <CursorPos X="17" Y="192"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit11>
       <Unit12>
         <Filename Value="cwe\widgets\sampleview.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="SampleView"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="206"/>
         <CursorPos X="13" Y="223"/>
-        <UsageCount Value="36"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit12>
       <Unit13>
@@ -137,18 +138,17 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="2"/>
         <CursorPos Y="22"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit13>
       <Unit14>
         <Filename Value="screen\screen.config.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Screen.Config"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="57"/>
         <CursorPos Y="74"/>
-        <UsageCount Value="36"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit14>
       <Unit15>
@@ -156,9 +156,9 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="Screen.Editor"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="133"/>
-        <CursorPos X="10" Y="150"/>
-        <UsageCount Value="36"/>
+        <TopLine Value="414"/>
+        <CursorPos Y="444"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit15>
       <Unit16>
@@ -166,9 +166,9 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="Screen.FileReq"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="131"/>
-        <CursorPos Y="148"/>
-        <UsageCount Value="36"/>
+        <TopLine Value="190"/>
+        <CursorPos X="37" Y="175"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit16>
       <Unit17>
@@ -178,32 +178,31 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="53"/>
         <CursorPos X="29" Y="80"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit17>
       <Unit18>
         <Filename Value="screen\screen.help.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Screen.Help"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit18>
       <Unit19>
         <Filename Value="screen\screen.log.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Screen.Log"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit19>
       <Unit20>
         <Filename Value="screen\screen.samples.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Screen.Samples"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="138"/>
         <CursorPos X="5" Y="155"/>
-        <UsageCount Value="36"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit20>
       <Unit21>
@@ -211,7 +210,7 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="Screen.Splash"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit21>
       <Unit22>
@@ -221,42 +220,42 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="172"/>
         <CursorPos X="10" Y="195"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit22>
       <Unit23>
         <Filename Value="protracker\protracker.filters.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Filters"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit23>
       <Unit24>
         <Filename Value="protracker\protracker.format.it.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Format.IT"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit24>
       <Unit25>
         <Filename Value="protracker\protracker.format.p61.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Format.P61"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit25>
       <Unit26>
         <Filename Value="protracker\protracker.import.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Import"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit26>
       <Unit27>
         <Filename Value="protracker\protracker.paula.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Paula"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit27>
       <Unit28>
@@ -266,7 +265,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="2"/>
         <CursorPos Y="19"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit28>
       <Unit29>
@@ -276,56 +275,59 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="159"/>
         <CursorPos X="9" Y="175"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit29>
       <Unit30>
         <Filename Value="dialog\dialog.generatewaveform.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Dialog.GenerateWaveform"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="88"/>
         <CursorPos X="35" Y="120"/>
-        <UsageCount Value="36"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit30>
       <Unit31>
         <Filename Value="dialog\dialog.moduleinfo.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Dialog.ModuleInfo"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit31>
       <Unit32>
         <Filename Value="dialog\dialog.newmodule.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Dialog.NewModule"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit32>
       <Unit33>
         <Filename Value="dialog\dialog.renderaudio.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Dialog.RenderAudio"/>
-        <UsageCount Value="36"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="133"/>
+        <CursorPos X="16" Y="146"/>
+        <UsageCount Value="50"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit33>
       <Unit34>
         <Filename Value="dialog\dialog.valuequery.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Dialog.ValueQuery"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit34>
       <Unit35>
         <Filename Value="sampleeditor.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="SampleEditor"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="14" Y="6"/>
-        <UsageCount Value="36"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="50"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit35>
       <Unit36>
@@ -333,9 +335,9 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="MainWindow"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="753"/>
-        <CursorPos X="31" Y="769"/>
-        <UsageCount Value="36"/>
+        <TopLine Value="510"/>
+        <CursorPos X="48" Y="537"/>
+        <UsageCount Value="50"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit36>
@@ -345,7 +347,7 @@
         <UnitName Value="BuildInfo"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="10"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="44"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit37>
       <Unit38>
@@ -355,18 +357,17 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="44"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit38>
       <Unit39>
         <Filename Value="include\graphics32.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Graphics32"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="95"/>
         <CursorPos Y="108"/>
-        <UsageCount Value="30"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="44"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit39>
       <Unit40>
@@ -376,7 +377,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="853"/>
         <CursorPos X="20" Y="871"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="44"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit40>
       <Unit41>
@@ -386,7 +387,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="44"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit41>
       <Unit42>
@@ -396,7 +397,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="44"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit42>
       <Unit43>
@@ -406,7 +407,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="44"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit43>
       <Unit44>
@@ -416,7 +417,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="44"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit44>
       <Unit45>
@@ -426,7 +427,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="44"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit45>
       <Unit46>
@@ -436,7 +437,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="44"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit46>
       <Unit47>
@@ -445,14 +446,14 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="246"/>
         <CursorPos Y="266"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="23"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit47>
       <Unit48>
         <Filename Value="graphics32_lowlevel.pas"/>
         <UnitName Value="Graphics32_LowLevel"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="23"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit48>
       <Unit49>
@@ -461,25 +462,25 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="68"/>
         <CursorPos X="9" Y="87"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="23"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit49>
       <Unit50>
         <Filename Value="fileutils.pas"/>
         <UnitName Value="FileUtils"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="23"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit50>
       <Unit51>
         <Filename Value="hkafileutils.pas"/>
         <UnitName Value="hkaFileUtils"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="23"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit51>
       <Unit52>
         <Filename Value="buildinfo.pas"/>
         <UnitName Value="BuildInfo"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="23"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit52>
       <Unit53>
@@ -488,14 +489,14 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="2576"/>
         <CursorPos Y="2598"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="7"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit53>
       <Unit54>
         <Filename Value="soxr.pas"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="4" Y="18"/>
-        <UsageCount Value="21"/>
+        <UsageCount Value="19"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit54>
       <Unit55>
@@ -504,42 +505,42 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="1156"/>
         <CursorPos Y="1160"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit55>
     </Units>
-    <JumpHistory Count="29" HistoryIndex="28">
+    <JumpHistory Count="25" HistoryIndex="24">
       <Position1>
         <Filename Value="mainwindow.pas"/>
-        <Caret Line="224" TopLine="221"/>
+        <Caret Line="86" Column="6" TopLine="70"/>
       </Position1>
       <Position2>
         <Filename Value="mainwindow.pas"/>
-        <Caret Line="86" Column="6" TopLine="70"/>
+        <Caret Line="224" TopLine="208"/>
       </Position2>
       <Position3>
         <Filename Value="mainwindow.pas"/>
-        <Caret Line="224" TopLine="208"/>
+        <Caret Line="227" Column="3" TopLine="219"/>
       </Position3>
       <Position4>
         <Filename Value="mainwindow.pas"/>
-        <Caret Line="227" Column="3" TopLine="219"/>
+        <Caret Line="463" Column="5" TopLine="446"/>
       </Position4>
       <Position5>
         <Filename Value="mainwindow.pas"/>
-        <Caret Line="463" Column="5" TopLine="446"/>
+        <Caret Line="770" Column="19" TopLine="754"/>
       </Position5>
       <Position6>
         <Filename Value="mainwindow.pas"/>
-        <Caret Line="770" Column="19" TopLine="754"/>
+        <Caret Line="749" TopLine="733"/>
       </Position6>
       <Position7>
         <Filename Value="mainwindow.pas"/>
-        <Caret Line="749" TopLine="733"/>
+        <Caret Line="9" Column="20"/>
       </Position7>
       <Position8>
         <Filename Value="mainwindow.pas"/>
-        <Caret Line="9" Column="20"/>
+        <Caret Line="175" Column="28" TopLine="158"/>
       </Position8>
       <Position9>
         <Filename Value="mainwindow.pas"/>
@@ -554,74 +555,60 @@
         <Caret Line="175" Column="28" TopLine="158"/>
       </Position11>
       <Position12>
-        <Filename Value="dialog\dialog.generatewaveform.pas"/>
+        <Filename Value="mainwindow.pas"/>
+        <Caret Line="1108" Column="13" TopLine="1096"/>
       </Position12>
       <Position13>
-        <Filename Value="dialog\dialog.generatewaveform.pas"/>
-        <Caret Line="98" Column="13" TopLine="82"/>
+        <Filename Value="dialog\dialog.renderaudio.pas"/>
       </Position13>
       <Position14>
-        <Filename Value="sampleeditor.pas"/>
+        <Filename Value="mainwindow.pas"/>
+        <Caret Line="1021" Column="42" TopLine="1026"/>
       </Position14>
       <Position15>
-        <Filename Value="sampleeditor.pas"/>
-        <Caret Line="681" Column="20" TopLine="664"/>
+        <Filename Value="mainwindow.pas"/>
+        <Caret Line="35" Column="23" TopLine="18"/>
       </Position15>
       <Position16>
-        <Filename Value="sampleeditor.pas"/>
-        <Caret Line="270" Column="35" TopLine="253"/>
+        <Filename Value="mainwindow.pas"/>
+        <Caret Line="671" TopLine="651"/>
       </Position16>
       <Position17>
-        <Filename Value="sampleeditor.pas"/>
-        <Caret Line="355" Column="11" TopLine="339"/>
+        <Filename Value="mainwindow.pas"/>
+        <Caret Line="1023" TopLine="1006"/>
       </Position17>
       <Position18>
-        <Filename Value="sampleeditor.pas"/>
-        <Caret Line="567" Column="37" TopLine="550"/>
+        <Filename Value="dialog\dialog.renderaudio.pas"/>
+        <Caret Line="88" TopLine="68"/>
       </Position18>
       <Position19>
-        <Filename Value="sampleeditor.pas"/>
-        <Caret Line="6" Column="9"/>
+        <Filename Value="mainwindow.pas"/>
+        <Caret Line="616" Column="11" TopLine="600"/>
       </Position19>
       <Position20>
-        <Filename Value="sampleeditor.pas"/>
-        <Caret Line="568" Column="37" TopLine="551"/>
+        <Filename Value="dialog\dialog.renderaudio.pas"/>
+        <Caret Line="258" Column="12" TopLine="235"/>
       </Position20>
       <Position21>
-        <Filename Value="screen\screen.config.pas"/>
-        <Caret Line="142" Column="29" TopLine="130"/>
+        <Filename Value="dialog\dialog.renderaudio.pas"/>
+        <Caret Line="281" TopLine="260"/>
       </Position21>
       <Position22>
-        <Filename Value="screen\screen.config.pas"/>
-        <Caret Line="192" Column="64" TopLine="175"/>
+        <Filename Value="dialog\dialog.renderaudio.pas"/>
+        <Caret Line="253" Column="21" TopLine="233"/>
       </Position22>
       <Position23>
-        <Filename Value="screen\screen.samples.pas"/>
+        <Filename Value="dialog\dialog.renderaudio.pas"/>
+        <Caret Line="115" TopLine="104"/>
       </Position23>
       <Position24>
-        <Filename Value="screen\screen.samples.pas"/>
-        <Caret Line="6" Column="28"/>
+        <Filename Value="dialog\dialog.renderaudio.pas"/>
+        <Caret Line="183" TopLine="174"/>
       </Position24>
       <Position25>
-        <Filename Value="cwe\widgets\sampleview.pas"/>
-        <Caret Line="350" Column="28" TopLine="334"/>
+        <Filename Value="dialog\dialog.renderaudio.pas"/>
+        <Caret Line="142" TopLine="131"/>
       </Position25>
-      <Position26>
-        <Filename Value="cwe\widgets\sampleview.pas"/>
-        <Caret Line="220" Column="18" TopLine="199"/>
-      </Position26>
-      <Position27>
-        <Filename Value="cwe\widgets\sampleview.pas"/>
-        <Caret Line="273" TopLine="254"/>
-      </Position27>
-      <Position28>
-        <Filename Value="mainwindow.pas"/>
-        <Caret Line="175" Column="28" TopLine="158"/>
-      </Position28>
-      <Position29>
-        <Filename Value="cwe\widgets\sampleview.pas"/>
-        <Caret Line="7" Column="12"/>
-      </Position29>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

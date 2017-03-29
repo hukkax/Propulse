@@ -1230,6 +1230,7 @@ begin
 			Wav.fmt.Channels := 1;
 			Wav.fmt.SampleRate := 16574;
 			Wav.fmt.ByteRate := 16574;
+			Wav.fmt.BlockAlign := 1;
 
 			if not Wav.StoreToFile(Filename) then
 				Log(TEXT_ERROR + 'Error saving WAV file!');
