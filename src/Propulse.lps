@@ -9,6 +9,7 @@
         <Filename Value="propulse.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Propulse"/>
+        <TopLine Value="5"/>
         <CursorPos X="68" Y="13"/>
         <UsageCount Value="32"/>
         <Loaded Value="True"/>
@@ -35,7 +36,12 @@
         <Filename Value="shortcutmanager.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="ShortcutManager"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="112"/>
+        <CursorPos X="47" Y="129"/>
         <UsageCount Value="32"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
       <Unit4>
@@ -43,8 +49,8 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Util"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="277"/>
-        <CursorPos X="37" Y="293"/>
+        <TopLine Value="308"/>
+        <CursorPos Y="325"/>
         <UsageCount Value="32"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit4>
@@ -62,12 +68,10 @@
         <Filename Value="protracker\protracker.player.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Player"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="1"/>
-        <TopLine Value="100"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="98"/>
         <CursorPos X="50" Y="289"/>
         <UsageCount Value="32"/>
-        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit6>
       <Unit7>
@@ -192,6 +196,9 @@
         <Filename Value="layout.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Layout"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="172"/>
+        <CursorPos Y="189"/>
         <UsageCount Value="32"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit22>
@@ -293,11 +300,11 @@
         <Filename Value="mainwindow.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="MainWindow"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="1308"/>
-        <CursorPos X="16" Y="1328"/>
-        <FoldState Value=" TL-64Kr"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="1344"/>
+        <CursorPos X="11" Y="1356"/>
         <UsageCount Value="32"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit36>
       <Unit37>
@@ -460,11 +467,39 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit54>
     </Units>
-    <JumpHistory Count="1">
+    <JumpHistory Count="8" HistoryIndex="7">
       <Position1>
         <Filename Value="propulse.pas"/>
         <Caret Line="69" Column="10" TopLine="45"/>
       </Position1>
+      <Position2>
+        <Filename Value="mainwindow.pas"/>
+        <Caret Line="1356" Column="5" TopLine="1344"/>
+      </Position2>
+      <Position3>
+        <Filename Value="shortcutmanager.pas"/>
+        <Caret Line="136" Column="6" TopLine="126"/>
+      </Position3>
+      <Position4>
+        <Filename Value="shortcutmanager.pas"/>
+        <Caret Line="123" Column="7" TopLine="116"/>
+      </Position4>
+      <Position5>
+        <Filename Value="shortcutmanager.pas"/>
+        <Caret Line="146" TopLine="117"/>
+      </Position5>
+      <Position6>
+        <Filename Value="shortcutmanager.pas"/>
+        <Caret Line="145" Column="24" TopLine="117"/>
+      </Position6>
+      <Position7>
+        <Filename Value="shortcutmanager.pas"/>
+        <Caret Line="128" TopLine="113"/>
+      </Position7>
+      <Position8>
+        <Filename Value="shortcutmanager.pas"/>
+        <Caret Line="129" Column="4" TopLine="112"/>
+      </Position8>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

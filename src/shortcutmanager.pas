@@ -3,6 +3,7 @@ unit ShortcutManager;
 interface
 
 {.$DEFINE DEBUG_KEYS}
+{.$DEFINE DEBUG_SHORTCUTS}
 
 uses
 	Classes, Menus, Generics.Collections, SDL2;
@@ -114,36 +115,46 @@ function TextToShortCut(const ShortCutText: String): TShortCut;
 var
 	S: AnsiString;
 
-	procedure GetShift(ShiftString: String; ShiftCode: TShiftStateEnum);
+	procedure GetShift(ShiftString: AnsiString; ShiftCode: TShiftStateEnum);
 	begin
 		ShiftString := ShiftString + '+';
-		if Pos(ShiftString, S) = 1 then
+		{$IFDEF DEBUG_KEYS}
+		Log('  Search Shift "%s" in "%s"', [ShiftString, S]);
+		{$ENDIF}
+		if Pos(ShiftString, S) > 0 then
 		begin
 			{$IFDEF DEBUG_KEYS}
-//			writeln('  Got shift: ' + ShiftString);
+			Log('  Got shift: ' + ShiftString);
 			{$ENDIF}
 			Include(Result.Shift, ShiftCode);
-			S := Copy(S, Length(ShiftString)+1, MaxInt);
+			S := ReplaceStr(S, ShiftString, '');
 		end;
 	end;
 
 begin
-	S := ShortCutText;
-	{$IFDEF DEBUG_KEYS}
-	writeln('Parsing shortcut: ', S);
-	{$ENDIF}
 	Result.Shift := [];
-	GetShift('Shift', ssShift);
-	GetShift('Ctrl',	ssCtrl);
-	GetShift('Alt', 	ssAlt);
-	GetShift('AltGr', 	ssAltGr);
-	GetShift('Meta',	ssMeta);
-	GetShift('Caps', 	ssCaps);
-	//GetShift('NumLock',	ssNum);
+	S := ShortCutText;
+
+	if Pos('+', S) > 1 then
+	begin
+		{$IFDEF DEBUG_KEYS}
+		Log('Parsing shortcut: ' + S);
+		{$ENDIF}
+
+		GetShift('Shift', 	ssShift);
+		GetShift('Ctrl',	ssCtrl);
+		GetShift('Alt', 	ssAlt);
+		GetShift('AltGr', 	ssAltGr);
+		GetShift('Meta',	ssMeta);
+		GetShift('Caps', 	ssCaps);
+		//GetShift('NumLock',	ssNum);
+	end;
+
 	Result.Key := SDL_GetKeyFromName(PAnsiChar(S));
+
 	{$IFDEF DEBUG_KEYS}
-	writeln('  Key: "', S, '" => ', Result.Key);
-	writeln('  ToText: ', ShortCutToText(Result));
+	Log('  Key: "%s" => %d', [S, Result.Key]);
+	Log('  ToText: ' + ShortCutToText(Result));
 	{$ENDIF}
 end;
 
@@ -220,28 +231,28 @@ begin
 	if Assigned(Bindings.Keys) then
 	begin
 		Sc := ShortCut(Key, Shift);
-		{$IFDEF DEBUG_KEYS}
+		{$IFDEF DEBUG_SHORTCUTS}
 		writeln('-------------------------------------');
 		writeln('Looking for: ', Sc.Key, shortcuttotext(sc));
 		{$ENDIF}
 		for Kb in Bindings.Keys do
 		begin
-			{$IFDEF DEBUG_KEYS}
+			{$IFDEF DEBUG_SHORTCUTS}
 			writeln(' * ', kb.Name, ' = ' , Kb.Shortcut.Key, shortcuttotext(kb.shortcut));
 			{$ENDIF}
 			if (Kb.Shortcut.Key = Sc.Key) and (Kb.Shortcut.Shift = Sc.Shift) then
 			begin
-				{$IFDEF DEBUG_KEYS}
+				{$IFDEF DEBUG_SHORTCUTS}
 				writeln('FOUND!');
 				{$ENDIF}
 				Exit(Kb.ID);
 			end;
 		end;
-		{$IFDEF DEBUG_KEYS}
+		{$IFDEF DEBUG_SHORTCUTS}
 		writeln('not found.');
 		{$ENDIF}
 	end
-	{$IFDEF DEBUG_KEYS}
+	{$IFDEF DEBUG_SHORTCUTS}
 	else
 		writeln('keys not assigned!');
 	{$ENDIF}
