@@ -105,7 +105,7 @@ type
 	end;
 
 var
-	AppPath, DataPath: String;
+	AppPath, DataPath, ConfigPath: String;
 	TextVals, HexVals: array [0..255] of AnsiString;
 	FollowPlayback: Boolean;
 	Options: TPoroTrackerConfiguration;

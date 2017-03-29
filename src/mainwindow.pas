@@ -1162,13 +1162,17 @@ begin
 	//
 	AppPath := ExtractFilePath(ParamStr(0));
 	DataPath := AppPath + 'data/';
+	ConfigPath := GetAppConfigDir(False);
+	if ConfigPath = '' then
+		ConfigPath := DataPath;
+	ForceDirectories(ConfigPath);
 	DefaultFormatSettings.DecimalSeparator := '.';
 
 	// Init configuration
 	//
 	ConfigManager := TConfigurationManager.Create;
 	Cfg := ConfigManager;
-	Cfg.Filename := DataPath + FILENAME_CONFIG;
+	Cfg.Filename := ConfigPath + FILENAME_CONFIG;
 
 	with Options do
 	begin
@@ -1195,7 +1199,7 @@ begin
 		Cfg.AddString(Sect, 'Font', @Display.Font, FILENAME_DEFAULTFONT)(*.
 		SetInfoFromDir('Font', DataPath + 'font/', '*.pcx'{'*.png;*.bmp'}, ApplyFont)*);
 		{Cfg.AddString(Sect, 'Palette', @Display.Palette, 'Propulse').
-		SetInfoFromDir('Palette', DataPath + 'palette/', '*.ini', ApplyPalette);}
+		SetInfoFromDir('Palette', ConfigPath + 'palette/', '*.ini', ApplyPalette);}
 		Cfg.AddByte(Sect, 'Mouse', @Display.MousePointer, CURSOR_CUSTOM)
 		.SetInfo('Mouse pointer', CURSOR_SYSTEM, CURSOR_NONE,
 		['System', 'Software', 'Hidden'], ChangeMousePointer);
@@ -1402,7 +1406,7 @@ begin
 
 	// Load any user-defined shortcuts
 	//
-	Shortcuts.Load(DataPath + FILENAME_KEYBOARD);
+	Shortcuts.Load(ConfigPath + FILENAME_KEYBOARD);
 
 	Log('');
 
@@ -1436,7 +1440,7 @@ begin
 	Initialized := False;
 
 	// Save configuration
-	Shortcuts.Save(DataPath + FILENAME_KEYBOARD);
+	Shortcuts.Save(ConfigPath + FILENAME_KEYBOARD);
 	ConfigManager.Save;
 	ConfigManager.Free;
 

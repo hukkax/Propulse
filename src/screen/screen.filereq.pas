@@ -516,7 +516,7 @@ begin
 
 	inherited;
 
-	LoadBookmarks(DataPath + 'bookmarks-modules.ini');
+	LoadBookmarks(ConfigPath + 'bookmarks-modules.ini');
 	SortMode := Options.Dirs.FileSortMode;
 
 	FileList.OnChange		:= FileOrDirSelected;

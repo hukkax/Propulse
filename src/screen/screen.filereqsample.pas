@@ -67,7 +67,7 @@ begin
 	inherited;
 
 	SortMode := Options.Dirs.SampleSortMode;
-	LoadBookmarks(DataPath + 'bookmarks-samples.ini');
+	LoadBookmarks(ConfigPath + 'bookmarks-samples.ini');
 
 	X1 := DirList.Rect.Left;
 
