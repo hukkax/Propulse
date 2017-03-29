@@ -5,8 +5,8 @@ unit MainWindow;
 interface
 
 uses
-	Classes, Types, SysUtils, Math, Generics.Collections,
-	SDL2, Graphics32, Graphics32_LowLevel,
+	Classes, Types, SysUtils, Generics.Collections,
+	SDL2, Graphics32,
 	ConfigurationManager, ShortcutManager,
 	TextMode, CWE.Core, CWE.MouseCursor, CWE.Dialogs,
 	CWE.Widgets.Text,
@@ -221,40 +221,10 @@ begin
 	ChangeMousePointer;
 end;
 
-procedure ApplyFont;
-var
-	X, Y: Integer;
-begin
-	X := Console.Font.Width;
-	Y := Console.Font.Height;
-
-{	if Console.LoadFont(DataPath + 'font\' + Options.Display.Font) then
-	begin
-		Window.InitWindow;
-		Window.SetFullScreen(IsFullScreen);
-
-		if (X <> Console.Font.Width) or (Y <> Console.Font.Height) then
-		begin
-			ApplyPointer;
-			SplashScreen.Init;
-		end;
-
-		Console.Refresh;
-		if CurrentScreen <> nil then
-		begin
-			CurrentScreen.Show;
-			CurrentScreen.Paint;
-		end;
-	end
-	else
-		ShowMessage('Failed opening font: ' + Options.Display.Font);}
-end;
-
 procedure TWindow.UpdateVUMeter(Len: DWord);
 var
 	InModal: Boolean;
-var
-	VUDrawn: Boolean;
+//	VUDrawn: Boolean;
 begin
 	// this hack will update the background screen (vumeters etc.) if a module
 	// is currently playing underneath a modal dialog
@@ -776,15 +746,19 @@ var
 	B: Boolean;
 	Btn: TMouseButton;
 	Key: Integer;
-	chKey: Char;
 	Shift: TShiftState;
 
 	function GetXY: TPoint;
 	begin
-		Result := Types.Point(X div Console.Font.Width, Y div Console.Font.Height);
+		Result := Types.Point(
+			MouseCursor.Pos.X div Console.Font.Width,
+			MouseCursor.Pos.Y div Console.Font.Height);
 	end;
 
 begin
+	X := MouseCursor.Pos.X;
+	Y := MouseCursor.Pos.Y;
+
 	while SDL_PollEvent(@InputEvent) <> 0 do
 	case {%H-}InputEvent.type_ of
 
@@ -792,7 +766,7 @@ begin
 		begin
 			c := InputEvent.user.code;
 			if c = MSG_VUMETER then
-				UpdateVUMeter(Integer(InputEvent.user.data1))
+				UpdateVUMeter(PtrInt(InputEvent.user.data1))
 			else
 			if c = MSG_ROWCHANGE then
 				UpdatePatternView
@@ -808,46 +782,22 @@ begin
 		begin
 			Key := InputEvent.key.keysym.sym;
 			Shift := [];
-
-			if (Key <> 0) and (InputEvent.key._repeat = 0) then
+			{if (Key <> 0) and (InputEvent.key._repeat = 0) then
 			begin
-				{writeln('Key code: ', InputEvent.key.keysym.sym,
+				writeln('Key code: ', InputEvent.key.keysym.sym,
 					'  "', SDL_GetKeyName(InputEvent.key.keysym.sym), '"');
 				writeln('Scancode: ', InputEvent.key.keysym.scancode,
 					'  "', SDL_GetScancodeName(InputEvent.key.keysym.scancode ), '"');
 				writeln('Modifiers: ', InputEvent.key.keysym._mod);
-				writeln;}
-			end;
-
+				writeln;
+			end;}
 			if InputEvent.key.keysym._mod <> 0 then
 			begin
 				c := InputEvent.key.keysym._mod;
-				{
-				KMOD_NONE	-			(no modifier is applicable)
-				KMOD_LSHIFT	?			left Shift
-				KMOD_RSHIFT	?			right Shift
-				KMOD_LCTRL	?			left Ctrl
-				KMOD_RCTRL	?			right Ctrl
-				KMOD_LALT	?			left Alt
-				KMOD_RALT	?			right Alt
-				KMOD_LGUI	?			left GUI/Windows
-				KMOD_RGUI	?			right GUI/Windows
-				KMOD_NUM	ssNum		Num Lock
-				KMOD_CAPS	ssCaps		Caps Lock
-				KMOD_MODE	ssAltGr		AltGr
-				KMOD_CTRL	ssCtrl		(KMOD_LCTRL|KMOD_RCTRL)
-				KMOD_SHIFT	ssShift		(KMOD_LSHIFT|KMOD_RSHIFT)
-				KMOD_ALT	ssAlt		(KMOD_LALT|KMOD_RALT)
-				KMOD_GUI	ssMeta?		(KMOD_LGUI|KMOD_RGUI)
-				// ssLeft, ssRight, ssMiddle, ssDouble
-			    // ssMeta, ssSuper, ssHyper
-			    // ssScroll,ssTriple,ssQuad,ssExtra1,ssExtra2
-				}
 				GetModifierKey(c, Shift, KMOD_SHIFT,ssShift);	// Shift
 				GetModifierKey(c, Shift, KMOD_CTRL,	ssCtrl);	// Ctrl
 				GetModifierKey(c, Shift, KMOD_ALT,	ssAlt);		// Alt
 				GetModifierKey(c, Shift, KMOD_GUI,	ssMeta);	// Windows
-				//GetModifierKey(c, Shift, KMOD_NUM,ssNum);		// Num Lock
 				GetModifierKey(c, Shift, KMOD_CAPS,	ssCaps);	// Caps Lock
 				GetModifierKey(c, Shift, KMOD_MODE,	ssAltGr);	// AltGr
 			end;
@@ -872,9 +822,6 @@ begin
 				else
 					Btn := mbLeft;
 				end;
-				X := InputEvent.button.x;
-				Y := InputEvent.button.y;
-				MouseCursor.Pos := Types.Point(X, Y);
 
 				if InputEvent.type_ = SDL_MOUSEBUTTONDOWN then
 				begin
@@ -902,20 +849,11 @@ begin
 		SDL_MOUSEMOTION:
 			//if (not DisableInput) then
 			if (CurrentScreen <> nil) and (Initialized) then
-			begin
-				X := InputEvent.motion.x;
-				Y := InputEvent.motion.y;
 				CurrentScreen.MouseMove(X, Y, GetXY);
-			end;
 
 		SDL_MOUSEWHEEL:
 			if CurrentScreen <> nil then
-			begin
-				SDL_GetMouseState(@X, @Y);
-				X := X div Options.Display.Scaling;
-				Y := Y div Options.Display.Scaling;
 				CurrentScreen.MouseWheel([], InputEvent.wheel.y, GetXY);
-			end;
 
 		SDL_WINDOWEVENT:
 			case InputEvent.window.event of

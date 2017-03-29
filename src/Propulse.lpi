@@ -62,12 +62,12 @@
           </Linking>
           <Other>
             <Verbosity>
-              <ShowNotes Value="False"/>
-              <ShowHints Value="False"/>
+              <ShowExecInfo Value="True"/>
+              <ShowHintsForUnusedUnitsInMainSrc Value="True"/>
             </Verbosity>
             <WriteFPCLogo Value="False"/>
             <CompilerMessages>
-              <IgnoredMessages idx3177="True"/>
+              <IgnoredMessages idx5024="True" idx4035="True"/>
             </CompilerMessages>
             <CustomOptions Value="-al
 -gl"/>
@@ -272,6 +272,7 @@
       <Unit37>
         <Filename Value="include\buildinfo.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="BuildInfo"/>
       </Unit37>
       <Unit38>
         <Filename Value="include\fileutils.pas"/>

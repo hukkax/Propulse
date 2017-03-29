@@ -140,14 +140,14 @@ uses
 	ProTracker.Util;
 
 type
-	OrderListKeyNames = (
+	OrderListKeyNames = {%H-}(
 		keyNONE,
 		keySetLength,
 		keyEditPattern
 	);
 
 var
-	OrderlistKeys: TKeyBindings;
+	{%H-}OrderlistKeys: TKeyBindings;
 
 
 // ==========================================================================
@@ -373,7 +373,7 @@ begin
 
 	// Scope
 	//
-	Editor.Scope.GetPixelRect(R);
+	Editor.Scope.GetPixelRect(R{%H-});
 
 	if Module.ClippedSamples > 0 then
 		VUClippedCounter := 3;

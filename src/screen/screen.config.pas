@@ -139,7 +139,7 @@ begin
 	RegisterLayoutControl(KeyList, CTRLKIND_BOX, False, True, True);
 
 	ColorList := TCWEConfigList.Create(Self, '', 'Palette',
-		Types.Rect(61, 5, 78, 40), True);
+		Types.Rect(61, 5, 78, 40+4), True);
 	ColorList.ColumnWidth[1] := 2;
 	ColorList.OnPaintItem := ListPaintItem;
 	ColorList.Selection3D := True;
@@ -153,12 +153,12 @@ begin
 	TCWELabel.Create(Self, 'Key Bindings (Enter to modify)', '',
 		Types.Rect(1, 22, 58, 23)).ColorFore := 1;
 
-	bLoadPalette := TCWEButton.Create(Self, 'Load preset', 'LoadPal',
-		Bounds(ColorList.Rect.Left, ColorList.Rect.Bottom+1, 18, 1), True);
+{	bLoadPalette := TCWEButton.Create(Self, 'Load preset', 'LoadPal',
+		Bounds(ColorList.Rect.Left, ColorList.Rect.Bottom+1, 18, 1), True);}
 //	bLoadPalette.OnChange := LoadPalette; !!!
 
-	bSavePalette := TCWEButton.Create(Self, 'Save preset', 'SavePal',
-		Bounds(ColorList.Rect.Left, ColorList.Rect.Bottom+3, 18, 1), True);
+{	bSavePalette := TCWEButton.Create(Self, 'Save preset', 'SavePal',
+		Bounds(ColorList.Rect.Left, ColorList.Rect.Bottom+3, 18, 1), True);}
 //	bSavePalette.OnChange := SavePalette; !!!
 
 	ActiveControl := List;
