@@ -786,7 +786,7 @@ var
 
 begin
 	while SDL_PollEvent(@InputEvent) <> 0 do
-	case InputEvent.type_ of
+	case {%H-}InputEvent.type_ of
 
 		SDL_USEREVENT:		// messages from playroutine
 		begin
@@ -866,9 +866,11 @@ begin
 			if CurrentScreen <> nil then
 			begin
 				case InputEvent.button.button of
-					SDL_BUTTON_LEFT: Btn := mbLeft;
-					SDL_BUTTON_MIDDLE: Btn := mbMiddle;
-					SDL_BUTTON_RIGHT:  Btn := mbRight;
+					SDL_BUTTON_LEFT:	Btn := mbLeft;
+					SDL_BUTTON_MIDDLE:	Btn := mbMiddle;
+					SDL_BUTTON_RIGHT:	Btn := mbRight;
+				else
+					Btn := mbLeft;
 				end;
 				X := InputEvent.button.x;
 				Y := InputEvent.button.y;
@@ -1114,8 +1116,8 @@ begin
 		event.type_ := SDL_USEREVENT;
 		event.user.code := MSG_TIMERTICK;
 	    SDL_PushEvent(@event);
-		Result := interval;
 	end;
+	Result := interval;
 end;
 
 procedure TWindow.TimerTick;
@@ -1441,6 +1443,8 @@ begin
 
 	// Save configuration
 	Shortcuts.Save(ConfigPath + FILENAME_KEYBOARD);
+	ConfigScreen.SavePalette;
+
 	ConfigManager.Save;
 	ConfigManager.Free;
 

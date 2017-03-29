@@ -10,6 +10,7 @@ const
 
 	FILENAME_CONFIG      = 'propulse.ini';
 	FILENAME_KEYBOARD    = 'keyboard.ini';
+	FILENAME_PALETTE     = 'palette.ini';
 	FILENAME_DEFAULTFONT = 'font';
 
 	ACTION_QUIT			= 1;

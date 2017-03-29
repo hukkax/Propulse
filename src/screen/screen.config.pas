@@ -426,17 +426,26 @@ begin
 end;
 
 procedure TConfigScreen.LoadPalette(const Presetname: String = '');
+
+	function GetPaletteIniName(const Presetname: String = ''): String;
+	begin
+		if Presetname = '' then
+		begin
+			Result := ConfigPath + FILENAME_PALETTE;
+			if not FileExists(Result) then
+				Result := DataPath + FILENAME_PALETTE;
+		end
+		else
+			Result := Presetname; //DataPath + 'palette\' + Presetname+'.ini';
+	end;
+
 var
 	CI: TConfigItem;
 	LI: TCWEListItem;
 	i, N, P: Integer;
 	S: AnsiString;
 begin
-	if Presetname = '' then
-		PaletteConfig.Filename := DataPath + 'palette.ini'
-	else
-		PaletteConfig.Filename := Presetname; //DataPath + 'palette\' + Presetname+'.ini';
-
+	PaletteConfig.Filename := GetPaletteIniName(Presetname);
 	PaletteConfig.Load;
 
 	ColorList.Items.Clear;
@@ -475,9 +484,10 @@ end;
 procedure TConfigScreen.SavePalette(const Presetname: String = '');
 begin
 	if Presetname = '' then
-		PaletteConfig.Filename := DataPath + 'palette.ini'
+		PaletteConfig.Filename := ConfigPath + FILENAME_PALETTE
 	else
-		PaletteConfig.Filename := Presetname; //DataPath + 'palette\' + Presetname+'.ini';
+		PaletteConfig.Filename := Presetname;
+
 	PaletteConfig.Save;
 end;
 

@@ -162,7 +162,7 @@ var
 	Ini: TIniFile;
 	Item: TConfigItem;
 begin
-	if Filename = '' then Exit(False);
+	if (Filename = '') or (not FileExists(Filename)) then Exit(False);
 	if Items.Count <= 0 then Exit(False);	// nothing to load
 
 	Ini := TIniFile.Create(Filename);
