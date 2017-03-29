@@ -509,8 +509,6 @@ end;
 // ==========================================================================
 
 constructor TModFileScreen.Create(var Con: TConsole; const sCaption, sID: AnsiString);
-var
-	H, W: Integer;
 begin
 	RegisterScreenLayout(Self, 'FileRequester');
 
@@ -535,13 +533,13 @@ end;
 
 procedure TModFileScreen.LoadModule(const Filename: String);
 begin
-{	if (Module <> nil) and (Module.Modified) then
+	if (Module <> nil) and (Module.Modified) then
 	begin
 		ModalDialog.MessageDialog(ACTION_LOADMODULE,
 			'Load Module', 'Current module not saved. Proceed?',
 			[btnOK, btnCancel], btnCancel, Window.DialogCallback, Filename);
 	end
-	else !!!}
+	else
 		Window.DoLoadModule(Filename);
 end;
 
@@ -552,7 +550,7 @@ const
 	S_OW = 'Overwrite file?';
 begin
 	Filename := Directory + ValidateFilename(FilenameEdit.Caption);
-{
+
 	if (DoDialog) and (FileExists(Filename)) then
 	begin
 		if not InSampleReq then
@@ -562,7 +560,7 @@ begin
 			ModalDialog.MessageDialog(ACTION_SAVEFILE, 'Save Sample', S_OW,
 				[btnYES, btnCancel], btnCancel, Window.DialogCallback, 0);
 	end
-	else !!!}
+	else
 		PatternEditor.SaveModule(Filename);
 end;
 
@@ -878,6 +876,7 @@ var
 	Dir: String;
 	Scr: TFileScreen;
 begin
+	Result := False;
 	Scr := TFileScreen(Screen);
 
 	case Key of
@@ -929,6 +928,8 @@ begin
 					Scr.SetDirectory(Dir);
 					Exit;
 				end;
+			else
+				Exit(True);
 			end;
 
 			with Scr do
