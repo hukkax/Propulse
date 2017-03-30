@@ -36,8 +36,8 @@ type
 
 	TCWEScrollbar = class(TCWEControl)
 	const
-		SB_SCROLLDELAY = 18;	// delay until starting to repeat scrolling
-		SB_SCROLLSPEED = 5;		// scrolling speed using scroll arrows
+		SB_SCROLLDELAY = 25;	// delay until starting to repeat scrolling
+		SB_SCROLLSPEED = 8;		// scrolling speed using scroll arrows
 
 		SB_RECT_SCROLLBAR    = 0;
 		SB_RECT_GUTTER       = 1;
@@ -310,22 +310,22 @@ begin
 		end;
 
 		SB_RECT_GUTTER:	// page up/down by clicking on gutter
-		if Horizontal then
-		begin
-			if MouseCursor.Pos.X < Rects[SB_RECT_THUMB].Left then
-				Parent.ScrollBy(-ItemsVisible)
+			if Horizontal then
+			begin
+				if MouseCursor.Pos.X < Rects[SB_RECT_THUMB].Left then
+					Parent.ScrollBy(-ItemsVisible)
+				else
+				if MouseCursor.Pos.X >= Rects[SB_RECT_THUMB].Right then
+					Parent.ScrollBy(+ItemsVisible);
+			end
 			else
-			if MouseCursor.Pos.X >= Rects[SB_RECT_THUMB].Right then
-				Parent.ScrollBy(+ItemsVisible);
-		end
-		else
-		begin
-			if MouseCursor.Pos.Y < Rects[SB_RECT_THUMB].Top then
-				Parent.ScrollBy(-ItemsVisible)
-			else
-			if MouseCursor.Pos.Y >= Rects[SB_RECT_THUMB].Bottom then
-				Parent.ScrollBy(+ItemsVisible);
-		end;
+			begin
+				if MouseCursor.Pos.Y < Rects[SB_RECT_THUMB].Top then
+					Parent.ScrollBy(-ItemsVisible)
+				else
+				if MouseCursor.Pos.Y >= Rects[SB_RECT_THUMB].Bottom then
+					Parent.ScrollBy(+ItemsVisible);
+			end;
 
 	end;
 end;
@@ -335,10 +335,17 @@ begin
 	if (not Visible) then Exit(False);
 
 	DisableTimerCallback;
-	HoveredZone := -1;
-	PrevHoveredZone := -1;
+
+	if Hovered then
+		MouseMove(X, Y, P)
+	else
+	begin
+		HoveredZone := -1;
+		PrevHoveredZone := -1;
+		Screen.ActivateControl(Parent);
+	end;
+
 	Paint;
-	Screen.ActivateControl(Parent);
 	Result := (Button <> mbMiddle);
 end;
 

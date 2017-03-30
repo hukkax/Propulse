@@ -576,7 +576,7 @@ begin
 	Y1 := R.Top;
 	Y2 := R.Bottom;
 	GH := X2 - X1;					// pixel width of the gutter area
-	if Max > 0 then
+	if (Max > 0) and (Min < Max) then
 		IH := GH / (Max - Min)	 	// pixel width of one item
 	else
 		IH := 0;
