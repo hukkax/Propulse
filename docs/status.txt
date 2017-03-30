@@ -8,16 +8,38 @@ Propulse Tracker current status
 - No splash screen yet
 - Mac support needs someone to work on, I don't have access to one
 
+
 Regressions/changes from PoroTracker 0.8.9.3
 ============================================
+
+Permanent changes:
 
 - Settings for audio API and graphics rendering API removed
 - Setting "use OS file requesters" removed
 - Setting "task priority" only available on Windows
 - Window scaling (pixel doubling) is changed via settings instead of simply
   resizing the window
-- Font file must be a 256-color PCX for now
+- Rendering the current module or selection to WAV is done via the Save Module
+  screen by entering a filename ending in .wav. This will display the export
+  dialog.
+
+To be fixed:
+
+- Font and mouse pointer images must be in 256-color PCX format
+- Font can't be changed other than by editing the config file
+- Palette preset loading/saving disabled for now due to lack of file requester
+
+Platform specific:
+
 - Exploring to a file's location or launching URLs only functional on Windows
+
+
+Bugs fixed from PoroTracker 0.8.9.3
+===================================
+
+- WAV saving: corrected a value in the wav format header
+- Scrollbars didn't work after clicking on them until mouse was moved away
+- Other stuff I forgot to write down
 
 -- 
 hukka 2017-03-30 - hukkax@gmail.com - https://github.com/hukkax/Propulse
