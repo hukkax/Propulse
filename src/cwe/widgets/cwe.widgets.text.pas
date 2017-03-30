@@ -189,7 +189,7 @@ type
 implementation
 
 uses
-	MainWindow, DateUtils,
+	MainWindow, DateUtils, Math,
 	{$IFDEF WINDOWS}Windows, ShellAPI,{$ENDIF}
 	TextMode,
 	ProTracker.Util;

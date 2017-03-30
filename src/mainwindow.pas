@@ -112,7 +112,7 @@ uses
 	{$IFDEF WINDOWS}
 	Windows,
 	{$ENDIF}
-	BuildInfo,
+	BuildInfo, Math,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config,
 	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio,
@@ -510,7 +510,7 @@ begin
 {    SDL_GetWindowSize(window, @w, @h);
     SDL_WarpMouseInWindow(window, w div 2, h div 2);}
 
-	SDL_RenderGetScale(Renderer, PFloat(@X), PFloat(@Y));
+	SDL_RenderGetScale(Renderer, SDL2.PFloat(@X), SDL2.PFloat(@Y));
 	w := Max(Trunc(x), 1); h := Max(Trunc(y), 1);
 	MouseCursor.Scaling := Types.Point(w, h);
 end;
