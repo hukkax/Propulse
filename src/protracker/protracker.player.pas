@@ -351,6 +351,7 @@ uses
 	{$ENDIF}
 	Classes, Math,
 //	WaveIOX,
+	FileStreamEx,
 	fpwavwriter, fpwavformat,
 	SDL2,
 	ProTracker.Editor,
@@ -893,55 +894,55 @@ end;
 
 function TPTModule.SaveToFile(const Filename: String): Boolean;
 var
-	Data: RawByteString;
 	i, j, k, l: Integer;
 	c: Cardinal;
 //	SavePattern: Boolean;
+	Stream: TFileStreamEx;
 begin
-	Data := '';
+	Stream := TFileStreamEx.Create(Filename, fmCreate);
 	Warnings := False;
 
 	// write song title
 	//
 	for i := Low(Info.Title) to High(Info.Title) do
-		AddVal8(Data, Ord(Info.Title[i]));
+		Stream.Write8(Info.Title[i]);
 
 	// write sample infos
 	//
 	for i := 0 to 30 do
 	begin
 		for j := 0 to 21 do
-			AddVal8(Data, Ord(Samples[i].Name[j]));
+			Stream.Write8(Samples[i].Name[j]);
 
-		AddVal8(Data, Samples[i].Length * 2 shr 9);
-		AddVal8(Data, Samples[i].Length * 2 shr 1);
-		AddVal8(Data, Samples[i].Finetune and $0F);
-		AddVal8(Data, Min(Samples[i].Volume, 64));
+		Stream.Write8(Samples[i].Length * 2 shr 9);
+		Stream.Write8(Samples[i].Length * 2 shr 1);
+		Stream.Write8(Samples[i].Finetune and $0F);
+		Stream.Write8(Min(Samples[i].Volume, 64));
 
 		c := Max(Samples[i].LoopLength * 2, 2);
 		j := Samples[i].LoopStart * 2;
 		if c = 2 then j := 0;
 
-		AddVal8(Data, j shr 9); // tempLoopStart
-		AddVal8(Data, j shr 1);
-		AddVal8(Data, c shr 9); // tempLoopLength
-		AddVal8(Data, c shr 1);
+		Stream.Write8(j shr 9); // tempLoopStart
+		Stream.Write8(j shr 1);
+		Stream.Write8(c shr 9); // tempLoopLength
+		Stream.Write8(c shr 1);
 	end;
 
-	AddVal8(Data, Info.OrderCount and $FF);
-	AddVal8(Data, $7F); // ProTracker puts 0x7F at this place (restart pos)
+	Stream.Write8(Info.OrderCount and $FF);
+	Stream.Write8($7F); // ProTracker puts 0x7F at this place (restart pos)
 
 	// write orderlist
 	//
 	for i := 0 to 127 do
-		AddVal8(Data, OrderList[i] and $FF);
+		Stream.Write8(OrderList[i] and $FF);
 
 	// write ID
 	//
 	if CountUsedPatterns < 64 then
-		Data := Data + 'M.K.'
+		Stream.WriteString('M.K.')
 	else
-		Data := Data + 'M!K!';	// >64 patterns
+		Stream.WriteString('M!K!'); // >64 patterns
 
 	// write pattern data
 	//
@@ -955,10 +956,10 @@ begin
 			for k := 0 to AMOUNT_CHANNELS-1 do
 			with Notes[i,k,l] do
 			begin
-				AddVal8(Data, ((Period shr 8) and $0F) or (Sample and $10));
-				AddVal8(Data, Period and $FF);
-				AddVal8(Data, (Sample shl 4) or (Command and $0F));
-				AddVal8(Data, Parameter);
+				Stream.Write8(((Period shr 8) and $0F) or (Sample and $10));
+				Stream.Write8(Period and $FF);
+				Stream.Write8((Sample shl 4) or (Command and $0F));
+				Stream.Write8(Parameter);
 			end;
 		end;
 	end;
@@ -973,18 +974,18 @@ begin
 		if (Samples[i].Length >= 2) and (Samples[i].LoopLength <= 2) then
 		begin
 			// Amiga ProTracker beep fix: zero first word of sample data
-			AddVal16(Data, 0);
+			Stream.Write16(0);
 			k := 2;
 		end
 		else
 			k := 0;
 		for j := k to Samples[i].Length*2-1 do
-			AddVal8(Data, Samples[i].Data[j]);
+			Stream.Write8(Samples[i].Data[j]);
 	end;
 
 	// write file to disk
 	//
-	StringToFile(Filename, Data);
+	Stream.Free;
 	Info.Filename := Filename;
 
 	Log(TEXT_LIGHT + 'Module saved: ' + Filename + '.');

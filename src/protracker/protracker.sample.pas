@@ -153,6 +153,7 @@ implementation
 uses
 	Math, Classes, SysUtils,
 	//{$IFDEF WINDOWS}Windows,{$ENDIF}
+	FileStreamEx,
 	fpwavformat, fpwavreader, fpwavwriter,
 	FloatSampleEffects,
 	ProTracker.Player,
@@ -1190,9 +1191,9 @@ procedure TSample.SaveToFile(const Filename: String; FileFormat: TSampleFormat);
 var
 	Wav: TWavWriter;
 	Buf: array of ShortInt;
-	Stream: TFileStream;
+	Stream: TFileStreamEx;
 	i, L, iffSize: Integer;
-	F: RawByteString;
+	F: AnsiString;
 begin
 	if Filename = '' then
 	begin
@@ -1241,46 +1242,46 @@ begin
 
 		SamFmtIFF:
 		begin
-			F := '';
-			i := PutString(F, 1, 'FORM');
+			Stream := TFileStreamEx.Create(Filename, fmCreate);
 
+			Stream.WriteString('FORM');
 			iffSize := Self.Length * 2 + 100;
-			i := PutVal32R(F, i, iffSize);
+			Stream.Write32R(iffSize);
 
-			i := PutString(F, i, '8SVXVHDR');
-			i := PutVal32R(F, i, $00000014);
+			Stream.WriteString('8SVXVHDR');
+			Stream.Write32R($00000014);
 			if LoopLength >= 2 then
 			begin
-				i := PutVal32R(F, i, LoopStart  * 2 and $FFFFFFE);
-				i := PutVal32R(F, i, LoopLength * 2 and $FFFFFFE);
+				Stream.Write32R(LoopStart  * 2 and $FFFFFFE);
+				Stream.Write32R(LoopLength * 2 and $FFFFFFE);
 			end
 			else
 			begin
-				i := PutVal32R(F, i, iffSize);
-				i := PutVal32R(F, i, 0);
+				Stream.Write32R(iffSize);
+				Stream.Write32R(0);
 			end;
 
-			i := PutVal32R(F, i, $00000000);
-			i := PutVal16R(F, i, $4156); 		// 16726 (rate)
-			i := PutVal16R(F, i, $0100); 		// numSamples and compression
-			i := PutVal32R(F, i, Volume*1024);	// sample volume
+			Stream.Write32R($00000000);
+			Stream.Write16R($4156); 		// 16726 (rate)
+			Stream.Write16R($0100); 		// numSamples and compression
+			Stream.Write32R(Volume*1024);	// sample volume
 
-			i := PutString(F, i, 'NAME');
-			i := PutVal32R(F, i, $00000016);
+			Stream.WriteString('NAME');
+			Stream.Write32R($00000016);
 			for L := 0 to 21 do
-				i := PutVal8(F, i, Ord(Name[L]));
+				Stream.Write8(Name[L]);
 
-			i := PutString(F, i, 'ANNO');
-			i := PutVal32R(F, i, 14);
-			i := PutString(F, i, 'Propulse ' + Copy(ProTracker.Util.VERSION, 1, 5)); // 'PoroTracker 0.x.x'
-			//i := PutVal8(F, i, 0); // even padding
+			Stream.WriteString('ANNO');
+			Stream.Write32R(14);
+			Stream.WriteString('Propulse ' + Copy(ProTracker.Util.VERSION, 1, 5)); // 'PoroTracker 0.x.x'
+			//Stream.Write8(0); // even padding
 
-			i := PutString(F, i, 'BODY');
-			i := PutVal32R(F, i, Self.Length * 2);
+			Stream.WriteString('BODY');
+			Stream.Write32R(Self.Length * 2);
 			for L := 0 to High(Data) do
-				i := PutVal8(F, i, Data[L]);
+				Stream.Write8(Data[L]);
 
-			StringToFile(Filename, F);
+			Stream.Free;
 		end;
 
 		SamFmtITS:
@@ -1290,7 +1291,7 @@ begin
 
 		SamFmtRAW:
 		begin
-			Stream := TFileStream.Create(Filename, fmCreate);
+			Stream := TFileStreamEx.Create(Filename, fmCreate);
 			Stream.WriteBuffer(Data[0], System.Length(Data));
 			Stream.Free;
 		end;
