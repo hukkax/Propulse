@@ -114,7 +114,7 @@ uses
 	{$ENDIF}
 	BuildInfo, Math,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
-	Screen.Log, Screen.Help, Screen.Config,
+	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
 	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio,
 	soxr;
 
@@ -245,10 +245,10 @@ begin
 	else
 	if CurrentScreen = SampleRequester then
 		SampleRequester.Waveform.Paint;
-{	else
+	{else
 	if (InModal) and (CurrentScreen = SplashScreen) then
-		SplashScreen.Update; !!!
-}
+		SplashScreen.Update;}
+
 	if InModal then
 	begin
 		CurrentScreen := ModalDialog.Dialog;
@@ -461,6 +461,9 @@ procedure TWindow.FlipFrame;
 var
 	X, Y: UInt32;
 begin
+	if CurrentScreen = SplashScreen then
+		SplashScreen.Update;
+
 	SDL_PumpEvents;
 	SDL_GetMouseState(@X, @Y);
 
@@ -552,8 +555,8 @@ begin
 		keyScreenConfig:
 			ChangeScreen(TCWEScreen(ConfigScreen));
 
-{		keyScreenAbout:
-			ChangeScreen(TCWEScreen(SplashScreen));}
+		keyScreenAbout:
+			ChangeScreen(TCWEScreen(SplashScreen));
 
 		keyScreenHelp:
 			if not InModalDialog then
@@ -1307,7 +1310,7 @@ begin
 		Bind(keyCleanup, 				'Song.Cleanup',				'Ctrl+Shift+C');
 		Bind(keyScreenOrderList, 		'Screen.OrderList', 		'F11');
 		Bind(keyScreenLog, 				'Screen.Log', 				['F4', 'Ctrl+F11']);
-		Bind(keyScreenAbout, 			'Screen.About', 			'Ctrl+VK_F1');
+		Bind(keyScreenAbout, 			'Screen.About', 			'Ctrl+F1');
 		Bind(keyScreenConfig, 			'Screen.Config', 			'F12');
 		Bind(keyPlaybackSong, 			'Playback.Song', 			'F5');
 		Bind(keyPlaybackPattern, 		'Playback.Pattern', 		'F6');
@@ -1348,8 +1351,8 @@ begin
 	Help := THelpScreen.Create(Console, 'Help Viewer', 'Help');
 	Screens.Add(Help);
 
-{	SplashScreen := TSplashScreen.Create(Console, '', 'Splash');
-	AddScreen(SplashScreen);}
+	SplashScreen := TSplashScreen.Create(Console, '', 'Splash');
+	Screens.Add(SplashScreen);
 
 	// Load any user-defined shortcuts
 	//

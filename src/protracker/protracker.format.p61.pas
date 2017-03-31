@@ -445,6 +445,7 @@ begin
 		if usesD8 then
 		begin
 			//Log('Sample %2d is 8-bit delta packed.', [i+1]);
+			s.Name := '8-bit delta packed';
 			delta := ModFile.Read8;
 			for j := 0 to s.Length*2-1 do
 			begin

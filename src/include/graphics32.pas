@@ -81,7 +81,9 @@ type
 
 		procedure 	Draw(DstX, DstY: Integer; Src: TBitmap32); overload;
 		procedure 	Draw(DstX, DstY: Integer; const SrcRect: TRect; Src: TBitmap32); overload;
-		procedure 	DrawColorKey(DstX, DstY: Integer; TransColor: TColor32; Src: TBitmap32);
+		procedure 	DrawColorKey(DstX, DstY: Integer; TransColor: TColor32; Src: TBitmap32); overload;
+		procedure 	DrawColorKey(DstX, DstY: Integer;
+					const SrcRect: TRect; TransColor: TColor32; Src: TBitmap32); overload;
 		procedure 	FillRect(R: TRect; Value: TColor32); overload;
 		procedure 	FillRect(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
         procedure 	FillRectS(R: TRect; Value: TColor32); overload;
@@ -542,6 +544,43 @@ begin
 	Y2 := Min(Self.Height, Y1+Src.Height);
 
 	SrcP := Src.PixelPtr[0,0];
+	DstP := Self.PixelPtr[DstX, Y1];
+
+	for Y := Y1 to Y2-1 do
+	begin
+		SP := SrcP;
+		DP := DstP;
+		for X := 0 to W-1 do
+		begin
+			if TransColor <> SP^ then DP^ := SP^;
+			Inc(SP); Inc(DP);
+		end;
+		Inc(SrcP, Src.Width);
+		Inc(DstP, Width);
+	end;
+end;
+
+procedure TBitmap32.DrawColorKey(DstX, DstY: Integer;
+	const SrcRect: TRect; TransColor: TColor32; Src: TBitmap32);
+var
+	SP, DP, SrcP, DstP: PColor32;
+	X, W, Y, Y1, Y2: Integer;
+begin
+	if Src = nil then Exit;
+
+	ValidateX(DstX);
+
+	W := Min(Src.Width, SrcRect.Right - SrcRect.Left);
+	W := Min(W, Self.Width);
+	if W <= 0 then Exit;
+	if DstX+W > BoundsRect.Right then
+		W := BoundsRect.Right - DstX;
+
+	Y1 := Max(DstY, 0);
+	Y  := Min(Src.Height, SrcRect.Bottom - SrcRect.Top);
+	Y2 := Min(Self.Height, Y1+Y);
+
+	SrcP := Src.PixelPtr[SrcRect.Left, SrcRect.Top];
 	DstP := Self.PixelPtr[DstX, Y1];
 
 	for Y := Y1 to Y2-1 do

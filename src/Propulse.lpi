@@ -295,6 +295,7 @@
       <Unit42>
         <Filename Value="include\pcx.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="PCX"/>
       </Unit42>
       <Unit43>
         <Filename Value="include\soxr.pas"/>
