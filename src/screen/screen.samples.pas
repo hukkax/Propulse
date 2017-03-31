@@ -775,6 +775,7 @@ begin
 	if (Updating) or (not (Sender.Focused)) then Exit;
 	if not (CurrentSample in [1..31]) then Exit;
 
+	Module.SetModified;
 	Sample := GetCurrentSample;
 
 	if Sender = sliFineTune then
