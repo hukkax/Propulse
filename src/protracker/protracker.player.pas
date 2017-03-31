@@ -1272,7 +1272,7 @@ begin
 		// index 23 of s.text is already zeroed
 		//ModFile.ReadBytes(PByte(@s.Name[0]), 22);
 		for j := 0 to 21 do
-			s.Name[j] := AnsiChar(Max(32, ModFile.Read8));
+			s.Name[j] := AnsiChar(Max(32, ModFile.ReadByte));
 
 		s.Length := ModFile.Read16R;
 		if s.Length > 9999 then
@@ -1280,11 +1280,11 @@ begin
 
 		if Info.Format = FORMAT_FEST then
 			// One more bit of precision, + inverted
-			s.Finetune := ((0 - ModFile.Read8 and $1F) div 2)
+			s.Finetune := ((0 - ModFile.ReadByte and $1F) div 2)
 		else
-			s.Finetune := ModFile.Read8 and $0F;
+			s.Finetune := ModFile.ReadByte and $0F;
 
-		s.Volume := Min(64, ModFile.Read8);
+		s.Volume := Min(64, ModFile.ReadByte);
 
 		s.LoopStart  := ModFile.Read16R; // repeat
 		s.LoopLength := ModFile.Read16R; // replen
@@ -1349,7 +1349,7 @@ begin
 	// Read orderlist and find amount of patterns in file
 	//
 	//ModFile.SeekTo(950);
-	Info.OrderCount := Integer(ModFile.Read8);
+	Info.OrderCount := Integer(ModFile.ReadByte);
 
 	if Info.OrderCount > 127 then // fixes beatwave.mod (129 orders) and other weird MODs
 	begin
@@ -1368,7 +1368,7 @@ begin
 		Exit;
 	end;
 
-	Info.RestartPos := ModFile.Read8;
+	Info.RestartPos := ModFile.ReadByte;
 
 	if (mightBeSTK) and ((Info.RestartPos = 0) or (Info.RestartPos > 220)) then
 	begin
@@ -1419,7 +1419,7 @@ begin
 	Info.PatternCount := 0;
 	for i := 0 to 127 do
 	begin
-		OrderList[i] := ModFile.Read8;
+		OrderList[i] := ModFile.ReadByte;
 		if OrderList[i] > Info.PatternCount then
 			Info.PatternCount := OrderList[i];
 	end;
@@ -1446,10 +1446,11 @@ begin
 			begin
 				note := @Notes[patt, ch, row];
 
-				bytes[0] := ModFile.Read8;
-				bytes[1] := ModFile.Read8;
-				bytes[2] := ModFile.Read8;
-				bytes[3] := ModFile.Read8;
+				ModFile.Read(bytes[0], 4);
+				{bytes[0] := ModFile.ReadByte;
+				bytes[1] := ModFile.ReadByte;
+				bytes[2] := ModFile.ReadByte;
+				bytes[3] := ModFile.ReadByte;}
 
 				note.Period    := ((bytes[0] and $0F) shl 8) or bytes[1];
 				note.Sample    :=  (bytes[0] and $F0) or (bytes[2] shr 4); // Don't (!) clamp, the player checks for invalid samples
