@@ -78,6 +78,7 @@ type
 		procedure	Close;
 
 		procedure 	HandleInput;
+		procedure 	ProcessMouseMovement;
 		procedure	SyncTo60Hz;
 		procedure	FlipFrame;
 
@@ -464,11 +465,7 @@ begin
 	if CurrentScreen = SplashScreen then
 		SplashScreen.Update;
 
-	SDL_PumpEvents;
-	SDL_GetMouseState(@X, @Y);
-
-	MouseCursor.Pos := Types.Point(
-		X div MouseCursor.Scaling.X, Y div MouseCursor.Scaling.Y);
+	ProcessMouseMovement;
 	MouseCursor.Draw;
 
 	SDL_UpdateTexture(Texture, nil, @Console.Bitmap.Bits[0], Console.Bitmap.Width*4);
@@ -698,6 +695,30 @@ begin
 	Key := 0; // fix F10
 end;
 
+procedure TWindow.ProcessMouseMovement;
+var
+	P: TPoint;
+	X, Y, DX, DY: Integer;
+begin
+	SDL_PumpEvents;
+	SDL_GetMouseState(@X, @Y);
+
+	MouseCursor.Pos := Types.Point(
+		X div MouseCursor.Scaling.X, Y div MouseCursor.Scaling.Y);
+
+	P := Types.Point(
+		MouseCursor.Pos.X div Console.Font.Width,
+		MouseCursor.Pos.Y div Console.Font.Height);
+
+	if {(not DisableInput) and}
+	((X <> MouseCursor.OldPos.X) or (Y <> MouseCursor.OldPos.Y)) then
+	begin
+		if CurrentScreen = nil then Exit;
+		MouseCursor.OldPos := MouseCursor.Pos;
+		CurrentScreen.MouseMove(X, Y, P);
+	end;
+end;
+
 procedure GetModifierKey(keymod: Integer; var Shift: TShiftState;
 	keymodconst: Word; shiftconst: TShiftStateEnum);
 begin
@@ -854,10 +875,10 @@ begin
 					CurrentScreen.MouseUp(Btn, X, Y, GetXY);
 			end;
 
-		SDL_MOUSEMOTION:
+		{SDL_MOUSEMOTION:
 			//if (not DisableInput) then
 			if (CurrentScreen <> nil) and (Initialized) then
-				CurrentScreen.MouseMove(X, Y, GetXY);
+				CurrentScreen.MouseMove(X, Y, GetXY);}
 
 		SDL_MOUSEWHEEL:
 			if CurrentScreen <> nil then

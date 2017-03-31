@@ -19,6 +19,7 @@ type
 		Size,
 		HotSpot,
 		Scaling,
+		OldPos,
 		Pos: 		TPoint;
 
 		procedure	Draw;
