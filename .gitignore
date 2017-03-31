@@ -63,3 +63,5 @@ data/propulse.ini
 *.o
 *.ppu
 *.pdf
+*.lps
+src/Propulse.lps

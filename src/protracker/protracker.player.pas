@@ -1105,7 +1105,7 @@ var
 	s: TSample;
 	Note: PNote;
 	mightBeSTK, mightBeIT, lateVerSTKFlag: Boolean;
-	ModFile: TFileAccessor;
+	ModFile: TFileStreamEx;
 	nd: Cardinal;
 	bytes: array [0..3] of Byte;
 	sFile: AnsiString;
@@ -1114,6 +1114,17 @@ var
 	ppPackLen, ppUnpackLen: uint32;
 	ppCrunchData: array [0..3] of Byte;
 	ppBuffer, modBuffer: array of Byte;
+	TempFilename: AnsiString;
+
+	procedure ExitError(const Msg: AnsiString; const Args: array of const);
+	begin
+		if TempFilename <> '' then
+			DeleteFile(PChar(TempFilename));
+		if ModFile <> nil then
+			ModFile.Free;
+		Log(Msg, Args);
+	end;
+
 label
 	Done;
 begin
@@ -1128,25 +1139,26 @@ begin
 	Log(TEXT_HEAD + 'Loading module: ' + Filename);
 
 	Reset;
-	ModFile.Load(Filename);
+	ModFile := TFileStreamEx.Create(Filename, fmOpenRead, fmShareDenyNone);
 
 	Info.BPM := 0;
 
 	// Verify file size
 	//
-	Info.Filesize := Length(ModFile.Data);
+	Info.Filesize := ModFile.Size;
 	Info.Filename := '';
+	TempFilename := '';
 
 	// Determine module type
 	//
-	sFile := Copy(ModFile.Data, 1, 4); // get header
+	sFile := ModFile.ReadString(False, 4);
 
 	if sFile = 'IMPM' then
 		mightBeIT := True
 	else
 	if sFile = 'PX20' then
 	begin
-		Log(TEXT_ERROR + 'Encrypted PowerPacker module!');
+		ExitError(TEXT_ERROR + 'Encrypted PowerPacker module!', []);
 		Exit;
 	end
 	else
@@ -1158,42 +1170,45 @@ begin
 		ppPackLen := Info.Filesize;
 		if (ppPackLen and 3) <> 0 then
 		begin
-			Log(TEXT_ERROR + 'Load failed: unknown PowerPacker error!');
+			ExitError(TEXT_ERROR + 'Load failed: unknown PowerPacker error!', []);
 			Exit;
 		end;
 
 		ModFile.SeekTo(ppPackLen - 4);
-		ModFile.ReadBytes(PByte(@ppCrunchData[0]), 4);
+		ModFile.Read(ppCrunchData[0], 4);
 
 		ppUnpackLen := (ppCrunchData[0] shl 16) or (ppCrunchData[1] shl 8) or ppCrunchData[2];
 
 		// smallest and biggest possible .MOD
 		if (ppUnpackLen < 2108) or (ppUnpackLen > 4195326) then
 		begin
-			Log(TEXT_ERROR + 'Load failed: not a valid module (incorrect unpacked file size)');
+			ExitError(TEXT_ERROR + 'Load failed: not a valid module (incorrect unpacked file size)', []);
 			Exit;
 		end;
 
 		SetLength(modBuffer, ppUnpackLen+1);
-
 		ModFile.SeekTo(0);
 
-		ppdecrunch(@ModFile.Data[8+1], @modBuffer[0],
-			@ModFile.Data[4+1], ppPackLen-12, ppUnpackLen, ppCrunchData[3]);
+		i := ModFile.Size;
+		SetLength(ppBuffer, i+1);
+		ModFile.Read(ppBuffer[0], i);
+
+		ppdecrunch(@ppBuffer[8], @modBuffer[0],
+			@ppBuffer[4], ppPackLen-12, ppUnpackLen, ppCrunchData[3]);
+
+		ModFile.Free;
+		// create a temp. file for the unpacked mod, lame
+		TempFilename := ConfigPath + 'temp.pp.mod';
+		ModFile := TFileStreamEx.Create(TempFilename, fmCreate or fmOpenReadWrite);
+		ModFile.Write(modBuffer[0], ppUnpackLen);
 
 		Info.Filesize := ppUnpackLen;
-		ModFile.Position := 0;
-		SetLength(ModFile.Data, ppUnpackLen+1);
-		for i := 0 to ppUnpackLen do
-			ModFile.Data[i+1] := AnsiChar(modBuffer[i]);
-
-		//StringToFile('C:\!pp.dat', ModFile.Data);
 	end;
 
 	// get normal mod ID
 	//
 	ModFile.SeekTo(OFFSET_ID);
-	ModFile.ReadBytes(PByte(@Info.ID[0]), 4);
+	ModFile.Read(Info.ID[0], 4);
 	Info.Format := CheckModType(Info.ID);
 	mightBeSTK := (Info.Format = FORMAT_UNKNOWN);
 
@@ -1219,7 +1234,7 @@ begin
 				sFile := ChangeFileExt(sFile, '');
 				SetTitle(sFile);
 			end;
-			LoadThePlayer(Self, ModFile, SamplesOnly);
+//			LoadThePlayer(Self, ModFile, SamplesOnly); !!!
 			if Options.Tracker.ITCommands then
 				GetAllNoteTexts;
 			goto Done;
@@ -1228,14 +1243,14 @@ begin
 	else
 	if ((Info.Filesize < MODFILESIZE_MIN) or (Info.Filesize > MODFILESIZE_MAX)) then
 	begin
-		Log(TEXT_ERROR + 'Load failed: Invalid filesize.');
+		ExitError(TEXT_ERROR + 'Load failed: Invalid filesize.', []);
 		Exit;
 	end;
 
 	// Read song title
 	//
 	ModFile.SeekTo(OFFSET_SONGTITLE);
-	ModFile.ReadBytes(PByte(@Info.Title[0]), 20);
+	ModFile.Read(Info.Title[0], 20);
 
 	//ModFile.SeekTo(OFFSET_SAMPLEINFO);
 
@@ -1260,7 +1275,7 @@ begin
 		for j := 0 to 21 do
 			s.Name[j] := AnsiChar(Max(32, ModFile.Read8));
 
-		s.Length := ModFile.Read16(True);
+		s.Length := ModFile.Read16R;
 		if s.Length > 9999 then
 			lateVerSTKFlag := True; // Only used if mightBeSTK is set
 
@@ -1272,8 +1287,8 @@ begin
 
 		s.Volume := Min(64, ModFile.Read8);
 
-		s.LoopStart  := ModFile.Read16(True); // repeat
-		s.LoopLength := ModFile.Read16(True); // replen
+		s.LoopStart  := ModFile.Read16R; // repeat
+		s.LoopLength := ModFile.Read16R; // replen
 
 		if (mightBeSTK) and (s.LoopStart > 0) then
 			s.LoopStart := s.LoopStart div 2;
@@ -1341,7 +1356,7 @@ begin
 	begin
 		if Info.OrderCount > 129 then
 		begin
-			Log(TEXT_ERROR + 'Load failed: not a valid .MOD file (NumOrders > 127)');
+			ExitError(TEXT_ERROR + 'Load failed: not a valid .MOD file (NumOrders > 127)', []);
 			Exit;
 		end
 		else
@@ -1350,7 +1365,7 @@ begin
 	else
 	if Info.OrderCount = 0 then
 	begin
-		Log(TEXT_ERROR + 'Load failed: not a valid .MOD file (NumOrders = 0)');
+		ExitError(TEXT_ERROR + 'Load failed: not a valid .MOD file (NumOrders = 0)', []);
 		Exit;
 	end;
 
@@ -1358,7 +1373,7 @@ begin
 
 	if (mightBeSTK) and ((Info.RestartPos = 0) or (Info.RestartPos > 220)) then
 	begin
-		Log(TEXT_ERROR + 'Load failed: not a valid .MOD file');
+		ExitError(TEXT_ERROR + 'Load failed: not a valid .MOD file', []);
 		Exit;
 	end;
 
@@ -1413,7 +1428,7 @@ begin
 //	Inc(Info.PatternCount);
 	if Info.PatternCount > MAX_PATTERNS then
 	begin
-		Log(TEXT_ERROR + 'Load failed: not a valid .MOD file (NumPatterns=%d > 100)', [Info.PatternCount]);
+		ExitError(TEXT_ERROR + 'Load failed: not a valid .MOD file (NumPatterns=%d > 100)', [Info.PatternCount]);
 		Exit;
 	end;
 
@@ -1573,7 +1588,11 @@ begin
 	end;
 
 Done:
+	ModFile.Free;
 	Modified := False;
+
+	if TempFilename <> '' then
+		DeleteFile(PChar(TempFilename));
 
 	CalculatePans(StereoSeparation);
 	IndexSamples;

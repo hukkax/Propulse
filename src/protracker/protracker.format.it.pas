@@ -9,12 +9,13 @@ interface
 
 uses
 	hkaFileUtils,
+	FileStreamEx,
 	ProTracker.Player,
 	ProTracker.Sample;
 
-	procedure	LoadImpulseTracker(var Moduli: TPTModule; var ModFile: TFileAccessor;
+	procedure	LoadImpulseTracker(var Moduli: TPTModule; var ModFile: TFileStreamEx;
 				SamplesOnly: Boolean = False);
-	procedure	ReadITSample(var Moduli: TPTModule; var ModFile: TFileAccessor;
+	procedure	ReadITSample(var Moduli: TPTModule; var ModFile: TFileStreamEx;
 				i: Byte; var ips: TImportedSample);
 
 implementation
@@ -230,7 +231,7 @@ begin
 end;
 
 // ModFile must be located just after 'IMPS'!
-procedure ReadITSample(var Moduli: TPTModule; var ModFile: TFileAccessor;
+procedure ReadITSample(var Moduli: TPTModule; var ModFile: TFileStreamEx;
 	i: Byte; var ips: TImportedSample);
 var
 	s: TSample;
@@ -382,7 +383,7 @@ begin
 	end;
 end;
 
-procedure LoadImpulseTracker(var Moduli: TPTModule; var ModFile: TFileAccessor;
+procedure LoadImpulseTracker(var Moduli: TPTModule; var ModFile: TFileStreamEx;
 	SamplesOnly: Boolean = False);
 var
 	os, i, j, V, pattend, row, channel, rowcount: Integer;
@@ -422,7 +423,7 @@ begin
 		Patterns := TExtPatternList.Create(True);
 
 		ModFile.SeekTo($04);
-		ModFile.ReadBytes(PByte(@Moduli.Info.Title[0]), 20);
+		ModFile.Read(Moduli.Info.Title[0], 20);
 	end;
 
 	ModFile.SeekTo($20); // 0020: OrdNum InsNum SmpNum PatNum Cwt/v Cmwt Flags Special
@@ -495,7 +496,7 @@ begin
 		os := SamPtrs[i];
 		ModFile.SeekTo(os);
 
-		if ModFile.ReadString(4) <> 'IMPS' then
+		if ModFile.ReadString(False, 4) <> 'IMPS' then
 		begin
 			if not SamplesOnly then
 				Log(TEXT_ERROR + 'Invalid sample (%d) at offset 0x%s', [i, IntToHex(os, 6)] );

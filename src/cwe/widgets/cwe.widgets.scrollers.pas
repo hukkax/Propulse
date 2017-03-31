@@ -359,7 +359,7 @@ end;
 
 procedure TCWEScrollbar.Adjust(Item_Count, Items_Visible: Integer; Repaint: Boolean = False);
 begin
-	ItemCount := Item_Count;
+	ItemCount := Max(Item_Count, 0);
 	ItemsVisible := Items_Visible;
 	if Repaint then Paint;
 end;

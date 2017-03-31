@@ -7,7 +7,7 @@ interface
 uses
     soxr,
 	ProTracker.Util,
-	hkaFileUtils;
+	FileStreamEx;
 
 const
 	// Sample unpacking
@@ -97,9 +97,9 @@ type
 		procedure		Assign(const Source: TSample);
 		procedure 		GetFloatData(X1, X2: Integer; var buffer: TFloatArray);
 
-		procedure 		LoadData(var ModFile: TFileAccessor;
+		procedure 		LoadData(var ModFile: TFileStreamEx;
 						NumSamples: Cardinal; Flags: Cardinal = RS_PCM8S);
-		procedure 		LoadDataFloat(var ModFile: TFileAccessor;
+		procedure 		LoadDataFloat(var ModFile: TFileStreamEx;
 						NumSamples: Cardinal; Flags: Cardinal;
 						var Buffer: TFloatArray);
 		procedure		LoadFromFile(const Filename: String);
@@ -153,7 +153,6 @@ implementation
 uses
 	Math, Classes, SysUtils,
 	//{$IFDEF WINDOWS}Windows,{$ENDIF}
-	FileStreamEx,
 	fpwavformat, fpwavreader, fpwavwriter,
 	FloatSampleEffects,
 	ProTracker.Player,
@@ -182,7 +181,7 @@ end;
 
 //{$R+}
 
-function ReadbitsIT(var ModFile: TFileAccessor;
+function ReadbitsIT(var ModFile: TFileStreamEx;
 	n: ShortInt; var srcpos, bitbuf, bitnum: Cardinal): Cardinal;
 var
 	i: Integer;
@@ -211,7 +210,7 @@ begin
 end;
 
 
-function DecompressIT(var ModFile: TFileAccessor; dest: PArrayOfShortInt;
+function DecompressIT(var ModFile: TFileStreamEx; dest: PArrayOfShortInt;
 	len: Cardinal; it215, sixteenbit: Boolean; channels, index: Byte): Cardinal;
 var
 	filelen: Cardinal;
@@ -240,7 +239,7 @@ begin
 	maxlen := len;
 
 	srcpos := ModFile.Position-1;
-	filelen := System.Length(ModFile.Data);
+	filelen := ModFile.Size;
 	Result := srcpos;
 
 	// unpack data till the dest buffer is full
@@ -893,17 +892,15 @@ end;
 procedure TSample.LoadFromFile(const Filename: String);
 var
 	Wav: TWavReader;
+	FileAcc: TFileStreamEx;
 	ID, sName: AnsiString;
 	X, i: Integer;
 	Len, WavLen: Cardinal;
-	FileAcc: TFileAccessor;
 	isStereo, is16Bit: Boolean;
 	ips: TImportedSample;
 	Buf: array of SmallInt;
 begin
-	FileAcc.Load(Filename);
-	ID := 'xxxx';
-	FileAcc.ReadBytes(ID, 4);
+	FileAcc := TFileStreamEx.Create(Filename, fmOpenRead, fmShareDenyNone);
 
 	Self.Volume := 64;
 	Self.Finetune := 0;
@@ -911,10 +908,13 @@ begin
 	Self.LoopLength := 1;
 	Self.SetName(ExtractFileName(Filename));
 
+	ID := FileAcc.ReadString(False, 4);
+
 	if ID = 'RIFF' then	// WAV
 	begin
 		Wav := TWavReader.Create;
-		Wav.LoadFromFile(Filename);
+		FileAcc.SeekTo(0);
+		Wav.LoadFromStream(FileAcc);
 
 		case Wav.fmt.Channels of
 			1:  isStereo := False;
@@ -986,23 +986,23 @@ begin
 	if ID = 'FORM' then	// IFF 8SVX
 	begin
 		// Should be the size of the file minus 4+4 ( 'FORM'+size )
-		{Len := }FileAcc.Read32(True);
-		i := 0;
-		FileAcc.ReadBytes(ID, 4);
+		Len := FileAcc.Read32R;
+		ID := FileAcc.ReadString(False, 4);
 		if ID <> '8SVX' then Exit;
+		i := 0;
 
 		while (ID <> 'BODY') and (i < 30) do
 		begin
-			FileAcc.ReadBytes(ID, 4);
+			ID := FileAcc.ReadString(False, 4);
 			Inc(i); // iterations
-			Len := FileAcc.Read32(True);
+			Len := FileAcc.Read32R;
 
 			if ID = 'VHDR' then
 			begin
 				// # samples in the high octave 1-shot part
-				Self.LoopStart  := FileAcc.Read32(True) div 2;
+				Self.LoopStart  := FileAcc.Read32R div 2;
 				// # samples in the high octave repeat part
-				Self.LoopLength := FileAcc.Read32(True) div 2;
+				Self.LoopLength := FileAcc.Read32R div 2;
 				if Self.LoopLength < 1 then
 					Self.LoopLength := 1;
 				FileAcc.Read32;				// # samples/cycle in high octave, else 0
@@ -1010,15 +1010,14 @@ begin
 				FileAcc.Read8;				// # octaves of waveforms
 				if FileAcc.Read8 <> 0 then	// # data compression technique used
 					Exit;
-				Self.Volume := Trunc((FileAcc.Read32(True) / 1024) + 0.5);	// playback volume
+				Self.Volume := Trunc((FileAcc.Read32R / 1024) + 0.5);	// playback volume
 			end
 			else
 			if ID = 'BODY' then
 			begin
 				// 8-bit sample data
-				SetLength(Data, Len);
-				Self.Length := Len div 2;
-				FileAcc.ReadBytes(PByte(@Data[0]), Len-1);
+				Resize(Len);
+				FileAcc.Read(Data[0], Len-1);
 
 				if 	(Self.LoopStart > Self.Length) or
 					((Self.LoopStart + Self.LoopLength) > Self.Length) then
@@ -1030,8 +1029,7 @@ begin
 			else
 			if ID = 'NAME' then
 			begin
-				SetLength(sName, Len);
-				FileAcc.ReadBytes(sName, Len);
+				sName := FileAcc.ReadString(False, Len);
 				Self.SetName(sName);
 				if Len mod 2 = 1 then FileAcc.Read8;
 			end
@@ -1042,7 +1040,6 @@ begin
 				if (Len <> 0) then FileAcc.Skip(Len);
 			end;
 		end;
-
 	end
 	else
 	if ID = 'IMPS' then	// Impulse Tracker sample
@@ -1052,16 +1049,16 @@ begin
 	end
 	else
 	begin				// read file as raw 8-bit mono sample data
-		X := System.Length(FileAcc.Data);
-		Self.Length := X div 2;
-		SetLength(Data, X + 1);
-		FileAcc.ReadBytes(PByte(@Data[0]), X);
+		Len := FileAcc.Size;
+		Resize(Len);
+		FileAcc.Read(Data[0], Len-1);
 	end;
 
 	ZeroFirstWord;
+	FileAcc.Free;
 end;
 
-procedure TSample.LoadData(var ModFile: TFileAccessor;
+procedure TSample.LoadData(var ModFile: TFileStreamEx;
 	NumSamples: Cardinal; Flags: Cardinal);
 var
 	i: Integer;
@@ -1083,7 +1080,7 @@ begin
 
 		// 8-bit signed PCM data
 		RS_PCM8S:
-			ModFile.ReadBytes(PByte(@Data[0]), NumSamples);
+			ModFile.Read(Data[0], NumSamples);
 
 		// 16-bit signed PCM data
 		RS_PCM16S:
@@ -1122,7 +1119,7 @@ begin
 
 end;
 
-procedure TSample.LoadDataFloat(var ModFile: TFileAccessor;
+procedure TSample.LoadDataFloat(var ModFile: TFileStreamEx;
 	NumSamples: Cardinal; Flags: Cardinal; var Buffer: TFloatArray);
 var
 	i: Integer;
