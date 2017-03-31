@@ -72,7 +72,7 @@ type
 		procedure 	SaveToFile(const Filename: String);
 
 		function	SaneCoords(X1, Y1, X2, Y2: Integer): Boolean; inline;
-		procedure	ValidateCoords(var X1, Y1, X2, Y2: Integer); inline;
+		function	ValidateCoords(var X1, Y1, X2, Y2: Integer): Boolean; inline;
 		function 	ValidateX(var X: Integer): Boolean; inline;
 		function 	ValidateY(var Y: Integer): Boolean; inline;
 		procedure	SetSize(W, H: Cardinal);
@@ -187,12 +187,27 @@ begin
 		Result := True;
 end;
 
-procedure TBitmap32.ValidateCoords(var X1, Y1, X2, Y2: Integer);
+function TBitmap32.ValidateCoords(var X1, Y1, X2, Y2: Integer): Boolean;
+var
+	Z: Integer;
 begin
 	if X1 < ClipRect.Left   then X1 := ClipRect.Left;
 	if Y1 < ClipRect.Top    then Y1 := ClipRect.Top;
 	if X2 > ClipRect.Right  then X2 := ClipRect.Right;
 	if Y2 > ClipRect.Bottom then Y2 := ClipRect.Bottom;
+{	if X1 > X2 then
+	begin
+		Z := X1;
+		X1 := X2;
+		X2 := Z;
+	end;
+	if Y1 > Y2 then
+	begin
+		Z := Y1;
+		Y1 := Y2;
+		Y2 := Z;
+	end;}
+	Result := (X1 < X2) and (Y1 < Y2);
 end;
 
 procedure TBitmap32.SetSize(W, H: Cardinal);
@@ -279,10 +294,10 @@ end;
 
 procedure TBitmap32.FillRectS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-	if (X2 > X1) and (Y2 > Y1) then
+	if (X2 > X1) and (Y2 > Y1) and (X1 < ClipRect.Right) and (Y1 < ClipRect.Bottom) then
 	begin
-		ValidateCoords(X1, Y1, X2, Y2);
-		FillRect(X1, Y1, X2, Y2, Value);
+		if ValidateCoords(X1, Y1, X2, Y2) then
+			FillRect(X1, Y1, X2, Y2, Value);
 	end;
 end;
 
