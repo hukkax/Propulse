@@ -19,6 +19,8 @@ type
 		function	Read16R:	Word; inline;
 		function	Read32:		Cardinal; inline;
 		function	Read32R:	Cardinal; inline;
+		function	Read64:		QWord; inline;
+		function	Read64R:	QWord; inline;
 		function	ReadString(StopAtZero: Boolean;
 					MaxLen: Word = 0): AnsiString; overload;
 
@@ -28,7 +30,12 @@ type
 		procedure	Write16R(Val: Word); inline;
 		procedure	Write32 (Val: Cardinal); inline;
 		procedure	Write32R(Val: Cardinal); inline;
+		procedure	Write64 (Val: QWord); inline;
+		procedure	Write64R(Val: QWord); inline;
 		procedure	WriteString(const Val: AnsiString);
+
+		procedure	Skip(Len: Int64); inline;
+		procedure	SeekTo(Offset: Int64); inline;
 	end;
 
 implementation
@@ -46,22 +53,32 @@ end;
 
 function TFileStreamEx.Read16: Word;
 begin
-	Result := BEtoN(ReadWord);
+	Result := LEtoN(ReadWord);
 end;
 
 function TFileStreamEx.Read16R: Word;
 begin
-	Result := LEtoN(ReadWord);
+	Result := BEtoN(ReadWord);
 end;
 
 function TFileStreamEx.Read32: Cardinal;
 begin
-	Result := BEtoN(ReadDWord);
+	Result := LEtoN(ReadDWord);
 end;
 
 function TFileStreamEx.Read32R: Cardinal;
 begin
-	Result := LEtoN(ReadDWord);
+	Result := BEtoN(ReadDWord);
+end;
+
+function TFileStreamEx.Read64: QWord;
+begin
+	Result := LEtoN(ReadQWord);
+end;
+
+function TFileStreamEx.Read64R: QWord;
+begin
+	Result := BEtoN(ReadQWord);
 end;
 
 function TFileStreamEx.ReadString(StopAtZero: Boolean;
@@ -78,7 +95,7 @@ begin
 		B := ReadByte;
 		if (StopAtZero) and (B = 0) then
 			Break;
-		Result := Result + Chr(B);
+		Result := Result + AnsiChar(B);
 	end;
 end;
 
@@ -116,12 +133,32 @@ begin
 	WriteDWord(NtoBE(Val));
 end;
 
+procedure TFileStreamEx.Write64(Val: QWord);
+begin
+	WriteQWord(NtoLE(Val));
+end;
+
+procedure TFileStreamEx.Write64R(Val: QWord);
+begin
+	WriteQWord(NtoBE(Val));
+end;
+
 procedure TFileStreamEx.WriteString(const Val: AnsiString);
 var
 	x: Integer;
 begin
 	for x := 1 to Length(Val) do
 		Write8(Val[x]);
+end;
+
+procedure TFileStreamEx.Skip(Len: Int64);
+begin
+	Seek(Len, soCurrent);
+end;
+
+procedure TFileStreamEx.SeekTo(Offset: Int64);
+begin
+	Seek(Offset, soBeginning);
 end;
 
 end.
