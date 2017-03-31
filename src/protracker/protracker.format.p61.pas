@@ -8,17 +8,16 @@ unit ProTracker.Format.P61;
 interface
 
 uses
-	hkaFileUtils,
+	FileStreamEx,
 	ProTracker.Player;
 
-	procedure LoadThePlayer(var Module: TPTModule; var ModFile: TFileAccessor;
+	procedure LoadThePlayer(var Module: TPTModule; var ModFile: TFileStreamEx;
 			  SamplesOnly: Boolean = False);
 
 implementation
 
 uses
-	SysUtils,
-
+	SysUtils, hkaFileUtils,
 	ProTracker.Util,
 	ProTracker.Sample;
 
@@ -60,7 +59,7 @@ end;
 
 // Decode at least one row
 // Returns true if the pattern ends here due to effect $D or $B
-function decode_p61_row(var Module: TPTModule; data: PByteArray;
+function decode_p61_row(var Module: TPTModule; data: PByte;
 	var current_pos: Cardinal;
 	pattern_number, channel_number: Byte; var row_number: Byte): Boolean;
 var
@@ -82,7 +81,6 @@ const
 	bits_empty            = $7F;
 begin
 	Result := False;
-
 	first_byte := data[current_pos];
 	Inc(current_pos);
 
@@ -221,7 +219,7 @@ begin
 end;
 
 // TODO: support SamplesOnly in P61A loader
-procedure LoadThePlayer(var Module: TPTModule; var ModFile: TFileAccessor;
+procedure LoadThePlayer(var Module: TPTModule; var ModFile: TFileStreamEx;
 	SamplesOnly: Boolean = False);
 var
 	row_number: array [0..3] of Byte;
@@ -247,17 +245,19 @@ var
 	signed_sample_length: SmallInt;
 	sname: AnsiString;
 begin
-	if Copy(ModFile.Data, 1, 4) = 'P61A' then
-	begin
-		Log('$6Importing The Player packed module.');
-		ModFile.Data := Copy(ModFile.Data, 5, MaxInt);
-	end
-	else
-		Log('$6Attempting to import The Player packed module.');
-
 	ModFile.SeekTo(0);
 
-	SamPtr := ModFile.Read16(True);					// offset to sample data
+	if ModFile.ReadString(False, 4) = 'P61A' then
+	begin
+		Log('$6Importing The Player packed module.');
+	end
+	else
+	begin
+		Log('$6Attempting to import The Player packed module.');
+		ModFile.SeekTo(0);
+	end;
+
+	SamPtr := ModFile.Read16R;						// offset to sample data
 	SamPtrs[0] := 0;
 
 	Module.Info.PatternCount := ModFile.Read8 - 1;	// # of Patterns
@@ -268,7 +268,7 @@ begin
 	samplecount := samplecount and 31;
 
 	if usesD4 then
-		ModFile.Read32(True);					// total unpacked sample length
+		ModFile.Read32R;					// total unpacked sample length
 
 	Log('%d samples and %d patterns.', [samplecount, Module.Info.PatternCount+1]);
 
@@ -284,7 +284,7 @@ begin
 		else
 			s := Module.Samples[i];
 
-		j := ModFile.Read16(True);	// sample length in words
+		j := ModFile.Read16R;	// sample length in words
 
 		//sname := Format('%2d: ', [i+1]);
 		if (i > 0) and (j > $FF00) then
@@ -314,7 +314,7 @@ begin
 
 		s.Finetune := j and $F;
 		s.Volume := ModFile.Read8;
-		j := ModFile.Read16(True);			// sample repeat start in words
+		j := ModFile.Read16R;			// sample repeat start in words
 		if j = $FFFF then					// no loop
 		begin
 			s.LoopStart := 0;
@@ -333,7 +333,7 @@ begin
 		//
 		for i := 0 to Module.Info.PatternCount do
 		for j := 0 to AMOUNT_CHANNELS-1 do
-			taddr[i,j] := ModFile.Read16(True);
+			taddr[i,j] := ModFile.Read16R;
 
 		// Read orderlist
 		//
@@ -349,8 +349,6 @@ begin
 				Module.OrderList[i] := j;
 		end;
 
-		os := ModFile.Position;
-
 		// read and convert pattern data
 		//
 		for i := 0 to Module.Info.PatternCount do
@@ -358,10 +356,11 @@ begin
 			for channel := 0 to 3 do
 			begin
 				row_number[channel] := 0;
-				current_pos[channel] := os + taddr[i, channel];
+				current_pos[channel] := ModFile.Position + taddr[i, channel];
 			end;
 
 			truncate_pos := 64;
+			ModFile.ReadData; // read file contents to ModFile.Data[]
 
 			while True do
 			begin
@@ -382,7 +381,7 @@ begin
 
 				// This will make sure we exit the while loop early
 				// but still process any remaining channels
-				if decode_p61_row(Module, @ModFile.Data[1], current_pos[current_channel],
+				if decode_p61_row(Module, @ModFile.Data[0], current_pos[current_channel],
 					i, current_channel, row_number[current_channel]) then
 						truncate_pos := row_number[current_channel];
 			end;
@@ -446,7 +445,6 @@ begin
 		if usesD8 then
 		begin
 			//Log('Sample %2d is 8-bit delta packed.', [i+1]);
-			s.Name := '8-bit delta packed';
 			delta := ModFile.Read8;
 			for j := 0 to s.Length*2-1 do
 			begin

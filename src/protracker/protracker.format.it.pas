@@ -8,8 +8,7 @@ unit ProTracker.Format.IT;
 interface
 
 uses
-	hkaFileUtils,
-	FileStreamEx,
+	FileStreamEx, hkaFileUtils,
 	ProTracker.Player,
 	ProTracker.Sample;
 

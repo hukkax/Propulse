@@ -82,7 +82,7 @@
         <FormatVersion Value="1"/>
       </local>
     </RunParams>
-    <Units Count="47">
+    <Units Count="48">
       <Unit0>
         <Filename Value="propulse.pas"/>
         <IsPartOfProject Value="True"/>
@@ -288,30 +288,35 @@
         <UnitName Value="Graphics32_LowLevel"/>
       </Unit40>
       <Unit41>
-        <Filename Value="include\pcx.pas"/>
+        <Filename Value="include\hkafileutils.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="hkaFileUtils"/>
       </Unit41>
       <Unit42>
-        <Filename Value="include\soxr.pas"/>
+        <Filename Value="include\pcx.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit42>
       <Unit43>
-        <Filename Value="include\fpwavformat.pas"/>
+        <Filename Value="include\soxr.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit43>
       <Unit44>
-        <Filename Value="include\fpwavreader.pas"/>
+        <Filename Value="include\fpwavformat.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit44>
       <Unit45>
-        <Filename Value="include\fpwavwriter.pas"/>
+        <Filename Value="include\fpwavreader.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit45>
       <Unit46>
+        <Filename Value="include\fpwavwriter.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit46>
+      <Unit47>
         <Filename Value="include\filestreamex.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="FileStreamEx"/>
-      </Unit46>
+      </Unit47>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

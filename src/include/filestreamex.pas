@@ -14,6 +14,8 @@ type
 	{ TFileStreamEx }
 	TFileStreamEx = class(TFileStream)
 	public
+		Data:		array of Byte;
+
 		function	Read8:		Byte; inline;
 		function	Read16:		Word; inline;
 		function	Read16R:	Word; inline;
@@ -23,6 +25,7 @@ type
 		function	Read64R:	QWord; inline;
 		function	ReadString(StopAtZero: Boolean;
 					MaxLen: Word = 0): AnsiString; overload;
+		function 	ReadData: Int64;
 
 		procedure	Write8  (Val: Byte); overload; inline;
 		procedure	Write8  (Val: Char); overload; inline;
@@ -33,6 +36,7 @@ type
 		procedure	Write64 (Val: QWord); inline;
 		procedure	Write64R(Val: QWord); inline;
 		procedure	WriteString(const Val: AnsiString);
+		procedure	WriteData;
 
 		procedure	Skip(Len: Int64); inline;
 		procedure	SeekTo(Offset: Int64); inline;
@@ -48,7 +52,10 @@ implementation
 
 function TFileStreamEx.Read8: Byte;
 begin
-	Result := ReadByte;
+	if Position >= Size then
+		Result := 0
+	else
+		Result := ReadByte;
 end;
 
 function TFileStreamEx.Read16: Word;
@@ -97,6 +104,18 @@ begin
 			Break;
 		Result := Result + AnsiChar(B);
 	end;
+end;
+
+function TFileStreamEx.ReadData: Int64;
+var
+	P: Int64;
+begin
+	Result := Size;
+	P := Position;
+	SetLength(Data, Result+1);
+	SeekTo(0);
+	Read(Data[0], Result);
+	SeekTo(P);
 end;
 
 // ============================================================================
@@ -149,6 +168,12 @@ var
 begin
 	for x := 1 to Length(Val) do
 		Write8(Val[x]);
+end;
+
+procedure TFileStreamEx.WriteData;
+begin
+	if System.Length(Data) > 0 then
+		Write(Data[0], System.Length(Data));
 end;
 
 procedure TFileStreamEx.Skip(Len: Int64);

@@ -21,7 +21,6 @@ uses
 	{$ENDIF}
 	SysUtils,
 	Generics.Collections,
-	hkaFileUtils,
 	ProTracker.Util,
 	ProTracker.Sample,
 	ProTracker.Paula,
@@ -1234,7 +1233,7 @@ begin
 				sFile := ChangeFileExt(sFile, '');
 				SetTitle(sFile);
 			end;
-//			LoadThePlayer(Self, ModFile, SamplesOnly); !!!
+			LoadThePlayer(Self, ModFile, SamplesOnly);
 			if Options.Tracker.ITCommands then
 				GetAllNoteTexts;
 			goto Done;
