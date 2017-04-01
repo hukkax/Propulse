@@ -53,6 +53,7 @@ data/bookmarks-modules.ini
 data/bookmarks-samples.ini
 data/keyboard.ini
 data/propulse.ini
+src/Propulse.lps
 *.bak
 *.dll
 *.exe
@@ -63,6 +64,3 @@ data/propulse.ini
 *.o
 *.ppu
 *.pdf
-*.lps
-src/Propulse.lps
-*.lps
