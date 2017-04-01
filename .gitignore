@@ -49,11 +49,7 @@ Temporary Items
 # Custom
 backup
 lib
-data/bookmarks-modules.ini
-data/bookmarks-samples.ini
-data/keyboard.ini
-data/propulse.ini
-src/Propulse.lps
+*.lps
 *.bak
 *.dll
 *.exe

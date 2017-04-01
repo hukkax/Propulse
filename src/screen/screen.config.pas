@@ -624,6 +624,7 @@ begin
 
 	ColorFore := 2; //TConsole.COLOR_PANEL;
 	ColumnColor[0] := ColorFore;
+	WantHover := True;
 end;
 
 procedure TCWEConfigList.Init(var aConfigManager: TConfigurationManager);

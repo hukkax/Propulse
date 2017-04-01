@@ -768,7 +768,7 @@ begin
 		// highlight active line
 		if (i + Offset = ItemIndex) and (
 			(Self = Screen.ActiveControl) or
-			((Selection3D) and (Self = Screen.HoveredControl)) ) then
+			((Selection3D) and (Hovered)) ) then
 		begin
 			xx := Data[0].Value; // selected foreground color
 
