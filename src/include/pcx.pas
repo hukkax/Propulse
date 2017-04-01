@@ -12,9 +12,11 @@ type
 	TPCXPalette32 = array [0..255] of TColor32;
 
 	TPCXImage = class
-		Width, Height: Integer;
-		Palette: TPCXPalette32;
-		Pixels: array of array of Byte;
+		BitsPerPixel,
+		Width,
+		Height:		Integer;
+		Palette:	TPCXPalette32;
+		Pixels: 	array of array of Byte;
 	end;
 
 	function 	PCX_CreateImage(W, H: Integer): TPCXImage;
@@ -25,7 +27,11 @@ type
 	procedure 	PCX_ClearBuffer(var image: TPCXImage; val: Byte);
 	procedure 	PCX_RenderBuffer(var image: TPCXImage; var buffer: TBitmap32);
 
+
 implementation
+
+uses
+	FileStreamEx;
 
 
 function FileToString(Filename: String): RawByteString;
@@ -114,29 +120,54 @@ end;
 
 function PCX_LoadImage(Filename: String): TPCXImage;
 var
-	tmp, Bf: RawByteString;
-	fsize, fpos, tavu1, tavu2, position: Integer;
+	Bf: RawByteString;
+	fsize: Int64;
+	b: Byte;
+	tavu1, tavu2, y,
+	position, bytesperline, bytestoread: Integer;
+	PCXFile: TFileStreamEx;
+	OK: Boolean;
+label
+	Done;
 begin
+	OK := False;
 	if not FileExists(Filename) then Exit(nil);
 
+	PCXFile := TFileStreamEx.Create(Filename, fmOpenRead, fmShareDenyNone);
+
 	Result := TPCXImage.Create;
-	tmp  := FileToString(Filename);
-	fsize := Length(tmp);
-	fpos := 9;
-	Result.Width  := Ord(tmp[fpos])   + (Ord(tmp[fpos+1]) shl 8) + 1;
-	Result.Height := Ord(tmp[fpos+2]) + (Ord(tmp[fpos+3]) shl 8) + 1;
+	fsize := PCXFile.Size;
+
+	if PCXFile.ReadByte <> $A then goto Done;
+	PCXFile.SeekTo(3);
+	Result.BitsPerPixel := PCXFile.ReadByte;
+
+	PCXFile.SeekTo(8);
+	Result.Width  := PCXFile.ReadWord + 1;
+	Result.Height := PCXFile.ReadWord + 1;
+
 	Bf := '';
 	SetCodePage(Bf, 1252, False);
-	fpos := 128+1;
+	PCXFile.SeekTo(128);
+	position := PCXFile.Position;
 
-	while Length(Bf) < (Result.Width * Result.Height) do
+	case Result.BitsPerPixel of
+		1:	bytesperline := Result.Width div 8;
+		4:	bytesperline := Result.Width div 2;
+	else
+		bytesperline := Result.Width;
+	end;
+	bytestoread := Result.Height * bytesperline;
+
+	while Length(Bf) < bytestoread do
 	begin
-		tavu1 := Ord(tmp[fpos]);
-		if fpos < fsize then Inc(fpos) else Break;
+		tavu1 := PCXFile.ReadByte;
+		Inc(position);
+		if position > fsize then Break;
 		if tavu1 > 192 then
 		begin
-			tavu2 := Ord(tmp[fpos]);
-			Inc(fpos);
+			tavu2 := PCXFile.ReadByte;
+			Inc(position);
 			while tavu1 > 192 do
 			begin
 				Bf := Bf + Chr(tavu2);
@@ -147,16 +178,71 @@ begin
 			Bf := Bf + Chr(tavu1);
 	end;
 
+	OK := True;
 	SetLength(Result.Pixels, Result.Width, Result.Height);
 	position := 1;
-	for tavu1 := 0 to Result.Height-1 do
-		for tavu2 := 0 to Result.Width-1 do
+
+	case Result.BitsPerPixel of
+
+		1:
 		begin
-			Result.Pixels[tavu2,tavu1] := Ord(Bf[position]);
-			Inc(position);
+			// get pixels
+			for tavu1 := 0 to Result.Height-1 do
+			for tavu2 := 0 to bytesperline-1 do
+			begin
+				b := Ord(Bf[position]);
+				Inc(position);
+				for y := 0 to 7 do
+				begin
+					if (b and 128) <> 0 then
+						Result.Pixels[tavu2*8+y,tavu1] := 1
+					else
+						Result.Pixels[tavu2*8+y,tavu1] := 0;
+					b := b shl 1;
+				end;
+			end;
+
+			Result.Palette[0] := $000000;
+			Result.Palette[1] := $FFFFFF;
 		end;
 
-	Result.Palette := PCX_LoadPalette32(Filename);
+		4:
+		begin
+		end;
+
+		8:
+		begin
+			// get pixels
+			for tavu1 := 0 to Result.Height-1 do
+			for tavu2 := 0 to Result.Width-1 do
+			begin
+				Result.Pixels[tavu2,tavu1] := Ord(Bf[position]);
+				Inc(position);
+			end;
+
+			// read palette
+			if (fsize > 768) then
+			begin
+				PCXFile.SeekTo(fsize - 768);
+				for Y := 0 to 255 do
+					Result.Palette[Y] := Color32(
+						PCXFile.ReadByte, PCXFile.ReadByte, PCXFile.ReadByte);
+			end;
+		end;
+	else
+		OK := False;
+	end;
+
+	{PCXFile.Free;
+	PCXFile := TFileStreamEx.Create(Filename + '.dat', fmCreate or fmOpenWrite);
+	//PCXFile.Write(Bf[1], Length(Bf));
+	for tavu1 := 0 to Result.Height-1 do
+	for tavu2 := 0 to Result.Width-1 do
+		PCXFile.WriteByte(Result.Pixels[tavu2,tavu1]);}
+
+Done:
+	if not OK then FreeAndNil(Result);
+	PCXFile.Free;
 end;
 
 procedure PCX_ClearBuffer(var image: TPCXImage; val: Byte);
