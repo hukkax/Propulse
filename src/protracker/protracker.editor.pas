@@ -862,10 +862,19 @@ var
 	Sht: TShiftState;
 	Sc, Scs: EditorKeyNames;
 	AllowEditing: Boolean;
+	chrKey: AnsiString;
 label
 	Done;
 begin
 	if Key = 0 then Exit(False);
+
+	if (Key < 256) then
+	begin
+		chrKey := UpperCase(Chr(Key));
+		//writeln('Key=', Key, '  Chr=', chrKey);
+	end
+	else
+		chrKey := '';
 
 	AllowEditing := not FollowPlayback; //(Module.PlayMode <> PLAY_SONG);
 	Result := False;
@@ -894,7 +903,7 @@ begin
 	//keySelectModifierSkipValue
 	if ssAlt in Shift then
 	begin
-		o := Pos(Chr(Key), KeyboardNumbers) - 1;
+		o := Pos(chrKey, KeyboardNumbers) - 1;
 		if o in [0..9] then
 		begin
 			if o = 9 then o := 16;
@@ -1641,7 +1650,7 @@ begin
 
 			COL_OCTAVE:
 			begin
-				o := Pos(Chr(Key), KeyboardNumbers) - 1;
+				o := Pos(chrKey, KeyboardNumbers) - 1;
 				if o in [1..3] then
 				begin
 					Result := True;
@@ -1664,7 +1673,7 @@ begin
 
 			COL_SAMPLE_1:  // sample number 1st digit
 			begin
-				o := Pos(Chr(Key), KeyboardNumbers) - 1;
+				o := Pos(chrKey, KeyboardNumbers) - 1;
 				if o in [0..3] then
 				begin
 					Result := True;
@@ -1678,7 +1687,7 @@ begin
 
 			COL_SAMPLE_2:  // sample number 2nd digit
 			begin
-				o := Pos(Chr(Key), KeyboardNumbers) - 1;
+				o := Pos(chrKey, KeyboardNumbers) - 1;
 				if o >= 0 then
 				begin
 					Cursor.Note.Sample := Min((Cursor.Note.Sample div 10 * 10) + o, 31);
@@ -1693,7 +1702,7 @@ begin
 
 			COL_VOLUME_1:	// volume 1st digit
 			begin
-				o := Pos(Chr(Key), KeyboardNumbers) - 1;
+				o := Pos(chrKey, KeyboardNumbers) - 1;
 				if o in [0..6] then
 				begin
 					Cursor.Note.Command := $C;
@@ -1709,7 +1718,7 @@ begin
 
 			COL_VOLUME_2:	// volume 2nd digit
 			begin
-				o := Pos(Chr(Key), KeyboardNumbers) - 1;
+				o := Pos(chrKey, KeyboardNumbers) - 1;
 				if o >= 0 then
 				begin
 					Cursor.Note.Command := $C;
@@ -1726,11 +1735,11 @@ begin
 
 			COL_COMMAND:	// effect type
 			begin
-				o := Pos(Chr(Key), CmdChars) - 1;
+				o := Pos(chrKey, CmdChars) - 1;
 				if o >= 0 then
 				begin
 					if Options.Tracker.ITCommands then
-						i := Pos(Chr(Key), CmdCharsITExt) - 1
+						i := Pos(chrKey, CmdCharsITExt) - 1
 					else
 						i := -1;
 
@@ -1761,7 +1770,7 @@ begin
 			COL_PARAMETER_2:	// effect 2nd digit
 			if Cursor.Note.Command <> $C then
 			begin
-				o := Pos(Chr(Key), KeyboardHexNumbers) - 1;
+				o := Pos(chrKey, KeyboardHexNumbers) - 1;
 				if o >= 0 then
 				begin
 					if Cursor.Column = COL_PARAMETER_1 then
