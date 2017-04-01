@@ -82,9 +82,6 @@ begin
 	begin
 		SyncTo60Hz;
         HandleInput;
-
-		Console.Paint;
-
 		FlipFrame;
 	end;
 
