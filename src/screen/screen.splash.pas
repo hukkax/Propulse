@@ -35,6 +35,9 @@ type
 		ScrollColor: Byte;
 		ScrollText: AnsiString;
 		Tunnel: TFxTunnel;
+
+		function 	BoxMouseDown(Ctrl: TCWEControl;
+					Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
 	public
 		Box:		TCWEControl;
 
@@ -150,10 +153,9 @@ begin
 	for yy := 0 to Size.Y-1 do
 	for xx := 0 to Size.X-1 do
 	begin
-		tx := Round(Angles[xx + shiftlookX, yy+shiftlookY] + Movement + shiftlookX) mod Texture.Width;
-		ty := Round(Distances[xx + shiftlookX, yy + shiftlookY] + Animation + shiftlookY) mod Texture.Height;
-		if (tx >= 0) and (ty >= 0) then
-			Buffer.Pixel[X+xx,Y+yy] := Texture.Pixel[tx, ty];
+		tx := Trunc(Angles[xx + shiftlookX, yy+shiftlookY] + Movement + shiftlookX) mod Texture.Width;
+		ty := Trunc(Distances[xx + shiftlookX, yy + shiftlookY] + Animation + shiftlookY) mod Texture.Height;
+		Buffer.Pixel[X+xx, Y+yy] := Texture.Pixel[tx, ty];
 	end;
 end;
 
@@ -218,6 +220,8 @@ begin
 		Types.Rect(3, 4, Console.Width-3, Console.Height-12), True);
 	Box.SetBorder(True, True, True, False);
 	Box.ColorBack := 0;
+	Box.OnMouseDown := BoxMouseDown;
+	Box.WantMouse := True;
 
 	Button := TCWEButton.Create(Self, 'Continue', 'bOK',
 		Types.Rect(32, Console.Height-3, Console.Width-32, Console.Height-2));
@@ -238,7 +242,6 @@ destructor TSplashScreen.Destroy;
 begin
 	Tunnel.Free;
 	Scroll.Free;
-
 	inherited Destroy;
 end;
 
@@ -311,6 +314,11 @@ begin
 		TRANSCOLOR, Scroll);
 end;
 
+function TSplashScreen.BoxMouseDown(Ctrl: TCWEControl;
+	Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
+begin
+	Result := True;
+end;
 
 end.
 
