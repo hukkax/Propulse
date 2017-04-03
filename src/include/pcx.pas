@@ -178,6 +178,12 @@ begin
 			Bf := Bf + Chr(tavu1);
 	end;
 
+	// read 16-color palette
+	PCXFile.SeekTo($10);
+	for Y := 0 to 15 do
+		Result.Palette[Y] := Color32(
+			PCXFile.ReadByte, PCXFile.ReadByte, PCXFile.ReadByte);
+
 	OK := True;
 	SetLength(Result.Pixels, Result.Width, Result.Height);
 	position := 1;
@@ -201,13 +207,19 @@ begin
 					b := b shl 1;
 				end;
 			end;
-
-			Result.Palette[0] := $000000;
-			Result.Palette[1] := $FFFFFF;
 		end;
 
 		4:
 		begin
+			// get pixels
+			for tavu1 := 0 to Result.Height-1 do
+			for tavu2 := 0 to bytesperline-1 do
+			begin
+				b := Ord(Bf[position]);
+				Inc(position);
+				Result.Pixels[tavu2*2+0,tavu1] := b shr 4;
+				Result.Pixels[tavu2*2+1,tavu1] := b and 15;
+			end;
 		end;
 
 		8:
