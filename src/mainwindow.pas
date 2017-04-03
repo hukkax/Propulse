@@ -703,12 +703,14 @@ begin
 	SDL_PumpEvents;
 	SDL_GetMouseState(@X, @Y);
 
-	MouseCursor.Pos := Types.Point(
-		X div MouseCursor.Scaling.X, Y div MouseCursor.Scaling.Y);
+	X := X div MouseCursor.Scaling.X;
+	Y := Y div MouseCursor.Scaling.Y;
+
+	MouseCursor.Pos := Types.Point(X, Y);
 
 	P := Types.Point(
-		MouseCursor.Pos.X div Console.Font.Width,
-		MouseCursor.Pos.Y div Console.Font.Height);
+		X div Console.Font.Width,
+		Y div Console.Font.Height);
 
 	if {(not DisableInput) and}
 	((X <> MouseCursor.OldPos.X) or (Y <> MouseCursor.OldPos.Y)) then
