@@ -91,7 +91,6 @@ uses
 	Classes,
 	IniFiles,
 	SysUtils,
-	Menus,
 	ShortcutManager,
 	ProTracker.Util,
 	CWE.Widgets.Text;

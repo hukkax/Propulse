@@ -6,7 +6,7 @@ interface
 {.$DEFINE DEBUG_SHORTCUTS}
 
 uses
-	Classes, Menus, Generics.Collections, SDL2;
+	Classes, Generics.Collections, SDL2;
 
 type
 	TShortCut = record
