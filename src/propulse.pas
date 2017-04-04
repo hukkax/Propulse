@@ -19,6 +19,7 @@ program Propulse;
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *)
 
+{$mode delphi}
 {$APPTYPE GUI}
 {$R Propulse.res}
 
@@ -32,7 +33,7 @@ uses
 		lazdynamic_bass,
 		{$ENDIF}
 	{$ENDIF}
-	MainWindow, CWE.Core;
+	MainWindow;
 
 
 	{$IFDEF FPC}
