@@ -459,8 +459,6 @@ begin
 end;
 
 procedure TWindow.FlipFrame;
-var
-	X, Y: UInt32;
 begin
 	if CurrentScreen = SplashScreen then
 		SplashScreen.Update;
@@ -485,7 +483,11 @@ begin
 
 	if B then
 	begin
+		{$IFDEF WINDOWS}
 		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		{$ELSE}
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+		{$ENDIF}
 		SDL_SetWindowGrab(window, SDL_TRUE);
 	end
 	else
@@ -698,7 +700,7 @@ end;
 procedure TWindow.ProcessMouseMovement;
 var
 	P: TPoint;
-	X, Y, DX, DY: Integer;
+	X, Y: Integer;
 begin
 	SDL_PumpEvents;
 	SDL_GetMouseState(@X, @Y);
