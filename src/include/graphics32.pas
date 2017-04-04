@@ -55,6 +55,8 @@ type
 	TColor32Array = array of TColor32;
 	PColor32Array = ^TColor32Array;
 
+	TPalette32 = array [0..255] of TColor32;
+
 	{ TBitmap32 }
 	TBitmap32 = class
 	private
@@ -244,13 +246,13 @@ procedure TBitmap32.LoadFromFile(const Filename: String);
 var
 	Bm: TPCXImage;
 begin
-	Bm := PCX_LoadImage(Filename);
-	if Bm <> nil then
+	Bm := TPCXImage.Create;
+	if Bm.LoadFromFile(Filename) then
 	begin
 		SetSize(Bm.Width, Bm.Height);
-		PCX_RenderBuffer(Bm, Self);
-		Bm.Free;
+		Bm.DrawTo(Self);
 	end;
+	Bm.Free;
 end;
 
 procedure TBitmap32.SaveToFile(const Filename: String);
