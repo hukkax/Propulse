@@ -602,6 +602,7 @@ begin
 	else
 	begin
 		Handled := True;
+		if Key = 0 then Exit;
 
 		Binding.Shortcut := ShortCut(Key, Shift);
 

@@ -817,27 +817,34 @@ begin
 		SDL_KEYDOWN:
 		begin
 			Key := InputEvent.key.keysym.sym;
-			Shift := [];
-			{if (Key <> 0) and (InputEvent.key._repeat = 0) then
-			begin
-				writeln('Key code: ', InputEvent.key.keysym.sym,
-					'  "', SDL_GetKeyName(InputEvent.key.keysym.sym), '"');
-				writeln('Scancode: ', InputEvent.key.keysym.scancode,
-					'  "', SDL_GetScancodeName(InputEvent.key.keysym.scancode ), '"');
-				writeln('Modifiers: ', InputEvent.key.keysym._mod);
-				writeln;
-			end;}
-			if InputEvent.key.keysym._mod <> 0 then
-			begin
-				c := InputEvent.key.keysym._mod;
-				GetModifierKey(c, Shift, KMOD_SHIFT,ssShift);	// Shift
-				GetModifierKey(c, Shift, KMOD_CTRL,	ssCtrl);	// Ctrl
-				GetModifierKey(c, Shift, KMOD_ALT,	ssAlt);		// Alt
-				GetModifierKey(c, Shift, KMOD_GUI,	ssMeta);	// Windows
-				GetModifierKey(c, Shift, KMOD_CAPS,	ssCaps);	// Caps Lock
-				GetModifierKey(c, Shift, KMOD_MODE,	ssAltGr);	// AltGr
+			case Key of
+				SDLK_LSHIFT, SDLK_RSHIFT,
+				SDLK_LCTRL,  SDLK_RCTRL,
+				SDLK_LALT,   SDLK_RALT,
+				0: ;
+			else
+				Shift := [];
+				{if (Key <> 0) and (InputEvent.key._repeat = 0) then
+				begin
+					writeln('Key code: ', InputEvent.key.keysym.sym,
+						'  "', SDL_GetKeyName(InputEvent.key.keysym.sym), '"');
+					writeln('Scancode: ', InputEvent.key.keysym.scancode,
+						'  "', SDL_GetScancodeName(InputEvent.key.keysym.scancode ), '"');
+					writeln('Modifiers: ', InputEvent.key.keysym._mod);
+					writeln;
+				end;}
+				if InputEvent.key.keysym._mod <> 0 then
+				begin
+					c := InputEvent.key.keysym._mod;
+					GetModifierKey(c, Shift, KMOD_SHIFT,ssShift);	// Shift
+					GetModifierKey(c, Shift, KMOD_CTRL,	ssCtrl);	// Ctrl
+					GetModifierKey(c, Shift, KMOD_ALT,	ssAlt);		// Alt
+					GetModifierKey(c, Shift, KMOD_GUI,	ssMeta);	// Windows
+					GetModifierKey(c, Shift, KMOD_CAPS,	ssCaps);	// Caps Lock
+					GetModifierKey(c, Shift, KMOD_MODE,	ssAltGr);	// AltGr
+				end;
+				OnKeyDown(Key, Shift);
 			end;
-			OnKeyDown(Key, Shift);
 		end;
 
         SDL_TEXTINPUT:
