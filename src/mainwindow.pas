@@ -11,7 +11,7 @@ interface
 
 uses
 	Classes, Types, SysUtils, Generics.Collections,
-	SDL2, Graphics32,
+	SDL2,
 	ConfigurationManager, ShortcutManager,
 	TextMode, CWE.Core, CWE.MouseCursor, CWE.Dialogs,
 	CWE.Widgets.Text,
@@ -157,6 +157,9 @@ begin
 
 		ACTION_DELETEFILE:
 			FileScreen.DeleteFile(False);
+
+		ACTION_DELETEDIR:
+			FileScreen.DeleteDir(False);
 
 	end;
 end;
