@@ -23,6 +23,10 @@ const
 	FILESORT_DATE	= 2;
 
 	FILE_EXPLORE	= 3;
+	FILE_RENAME		= 4;
+	FILE_COPY		= 5;
+	FILE_MOVE		= 6;
+	FILE_DELETE		= 7;
 
 type
 	TFileList = class(TCWEList)
@@ -31,6 +35,8 @@ type
 	end;
 
 	TDirList = class(TCWEList)
+		function 	GetPath: String; inline;
+
 		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 		function	TextInput(var Key: Char): Boolean; override;
 	end;
@@ -83,6 +89,7 @@ type
 		procedure 	LoadFile(const Filename: String); dynamic; abstract;
 		procedure 	SaveFile(DoDialog: Boolean = True); dynamic; abstract;
 		procedure	DeleteFile(DoDialog: Boolean = True);
+		procedure	DeleteDir(DoDialog: Boolean = True);
 		procedure 	CopyFile(const DestDir: String);
 
 		procedure 	Show(aSaveMode: Boolean; const Dir: String); reintroduce;
@@ -234,7 +241,13 @@ var
 begin
 	Filename := Directory + ValidateFilename(FilenameEdit.Caption);
 
-	if (DoDialog) and (FileExists(Filename)) then
+	if (Filename = '') or (FileExists(Filename) = False) then
+	begin
+		Log(TEXT_ERROR + 'Cannot delete "%s": File not found!', [Filename]);
+		Exit;
+	end;
+
+	if DoDialog then
 	begin
 		ModalDialog.MessageDialog(ACTION_DELETEFILE, 'Delete File',
 			'Delete selected file?',
@@ -247,10 +260,42 @@ begin
 	end;
 end;
 
+procedure TFileScreen.DeleteDir(DoDialog: Boolean = True);
+var
+	Dir: String;
+begin
+	Dir := IncludeTrailingPathDelimiter(Directory) +
+		DirList.Items[DirList.ItemIndex].Captions[0];
+
+	if (Dir = '') or (DirectoryExists(Dir) = False) then
+	begin
+		Log(TEXT_ERROR + 'Cannot delete "%s": Directory not found!', [Dir]);
+		Exit;
+	end;
+
+	if DoDialog then
+	begin
+		ModalDialog.MessageDialog(ACTION_DELETEDIR, 'Delete Directory',
+			'Delete selected directory?',
+			[btnYES, btnCancel], btnCancel, Window.DialogCallback, 0);
+	end
+	else
+	begin
+		DeleteToBin(Dir);
+		SetDirectory(DirEdit.Caption);
+	end;
+end;
+
 procedure TFileScreen.CopyFile(const DestDir: String);
 var
 	DestFile, Filename: String;
 begin
+	if (DestDir = '') or (DirectoryExists(DestDir) = False) then
+	begin
+		Log(TEXT_ERROR + 'Cannot copy file: Directory "%s" not found!', [DestDir]);
+		Exit;
+	end;
+
 	Filename := ValidateFilename(FilenameEdit.Caption);
 	DestFile := IncludeTrailingPathDelimiter(DestDir)   + Filename;
 	Filename := IncludeTrailingPathDelimiter(Directory) + Filename;
@@ -380,8 +425,7 @@ begin
 end;
 
 // Do a search for the typed in search string, starting from selected item
-// then wrapping back to the first row if no matches were found;
-// select the first match if any
+// then wrapping back to the first row if no matches were found; select the first match if any
 procedure TFileScreen.SearchTermChanged;
 var
 	ST: AnsiString;
@@ -407,7 +451,13 @@ begin
 end;
 
 procedure TFileScreen.HandleCommand(const Cmd: Cardinal);
+var
+	IsFile, IsFolder: Boolean;
+	Dir: String;
 begin
+	IsFolder := DirList.Focused;
+	IsFile   := FileList.Focused;
+
 	case Cmd of
 
 		FILESORT_NAME, FILESORT_SIZE, FILESORT_DATE:
@@ -430,6 +480,47 @@ begin
 				SelectFileInExplorer(
 					IncludeTrailingPathDelimiter(DirEdit.Caption) +
 					FilenameEdit.Caption);
+
+		FILE_COPY:
+			if IsFolder then
+			begin
+				case DirList.Items[DirList.ItemIndex].Data of
+					LISTITEM_BOOKMARK:
+						Dir := Bookmarks[DirList.ItemIndex];
+					LISTITEM_DIR, LISTITEM_HEADER, LISTITEM_DRIVE:
+						Dir := DirList.GetPath;
+				else
+					Exit;
+				end;
+				if Dir <> '' then
+					CopyFile(Dir);
+			end
+			else
+				CopyFile(DirList.GetPath);
+
+
+		FILE_DELETE:
+			if IsFolder then
+			begin
+				case DirList.Items[DirList.ItemIndex].Data of
+					LISTITEM_BOOKMARK:
+						RemoveBookmark(Bookmarks[DirList.ItemIndex]);
+					LISTITEM_DRIVE:
+						ModalDialog.ShowMessage('Delete',
+							'Can''t delete a drive!');
+					LISTITEM_DIR:
+						DeleteDir(True);
+				end;
+			end
+			else
+			if IsFile then
+				DeleteFile(True);
+
+		FILE_RENAME:
+		;
+
+		FILE_MOVE:
+		;
 
 	end;
 end;
@@ -768,6 +859,7 @@ function TFileList.KeyDown;
 var
 	S: TSample;
 	i: Integer;
+	Sc: ControlKeyNames;
 	Scn: EditorKeyNames;
 begin
 	if InSampleReq then
@@ -776,12 +868,14 @@ begin
 		FileScreen := FileRequester;
 
 	Result := True;
-	case Key of
 
-		SDLK_INSERT:
+	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, Shift));
+	case Sc of
+
+		ctrlkeyINSERT:
 			FileScreen.AddBookmark(FileScreen.Directory);
 
-		SDLK_RETURN:
+		ctrlkeyRETURN:
 			if not InSampleReq then			// Load/save module
 			begin
 				if FileRequester.SaveMode then
@@ -830,10 +924,10 @@ begin
 			end; // case
 
 
-		SDLK_DELETE:
+		ctrlkeyDELETE:
 			FileScreen.DeleteFile(True);
 
-		SDLK_RIGHT:
+		ctrlkeyRIGHT:
 			FileScreen.ActivateControl(FileScreen.DirList);
 
 	else
@@ -888,37 +982,30 @@ begin
 	FileRequester.FileList.TextInput(Key);
 end;
 
+function TDirList.GetPath: String;
+begin
+	Result := Items[ItemIndex].Captions[0];
+end;
+
 function TDirList.KeyDown;
-
-	function GetPath: String;
-	begin
-		Result := Items[ItemIndex].Captions[0];
-	end;
-
 var
 	Dir: String;
 	Scr: TFileScreen;
+	Sc: ControlKeyNames;
 begin
-	Result := False;
+	Result := True;
 	Scr := TFileScreen(Screen);
+	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, Shift));
 
-	case Key of
+	case Sc of
 
-		SDLK_INSERT:
+		ctrlkeyDELETE:
+			Scr.HandleCommand(FILE_DELETE);
+
+		ctrlkeyINSERT:
 		begin
 			if Shift = [ssShift] then
-			begin
-				case Items[ItemIndex].Data of
-					LISTITEM_BOOKMARK:
-						Dir := Scr.Bookmarks[ItemIndex];
-					LISTITEM_DIR, LISTITEM_HEADER, LISTITEM_DRIVE:
-						Dir := GetPath;
-				else
-					Dir := '';
-				end;
-				if Dir <> '' then
-					FileScreen.CopyFile(Dir);
-			end
+				FileScreen.HandleCommand(FILE_COPY)
 			else
 			case Items[ItemIndex].Data of // no Shift
 				LISTITEM_BOOKMARK:
@@ -929,27 +1016,13 @@ begin
 			end;
 		end;
 
-		SDLK_DELETE:
-		begin
-			case Items[ItemIndex].Data of
-				LISTITEM_BOOKMARK:
-					Scr.RemoveBookmark(Scr.Bookmarks[ItemIndex]);
-				LISTITEM_DRIVE: ;
-				LISTITEM_DIR:
-					ModalDialog.ShowMessage('Delete Directory',
-						'Directory deletion not implemented yet!');
-			end;
-		end;
-
-		SDLK_PLUS,
-		SDLK_MINUS:
+		ctrlkeyPLUS,
+		ctrlkeyMINUS:
 			if Items[ItemIndex].Data = LISTITEM_BOOKMARK then
-				Scr.MoveBookmark(Scr.Bookmarks[ItemIndex], (Key = SDLK_PLUS));
+				Scr.MoveBookmark(Scr.Bookmarks[ItemIndex], (Sc = ctrlkeyPLUS));
 
-		SDLK_RETURN:	// enter directory
+		ctrlkeyRETURN:	// enter directory
 		begin
-			Result := True;
-
 			case Items[ItemIndex].Data of
 				LISTITEM_BOOKMARK:
 				begin
@@ -966,7 +1039,7 @@ begin
 					Exit;
 				end;
 			else
-				Exit(True);
+				Exit;
 			end;
 
 			with Scr do
@@ -980,16 +1053,11 @@ begin
 			end;
 		end;
 
-		SDLK_LEFT:
-		begin
+		ctrlkeyLEFT:
 			Scr.ActivateControl(Scr.FileList);
-			Result := True;
-		end;
 
 	else
-		// Result := False; inherited;
 		Result := inherited KeyDown(Key, Shift);
-
 		if not Result then
 			Result := Scr.SearchHandler(Key, Shift);
 	end;
