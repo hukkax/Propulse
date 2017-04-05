@@ -23,6 +23,7 @@ const
 	ACTION_MOVEFILE		= 8;
 	ACTION_RENAMEFILE	= 9;
 	ACTION_RENAMEDIR	= 10;
+	ACTION_CREATEDIR	= 11;
 
 	FILTER_PALETTE = 'Palettes|*.ini';
 	FILTER_WAV     = 'WAV Files (*.wav)|*.wav|All Files|*.*';

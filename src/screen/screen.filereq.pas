@@ -3,8 +3,8 @@ unit Screen.FileReq;
 interface
 
 uses
-	Classes, Types, SysUtils,
-	TextMode, CWE.Core, CWE.Widgets.Text;
+	Classes, Types, SysUtils, ShortcutManager,
+	TextMode, CWE.Core, CWE.Dialogs, CWE.Widgets.Text;
 
 const
 	AmigaExts  = '[mod][p61][stk][nst][ust][nt][m15]';
@@ -27,15 +27,25 @@ const
 	FILE_COPY		= 5;
 	FILE_MOVE		= 6;
 	FILE_DELETE		= 7;
+	FILE_CREATEDIR	= 8;
 
 type
+	FileOpKeyNames = (
+		filekeyNONE,
+		filekeyRename,
+		filekeyCopy,
+		filekeyMove,
+		filekeyDelete,
+		filekeyCreate
+	);
+
 	TFileList = class(TCWEList)
 		function	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 		function	TextInput(var Key: Char): Boolean; override;
 	end;
 
 	TDirList = class(TCWEList)
-		function 	GetPath: String; inline;
+		function 	GetPath(Fullpath: Boolean): String; inline;
 
 		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 		function	TextInput(var Key: Char): Boolean; override;
@@ -57,8 +67,10 @@ type
 		PrevFile:	String;
 		BookmarkFile: String;
 
-		function 	SearchHandler(var Key: Integer; Shift: TShiftState): Boolean;
-		procedure 	SearchTermChanged;
+		procedure 	RenameCallback(ID: Word; ModalResult: TDialogButton;
+					Tag: Integer; Data: Variant; Dlg: TCWEDialog);
+		function	SearchHandler(var Key: Integer; Shift: TShiftState): Boolean;
+		procedure	SearchTermChanged;
 	public
 		Directory:	String;
 
@@ -85,12 +97,13 @@ type
 		procedure 	FileOrDirSelected(Sender: TCWEControl); dynamic; abstract;
 		procedure 	DirOrFilenameEntered(Sender: TCWEControl); dynamic; abstract;
 		procedure 	SortFiles;
+		procedure	SelectFile(Filename: String);
 
 		procedure 	LoadFile(const Filename: String); dynamic; abstract;
 		procedure 	SaveFile(DoDialog: Boolean = True); dynamic; abstract;
 		procedure	DeleteFile(DoDialog: Boolean = True);
 		procedure	DeleteDir(DoDialog: Boolean = True);
-		procedure 	CopyFile(const DestDir: String);
+		procedure 	CopyFile(const DestDir: String; MoveFile: Boolean = False);
 
 		procedure 	Show(aSaveMode: Boolean; const Dir: String); reintroduce;
 		procedure 	SetDirectory(Dir: String); dynamic; abstract;
@@ -101,6 +114,8 @@ type
 		procedure	AddBookmark(Path: String; Index: Integer = -1);
 		procedure	RemoveBookmark(const Path: String);
 		procedure 	BookmarksChanged(Recreate: Boolean = True);
+
+		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 	end;
 
 	TModFileScreen = class(TFileScreen)
@@ -123,6 +138,7 @@ type
 var
 	FileScreen: TFileScreen;
 	FileRequester: TModFileScreen;
+	FileOpKeys: TKeyBindings;
 
 
 implementation
@@ -133,8 +149,8 @@ uses
 	{$IFDEF WINDOWS}
 	Windows,
 	{$ENDIF}
-	Layout, ShortcutManager,
-	CWE.Dialogs, Dialog.ValueQuery,
+	Layout,
+	Dialog.ValueQuery,
 	Screen.FileReqSample,
 	ProTracker.Util,
 	ProTracker.Editor,
@@ -235,6 +251,20 @@ begin
 	inherited;
 end;
 
+function TFileScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
+begin
+	Result := True;
+	case FileOpKeyNames(Shortcuts.Find(FileOpKeys, Key, Shift)) of
+		filekeyDelete:	HandleCommand(FILE_DELETE);
+		filekeyCopy:	HandleCommand(FILE_COPY);
+		filekeyMove:	HandleCommand(FILE_MOVE);
+		filekeyRename:	HandleCommand(FILE_RENAME);
+		filekeyCreate:	HandleCommand(FILE_CREATEDIR);
+	else
+		Result := inherited;
+	end;
+end;
+
 procedure TFileScreen.DeleteFile(DoDialog: Boolean = True);
 var
 	Filename: String;
@@ -256,7 +286,7 @@ begin
 	else
 	begin
 		DeleteToBin(Filename);
-		SetDirectory(DirEdit.Caption);
+		SetDirectory(Directory);
 	end;
 end;
 
@@ -281,12 +311,12 @@ begin
 	end
 	else
 	begin
-		DeleteToBin(Dir);
-		SetDirectory(DirEdit.Caption);
+		DeleteToBin(Dir); //FileUtil.DeleteDirectory
+		SetDirectory(Directory);
 	end;
 end;
 
-procedure TFileScreen.CopyFile(const DestDir: String);
+procedure TFileScreen.CopyFile(const DestDir: String; MoveFile: Boolean = False);
 var
 	DestFile, Filename: String;
 begin
@@ -307,9 +337,18 @@ begin
 		else
 		begin
 			if FileUtil.CopyFile(Filename, DestFile, True) then
-				ModalDialog.ShowMessage('File Copy', 'File copied to ' + DestDir + '.')
+			begin
+				if MoveFile then
+				begin
+					FileUtil.DeleteFileUTF8(Filename);
+					ModalDialog.ShowMessage('File Move', 'File moved to ' + DestDir + '.');
+					SetDirectory(Directory);
+				end
+				else
+					ModalDialog.ShowMessage('File Copy', 'File copied to ' + DestDir + '.');
+			end
 			else
-				ModalDialog.ShowMessage('Copy Error', 'Error copying file!')
+				ModalDialog.ShowMessage('Copy Error', 'Error copying file!');
 		end;
 	end;
 end;
@@ -427,26 +466,101 @@ end;
 // Do a search for the typed in search string, starting from selected item
 // then wrapping back to the first row if no matches were found; select the first match if any
 procedure TFileScreen.SearchTermChanged;
-var
-	ST: AnsiString;
-	Y: Integer;
 begin
 	if lblSearch = nil then Exit;
 
 	lblSearch.Paint;
-	if lblSearch.Caption = '' then Exit;
+	if lblSearch.Caption <> '' then
+		SelectFile(lblSearch.Caption);
+end;
 
-	ST := LowerCase(lblSearch.Caption);
+procedure TFileScreen.SelectFile(Filename: String);
+var
+	Y: Integer;
+begin
+	Filename := LowerCase(Filename);
 
 	for Y := 0 to FileList.Items.Count-1 do
 	begin
-		if Pos(ST, LowerCase(FileList.Items[Y].Captions[0])) = 1 then
+		if Pos(Filename, LowerCase(FileList.Items[Y].Captions[0])) = 1 then
 		begin
 			// found match, select it!
 			FileList.Select(Y);
 			FileOrDirSelected(FileList);
 			Exit;
 		end;
+	end;
+end;
+
+procedure TFileScreen.RenameCallback(ID: Word;
+	ModalResult: TDialogButton; Tag: Integer; Data: Variant;
+	Dlg: TCWEDialog);
+var
+	Ct: TCWEControl;
+	Dir, NewName: String;
+	X: Integer;
+const
+	InvalidChars = ':*?\/|';
+begin
+	if Dlg = nil then Exit;
+	if ModalResult <> btnOK then Exit;
+
+	Ct := Dlg.Dialog.FindControl('Edit');
+	if Ct = nil then Exit;
+
+	NewName := TCWEEdit(Ct).Caption;
+	if NewName = '' then Exit;
+
+	for X := 1 to Length(InvalidChars) do
+	if Pos(InvalidChars[X], NewName) > 0 then
+	begin
+		Log(TEXT_ERROR + 'Rename aborted - name contains illegal characters! ');
+		Exit;
+	end;
+
+	case ID of
+
+		ACTION_RENAMEFILE:
+		begin
+			Dir := IncludeTrailingPathDelimiter(Directory);
+			if not RenameFile(Dir + FilenameEdit.Caption, Dir + NewName) then
+			begin
+				Log(TEXT_ERROR + 'File rename failed! ' + Dir+NewName);
+				Exit;
+			end;
+			SetDirectory(Directory);
+			SelectFile(NewName);
+		end;
+
+		ACTION_RENAMEDIR:
+		begin
+			NewName := IncludeTrailingPathDelimiter(
+				IncludeTrailingPathDelimiter(Directory) + NewName);
+			Dir := IncludeTrailingPathDelimiter(DirList.GetPath(True));
+
+			if not RenameFile(Dir, NewName) then
+			begin
+				Log(TEXT_ERROR + 'Directory rename failed! ');
+				Log(Directory + ' -> ' + NewName);
+				Exit;
+			end
+			else
+				SetDirectory(Directory);
+		end;
+
+		ACTION_CREATEDIR:
+		begin
+			NewName := IncludeTrailingPathDelimiter(
+				IncludeTrailingPathDelimiter(Directory) + NewName);
+			if not CreateDir(NewName) then
+			begin
+				Log(TEXT_ERROR + 'Directory creation failed! ');
+				Exit;
+			end
+			else
+				SetDirectory(Directory);
+		end;
+
 	end;
 end;
 
@@ -457,6 +571,7 @@ var
 begin
 	IsFolder := DirList.Focused;
 	IsFile   := FileList.Focused;
+	Dir := '';
 
 	case Cmd of
 
@@ -478,26 +593,28 @@ begin
 				SelectFileInExplorer(SampleRequester.ModFilename)
 			else
 				SelectFileInExplorer(
-					IncludeTrailingPathDelimiter(DirEdit.Caption) +
+					IncludeTrailingPathDelimiter(Directory) +
 					FilenameEdit.Caption);
 
-		FILE_COPY:
+		FILE_COPY,
+		FILE_MOVE:
+		begin
 			if IsFolder then
 			begin
 				case DirList.Items[DirList.ItemIndex].Data of
 					LISTITEM_BOOKMARK:
 						Dir := Bookmarks[DirList.ItemIndex];
 					LISTITEM_DIR, LISTITEM_HEADER, LISTITEM_DRIVE:
-						Dir := DirList.GetPath;
-				else
-					Exit;
+						Dir := DirList.GetPath(True);
 				end;
-				if Dir <> '' then
-					CopyFile(Dir);
 			end
 			else
-				CopyFile(DirList.GetPath);
+			if IsFile then
+				Dir := DirList.GetPath(True);
 
+			if Dir <> '' then
+				CopyFile(Dir, (Cmd = FILE_MOVE));
+		end;
 
 		FILE_DELETE:
 			if IsFolder then
@@ -517,10 +634,28 @@ begin
 				DeleteFile(True);
 
 		FILE_RENAME:
-		;
+			if IsFolder then
+			begin
+				case DirList.Items[DirList.ItemIndex].Data of
+					LISTITEM_BOOKMARK:
+						ModalDialog.ShowMessage('Rename',
+							'Bookmark renaming not implemented!');
+					LISTITEM_DRIVE:
+						ModalDialog.ShowMessage('Rename',
+							'Can''t rename a drive!');
+					LISTITEM_DIR:
+						AskString(ACTION_RENAMEDIR, 'Rename Directory',
+							DirList.GetPath(False), False, RenameCallback);
+				end;
+			end
+			else
+			if IsFile then
+				AskString(ACTION_RENAMEFILE, 'Rename File',
+					FilenameEdit.Caption, False, RenameCallback);
 
-		FILE_MOVE:
-		;
+		FILE_CREATEDIR:
+			AskString(ACTION_CREATEDIR, 'Create Directory',
+				'', False, RenameCallback);
 
 	end;
 end;
@@ -689,7 +824,7 @@ end;
 procedure TModFileScreen.DirOrFilenameEntered;
 begin
 	if Sender = DirEdit then
-		SetDirectory(DirEdit.Caption)
+		SetDirectory(Directory)
 	else
 	begin
 		if SaveMode then
@@ -982,9 +1117,17 @@ begin
 	FileRequester.FileList.TextInput(Key);
 end;
 
-function TDirList.GetPath: String;
+function TDirList.GetPath(Fullpath: Boolean): String;
 begin
 	Result := Items[ItemIndex].Captions[0];
+	if Fullpath then
+	begin
+		if Result = STR_DIRECTORYUP then
+			Result := ExpandFileName(IncludeTrailingPathDelimiter(TFileScreen(Screen).Directory)
+				+ '..' + PathDelim)
+		else
+			Result := IncludeTrailingPathDelimiter(TFileScreen(Screen).Directory) + Result;
+	end;
 end;
 
 function TDirList.KeyDown;
@@ -995,12 +1138,9 @@ var
 begin
 	Result := True;
 	Scr := TFileScreen(Screen);
+
 	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, Shift));
-
 	case Sc of
-
-		ctrlkeyDELETE:
-			Scr.HandleCommand(FILE_DELETE);
 
 		ctrlkeyINSERT:
 		begin
@@ -1012,7 +1152,7 @@ begin
 					Scr.AddBookmark(Scr.Directory, ItemIndex);
 				LISTITEM_DRIVE,
 				LISTITEM_DIR:
-					Scr.AddBookmark(GetPath);
+					Scr.AddBookmark(GetPath(False));
 			end;
 		end;
 
@@ -1031,10 +1171,10 @@ begin
 					Exit;
 				end;
 				LISTITEM_DIR, LISTITEM_HEADER:
-					Dir := GetPath;
+					Dir := GetPath(False);
 				LISTITEM_DRIVE:
 				begin
-					Dir := GetPath;
+					Dir := GetPath(False);
 					Scr.SetDirectory(Dir);
 					Exit;
 				end;

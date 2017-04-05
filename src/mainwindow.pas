@@ -1355,6 +1355,14 @@ begin
 		Bind(keyToggleChannel2, 		'Playback.ToggleChannel.2',	'Ctrl+2');
 		Bind(keyToggleChannel3, 		'Playback.ToggleChannel.3',	'Ctrl+3');
 		Bind(keyToggleChannel4, 		'Playback.ToggleChannel.4',	'Ctrl+4');
+
+		FileOpKeys := SetContext('FileOperations');
+
+		Bind(filekeyRename,				'File.Rename',				'Shift+F2');
+		Bind(filekeyCopy,				'File.Copy',				'Shift+F5');
+		Bind(filekeyMove,				'File.Move',				'Shift+F6');
+		Bind(filekeyDelete,				'File.Delete',				['Shift+F8', 'Delete']);
+		Bind(filekeyCreate,				'File.CreateDir',			'Shift+F7');
 	end;
 
 	InitCWE;
