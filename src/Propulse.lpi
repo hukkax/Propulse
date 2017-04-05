@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="9"/>
+    <Version Value="10"/>
     <PathDelim Value="\"/>
     <General>
       <Flags>
@@ -82,6 +82,11 @@
         <FormatVersion Value="1"/>
       </local>
     </RunParams>
+    <RequiredPackages Count="1">
+      <Item1>
+        <PackageName Value="LazUtils"/>
+      </Item1>
+    </RequiredPackages>
     <Units Count="48">
       <Unit0>
         <Filename Value="propulse.pas"/>
@@ -276,6 +281,7 @@
       <Unit38>
         <Filename Value="include\fileutils.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="FileUtils"/>
       </Unit38>
       <Unit39>
         <Filename Value="include\graphics32.pas"/>
@@ -371,7 +377,7 @@
     </Other>
   </CompilerOptions>
   <Debugging>
-    <Exceptions Count="3">
+    <Exceptions Count="3" IgnoreAll="True">
       <Item1>
         <Name Value="EAbort"/>
       </Item1>
