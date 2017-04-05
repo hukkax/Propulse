@@ -3,7 +3,8 @@ unit Screen.FileReq;
 interface
 
 uses
-	Classes, Types, SysUtils, ShortcutManager,
+	Classes, Types, SysUtils, contnrs,
+	ShortcutManager,
 	TextMode, CWE.Core, CWE.Dialogs, CWE.Widgets.Text;
 
 const
@@ -38,6 +39,23 @@ type
 		filekeyDelete,
 		filekeyCreate
 	);
+
+	TBookmark = class
+		Path,
+		Name:	String;
+	end;
+
+	TBookmarkList = class(TObjectList)
+	private
+		function	Get(Index: Integer): TBookmark;
+		procedure 	Put(Index: Integer; AValue: TBookmark);
+	public
+		function	IndexOf(APath: String): Integer;
+		function	Add(ABookmark: TBookmark): Integer; overload;
+		procedure	LoadFromFile(const Filename: String);
+		procedure	SaveToFile(const Filename: String);
+		property 	Items[Index: Integer]: TBookmark read Get write Put; default;
+	end;
 
 	TFileList = class(TCWEList)
 		function	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
@@ -74,7 +92,7 @@ type
 	public
 		Directory:	String;
 
-		Bookmarks:	TStringList;
+		Bookmarks:	TBookmarkList;
 
 		SaveMode:	Boolean;
 		SortMode:   Byte;
@@ -110,6 +128,7 @@ type
 
 		procedure	LoadBookmarks(const Filename: String);
 		procedure	SaveBookmarks;
+		procedure 	RenameBookmark(const Path, NewName: String);
 		procedure	MoveBookmark(const Path: String; MoveDown: Boolean);
 		procedure	AddBookmark(Path: String; Index: Integer = -1);
 		procedure	RemoveBookmark(const Path: String);
@@ -191,9 +210,7 @@ var
 begin
 	inherited;
 
-	Bookmarks := TStringList.Create;
-	Bookmarks.Duplicates := dupIgnore;
-	Bookmarks.CaseSensitive := False;
+	Bookmarks := TBookmarkList.Create;
 
 	W := 54;
 	if (Self is TModFileScreen) then
@@ -548,6 +565,9 @@ begin
 				SetDirectory(Directory);
 		end;
 
+		ACTION_RENAMEBOOKMARK:
+			RenameBookmark(DirList.GetPath(True), NewName);
+
 		ACTION_CREATEDIR:
 		begin
 			NewName := IncludeTrailingPathDelimiter(
@@ -599,19 +619,12 @@ begin
 		FILE_COPY,
 		FILE_MOVE:
 		begin
-			if IsFolder then
-			begin
-				case DirList.Items[DirList.ItemIndex].Data of
-					LISTITEM_BOOKMARK:
-						Dir := Bookmarks[DirList.ItemIndex];
-					LISTITEM_DIR, LISTITEM_HEADER, LISTITEM_DRIVE:
-						Dir := DirList.GetPath(True);
-				end;
-			end
-			else
-			if IsFile then
-				Dir := DirList.GetPath(True);
-
+			case DirList.Items[DirList.ItemIndex].Data of
+				LISTITEM_BOOKMARK:
+					Dir := Bookmarks[DirList.ItemIndex].Path;
+				LISTITEM_DIR, LISTITEM_HEADER, LISTITEM_DRIVE:
+					Dir := DirList.GetPath(True);
+			end;
 			if Dir <> '' then
 				CopyFile(Dir, (Cmd = FILE_MOVE));
 		end;
@@ -621,7 +634,7 @@ begin
 			begin
 				case DirList.Items[DirList.ItemIndex].Data of
 					LISTITEM_BOOKMARK:
-						RemoveBookmark(Bookmarks[DirList.ItemIndex]);
+						RemoveBookmark(Bookmarks[DirList.ItemIndex].Path);
 					LISTITEM_DRIVE:
 						ModalDialog.ShowMessage('Delete',
 							'Can''t delete a drive!');
@@ -638,8 +651,8 @@ begin
 			begin
 				case DirList.Items[DirList.ItemIndex].Data of
 					LISTITEM_BOOKMARK:
-						ModalDialog.ShowMessage('Rename',
-							'Bookmark renaming not implemented!');
+						AskString(ACTION_RENAMEBOOKMARK, 'Rename Bookmark',
+							DirList.GetPath(False), False, RenameCallback);
 					LISTITEM_DRIVE:
 						ModalDialog.ShowMessage('Rename',
 							'Can''t rename a drive!');
@@ -658,6 +671,87 @@ begin
 				'', False, RenameCallback);
 
 	end;
+end;
+
+// ==========================================================================
+{ TBookmarkList }
+// ==========================================================================
+
+function TBookmarkList.Get(Index: Integer): TBookmark;
+begin
+	Result := TBookmark(inherited Get(Index));
+end;
+
+procedure TBookmarkList.Put(Index: Integer; AValue: TBookmark);
+begin
+	inherited Put(Index, Pointer(AValue));
+end;
+
+function TBookmarkList.IndexOf(APath: String): Integer;
+var
+	i: Integer;
+begin
+	Result := -1;
+	APath := LowerCase(APath);
+	for i := 0 to Count-1 do
+		if LowerCase(Items[i].Path) = APath then
+			Exit(i);
+end;
+
+function TBookmarkList.Add(ABookmark: TBookmark): Integer;
+begin
+	Result := IndexOf(ABookmark.Path);
+	if Result < 0 then
+		Result := inherited Add(ABookmark);
+end;
+
+procedure TBookmarkList.LoadFromFile(const Filename: String);
+var
+	Bm: TBookmark;
+	sl: TStringList;
+	S: String;
+	x: Integer;
+begin
+	Clear;
+
+	sl := TStringList.Create;
+	sl.LoadFromFile(Filename);
+
+	for S in sl do
+	begin
+		if S = '' then Continue;
+
+		x := Pos('=', S);
+		Bm := TBookmark.Create;
+
+		if x > 1 then
+		begin
+			Bm.Name := Copy(S, 1, x-1);
+			Bm.Path := Copy(S, x+1, MaxInt);
+		end
+		else
+		begin
+			Bm.Path := S;
+			if Bm.Path[1] = '=' then
+				Bm.Path := Copy(S, 2, MaxInt);
+			Bm.Name := ExtractFilename(ExcludeTrailingPathDelimiter(S));
+		end;
+		Add(Bm);
+	end;
+
+	sl.Free;
+end;
+
+procedure TBookmarkList.SaveToFile(const Filename: String);
+var
+	i: Integer;
+	sl: TStringList;
+begin
+	sl := TStringList.Create;
+	for i := 0 to Count-1 do
+		sl.Add(Items[i].Name + '=' + Items[i].Path);
+	sl.SaveToFile(Filename);
+	sl.Free;
 end;
 
 // ==========================================================================
@@ -698,16 +792,22 @@ begin
 end;
 
 procedure TFileScreen.AddBookmark(Path: String; Index: Integer = -1);
+var
+	Bm: TBookmark;
 begin
 	if Bookmarks.IndexOf(Path) >= 0 then Exit;
 
 	{AskString(ACTION_ASKED_STRING, 'Input value:',
 		Key, True, TValQuery.DialogCallback);}
 
+	Bm := TBookmark.Create;
+	Bm.Path := Path;
+	Bm.Name := ExtractFilename(ExcludeTrailingPathDelimiter(Path));
+
 	if Index < 0 then
-		Bookmarks.Add(Path)
+		Bookmarks.Add(Bm)
 	else
-		Bookmarks.Insert(Index, Path);
+		Bookmarks.Insert(Index, Bm);
 	BookmarksChanged;
 end;
 
@@ -720,11 +820,25 @@ begin
 	BookmarksChanged;
 end;
 
+procedure TFileScreen.RenameBookmark(const Path, NewName: String);
+var
+	i: Integer;
+begin
+	i := Bookmarks.IndexOf(Path);
+	if i >= 0 then
+	begin
+		Bookmarks[i].Name := NewName;
+		BookmarksChanged;
+	end
+	else
+		Log(TEXT_ERROR + 'Could not rename bookmark "%s"!', [Path]);
+end;
+
 procedure TFileScreen.BookmarksChanged(Recreate: Boolean = True);
 var
 	i: Integer;
 	li: TCWEListItem;
-	S, SS: String;
+	S: String;
 begin
 	if Recreate then
 	for i := DirList.Items.Count-1 downto 0 do
@@ -736,9 +850,9 @@ begin
 
 	for i := Bookmarks.Count-1 downto 0 do
 	begin
-		SS := ExcludeTrailingPathDelimiter(Bookmarks[i]);
-		S := ExtractFileName(SS);
-		if S = '' then S := SS;
+		S := Bookmarks[i].Name;
+		if S = '' then
+			S := ExtractFilename(Bookmarks[i].Path);
 
 		li := TCWEListItem.Create(S, LISTITEM_BOOKMARK);
 		li.ColorFore := COLOR_FG_BOOKMARK;
@@ -1119,14 +1233,25 @@ end;
 
 function TDirList.GetPath(Fullpath: Boolean): String;
 begin
-	Result := Items[ItemIndex].Captions[0];
-	if Fullpath then
+	if Items[ItemIndex].Data = LISTITEM_BOOKMARK then
+	with TFileScreen(Screen) do
 	begin
-		if Result = STR_DIRECTORYUP then
-			Result := ExpandFileName(IncludeTrailingPathDelimiter(TFileScreen(Screen).Directory)
-				+ '..' + PathDelim)
+		if Fullpath then
+			Result := Bookmarks[ItemIndex].Path
 		else
-			Result := IncludeTrailingPathDelimiter(TFileScreen(Screen).Directory) + Result;
+			Result := Bookmarks[ItemIndex].Name;
+	end
+	else
+	begin
+		Result := Items[ItemIndex].Captions[0];
+		if Fullpath then
+		begin
+			if Result = STR_DIRECTORYUP then
+				Result := ExpandFileName(IncludeTrailingPathDelimiter(TFileScreen(Screen).Directory)
+					+ '..' + PathDelim)
+			else
+				Result := IncludeTrailingPathDelimiter(TFileScreen(Screen).Directory) + Result;
+		end;
 	end;
 end;
 
@@ -1152,21 +1277,21 @@ begin
 					Scr.AddBookmark(Scr.Directory, ItemIndex);
 				LISTITEM_DRIVE,
 				LISTITEM_DIR:
-					Scr.AddBookmark(GetPath(False));
+					Scr.AddBookmark(GetPath(True));
 			end;
 		end;
 
 		ctrlkeyPLUS,
 		ctrlkeyMINUS:
 			if Items[ItemIndex].Data = LISTITEM_BOOKMARK then
-				Scr.MoveBookmark(Scr.Bookmarks[ItemIndex], (Sc = ctrlkeyPLUS));
+				Scr.MoveBookmark(Scr.Bookmarks[ItemIndex].Path, (Sc = ctrlkeyPLUS));
 
 		ctrlkeyRETURN:	// enter directory
 		begin
 			case Items[ItemIndex].Data of
 				LISTITEM_BOOKMARK:
 				begin
-					Dir := Scr.Bookmarks[ItemIndex];
+					Dir := Scr.Bookmarks[ItemIndex].Path;
 					Scr.SetDirectory(Dir);
 					Exit;
 				end;
