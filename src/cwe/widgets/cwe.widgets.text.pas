@@ -188,7 +188,7 @@ type
 implementation
 
 uses
-	MainWindow, DateUtils, Math,
+	MainWindow, DateUtils,
 	{$IFDEF WINDOWS}Windows, ShellAPI,{$ENDIF}
 	TextMode,
 	ProTracker.Util;
@@ -695,9 +695,9 @@ begin
 	for x := Columns downto 1 do
 		Dec(ColumnWidth[0], ColumnWidth[x] + 1);
 
-	if Selection3D then
-		SR := Types.Rect(-1, -1, -1, -1)
-	else
+	SR := Types.Rect(-1, -1, -1, -1);
+
+	if not Selection3D then
 	begin
 		xx := Rect.Left;
 		cf := Console.Font.Width;
