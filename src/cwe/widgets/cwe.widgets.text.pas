@@ -163,7 +163,6 @@ type
 		constructor	Create(Owner: TCWEControl;
 					const sCaption, sID: AnsiString; const Bounds: TRect;
 					IsProtected: Boolean = False); override;
-		//procedure Paint; override;
 	end;
 
 	TCWEMemo = class(TCWEScrollableControl)
@@ -434,6 +433,8 @@ begin
 	SetData(1, TConsole.COLOR_LIGHT, 'Selection foreground');
 	SetData(2, TConsole.COLOR_3DLIGHT, '3D Hovered Light Border');
 	SetData(3, TConsole.COLOR_3DDARK,  '3D Hovered Dark Border');
+	SetData(4, 255,  'Inactive selection foreground');
+	SetData(5, 15,   'Inactive selection background');
 
 	WantMouse := True;
 	WantKeyboard := True;
@@ -676,7 +677,7 @@ end;
 procedure TCWEList.Paint;
 var
 	i, x, y, xx: Integer;
-	cf, cb: Byte;
+	cf, cb: SmallInt;
 	SR: TRect;
 	Item: TCWEListItem;
 begin
@@ -766,22 +767,45 @@ begin
 			FOnPaintItem(Self, Item, i + Offset, Types.Point(Rect.Left, y));
 
 		// highlight active line
-		if (i + Offset = ItemIndex) and (
-			(Self = Screen.ActiveControl) or
-			((Selection3D) and (Hovered)) ) then
+		if (i + Offset = ItemIndex) then
 		begin
-			xx := Data[0].Value; // selected foreground color
-
-			if Selection3D then
+			if (Selection3D and (Hovered or Focused)) then
 			begin
 				if Item.Data = LISTITEM_HEADER then
-					xx := -1 // don't highlight text
+					cf := -1 // don't highlight text
 				else
+				begin
+					cf := Data[0].Value;
 					SR := Types.Rect(Rect.Left, y, Rect.Right, y+1);
-			end;
+				end;
 
-			for x := Rect.Left to Rect.Right-1 do
-				Console.SetColor(x, y, xx, Data[1].Value);
+				for x := Rect.Left to Rect.Right-1 do
+					Console.SetColor(x, y, cf, Data[1].Value);
+			end
+			else
+			if not Selection3D then
+			begin
+				if Focused then
+					xx := Data[0].Value // selected foreground color
+				else
+					xx := Data[4].Value; // unfocused sel. foreground color
+				if xx <> 255 then
+					cf := xx
+				else
+					cf := -1;
+
+				if Focused then
+					xx := Data[1].Value // selected background color
+				else
+					xx := Data[5].Value; // unfocused sel. bg color
+				if xx <> 255 then
+					cb := xx
+				else
+					cb := -1;
+
+				for x := Rect.Left to Rect.Right-1 do
+					Console.SetColor(x, y, cf, cb);
+			end;
 		end;
 	end;
 
