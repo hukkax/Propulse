@@ -83,6 +83,7 @@ type
 		procedure 	LoadFile(const Filename: String); dynamic; abstract;
 		procedure 	SaveFile(DoDialog: Boolean = True); dynamic; abstract;
 		procedure	DeleteFile(DoDialog: Boolean = True);
+		procedure 	CopyFile(const DestDir: String);
 
 		procedure 	Show(aSaveMode: Boolean; const Dir: String); reintroduce;
 		procedure 	SetDirectory(Dir: String); dynamic; abstract;
@@ -121,7 +122,7 @@ implementation
 
 uses
 	SDL2,
-    Generics.Defaults, FileUtils,
+    Generics.Defaults, FileUtils, FileUtil,
 	{$IFDEF WINDOWS}
 	Windows,
 	{$ENDIF}
@@ -243,6 +244,28 @@ begin
 	begin
 		DeleteToBin(Filename);
 		SetDirectory(DirEdit.Caption);
+	end;
+end;
+
+procedure TFileScreen.CopyFile(const DestDir: String);
+var
+	DestFile, Filename: String;
+begin
+	Filename := ValidateFilename(FilenameEdit.Caption);
+	DestFile := IncludeTrailingPathDelimiter(DestDir)   + Filename;
+	Filename := IncludeTrailingPathDelimiter(Directory) + Filename;
+
+	if FileExists(Filename) then
+	begin
+		if FileExists(DestFile) then
+			ModalDialog.ShowMessage('Copy Error', 'Destination file already exists!')
+		else
+		begin
+			if FileUtil.CopyFile(Filename, DestFile, True) then
+				ModalDialog.ShowMessage('File Copy', 'File copied to ' + DestDir + '.')
+			else
+				ModalDialog.ShowMessage('Copy Error', 'Error copying file!')
+		end;
 	end;
 end;
 
@@ -883,7 +906,21 @@ begin
 
 		SDLK_INSERT:
 		begin
-			case Items[ItemIndex].Data of
+			if Shift = [ssShift] then
+			begin
+				case Items[ItemIndex].Data of
+					LISTITEM_BOOKMARK:
+						Dir := Scr.Bookmarks[ItemIndex];
+					LISTITEM_DIR, LISTITEM_HEADER, LISTITEM_DRIVE:
+						Dir := GetPath;
+				else
+					Dir := '';
+				end;
+				if Dir <> '' then
+					FileScreen.CopyFile(Dir);
+			end
+			else
+			case Items[ItemIndex].Data of // no Shift
 				LISTITEM_BOOKMARK:
 					Scr.AddBookmark(Scr.Directory, ItemIndex);
 				LISTITEM_DRIVE,
