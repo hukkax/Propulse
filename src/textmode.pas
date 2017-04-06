@@ -32,10 +32,10 @@ type
 	end;
 
 	TConsoleCursor = record
-		X, Y: Byte;
+		X, Y: 		Byte;
 		ColorBack,
-		ColorFore: Byte;
-		Visible: Boolean;
+		ColorFore:	Byte;
+		Visible: 	Boolean;
 	end;
 
 	TConsole = class
@@ -56,7 +56,7 @@ type
 		Cursor: 	TConsoleCursor;
 		Bitmap: 	TBitmap32;
 		Buffer: 	packed array of packed array of TConsoleChar;
-		Palette: 	array[0..15] of TColor32;
+		Palette: 	array[0..15+16] of TColor32;
 		Font: 		TConsoleFont;
 		OnChange: 	procedure of Object;
 
