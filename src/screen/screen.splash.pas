@@ -16,17 +16,20 @@ type
 	TSplashEffect = class
 	const
 		AnimLength = 50 * 5;
+		FADESPEED  = 0.025;
 	private
-		Fading:		ShortInt;
-		Brightness:	Single;
-		AnimType,
-		AnimCount:	Byte;
-		Counter:	Cardinal;
-		Logo,
-		Mask,
-		Buffer:		TPCXImage;
-		Pix:		array [0..15] of TConsolePixel;
-		procedure NextAnimation;
+		Fading:				ShortInt;
+		Brightness:			Single;
+		BrightnessChars: 	Boolean;
+		Counter:			Cardinal;
+		Logo:				TPCXImage;
+		Pix:				array [0..15] of TConsolePixel;
+		PlasmaCtrX1,
+		PlasmaCtrY1,
+		PlasmaCtrX2,
+		PlasmaCtrY2:		Single;
+
+		procedure 	NextAnimation;
 	public
 		Rect: 		TRect;
 
@@ -47,8 +50,8 @@ type
 		ScrollText: AnsiString;
 		Effect: 	TSplashEffect;
 
-		function 	BoxMouseDown(Ctrl: TCWEControl;
-					Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
+		{function 	BoxMouseDown(Ctrl: TCWEControl;
+					Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;}
 	public
 		Box:		TCWEControl;
 
@@ -67,14 +70,10 @@ type
 var
 	SplashScreen: TSplashScreen;
 
-{const
-	TRANSCOLOR = $FF000000;}
-
 
 implementation
 
 uses
-	MainWindow,
 	SysUtils,
 	Math,
 	BuildInfo,
@@ -93,6 +92,7 @@ const
 	'Greets to %WVoid § %Wexec § %Wsvenonacid § %Y#kukkakoodi § %Y#protracker § '+
 	'%GHaikz § %GArchyx § %GHofnarr § %GKaarlo § %GCrank § %Gamaneog § ' +
 	'%%' + '  ';
+
 
 // ============================================================================
 // TSplashEffect
@@ -116,7 +116,7 @@ begin
 
 	for x := i1 to i2 do
 	begin
-		Console.Palette[x] :=
+		Console.Palette[x+16] :=
 			Color32(Trunc(R), Trunc(G), Trunc(B));
 		R := R + dR;
 		G := G + dG;
@@ -136,19 +136,12 @@ begin
 	Logo := TPCXImage.Create;
 	Logo.LoadFromFile(DataPath + 'logo.pcx');
 
-	Mask := TPCXImage.Create;
-	Mask.LoadFromFile(DataPath + 'logomask.pcx');
-
-	Buffer := TPCXImage.Create(Logo.Width, Logo.Height);
-
 	Rect := Bounds(
 		(W div 2) - (Logo.Width  div 2),
 		(H div 2) - (Logo.Height div 2),
 		Logo.Width, Logo.Height);
 
-	AnimCount := Mask.Height div Logo.Height;
-
-	InterpolatePalette(16, 31, $002266, $4488FF);
+	InterpolatePalette(0, 127, $002266, $4488FF);
 
 	SetPix(0,  000, 16);
 	SetPix(1,  155, 17);
@@ -167,9 +160,7 @@ begin
 	SetPix(14, 168, 30);
 	SetPix(15, 168, 31);
 
-	AnimType := 0;
 	Counter := 0;
-
 	Brightness := 0;
 	Fading := 1;
 end;
@@ -177,56 +168,89 @@ end;
 destructor TSplashEffect.Destroy;
 begin
 	Logo.Free;
-	Mask.Free;
-	Buffer.Free;
 	inherited Destroy;
 end;
 
 procedure TSplashEffect.NextAnimation;
+var
+	C, C2: TColor32;
 begin
-	InterpolatePalette(16, 31, Random($FFFFFF), Random($FFFFFF));
-	Inc(AnimType);
-	if AnimType >= AnimCount then
-		AnimType := 0;
+	BrightnessChars := (Random(4) = 1);
+
+	case Random(5) of
+	1:
+		begin
+			BrightnessChars := False;
+			InterpolatePalette(000, 045, $8ef367, $ee2818);
+			InterpolatePalette(045, 076, $ee2818, $3838d3);
+			InterpolatePalette(076, 100, $3838d3, $0bcfee);
+			InterpolatePalette(100, 127, $0bcfee, $8ef367);
+		end;
+
+	2..4:
+		begin
+			C := Random($FFFFFF); C2 := Random($FFFFFF);
+			InterpolatePalette(0,  48,  Random($FFFFFF), C);
+			InterpolatePalette(48, 92,  C, C2);
+			InterpolatePalette(92, 127, C2, Random($FFFFFF));
+		end
+
+	else
+		C := Random($FFFFFF);
+		InterpolatePalette(0,  64,  Random($FFFFFF), C);
+		InterpolatePalette(64, 127, C, Random($FFFFFF));
+	end;
+
+	PlasmaCtrX1 := Random(100);
+	PlasmaCtrY1 := Random(100);
+	PlasmaCtrX2 := Random(100);
+	PlasmaCtrY2 := Random(100);
+end;
+
+function PlasmaFunc1(X, Y: Integer): Integer; inline;
+begin
+	Result := Trunc(64 + 63 * (Sin(Hypot(27-Y, 72-X)/16)));
+end;
+
+function PlasmaFunc2(X, Y: Integer): Integer; inline;
+begin
+	Result := Trunc(64 + 63 * Sin(X/(37+15*Cos(Y/34))) * Cos(Y/(21+11*Sin(X/27))));
 end;
 
 procedure TSplashEffect.Render(var Buffer: TBitmap32; DestX, DestY: Cardinal);
 var
-	X, Y, i, ii, MaskY: Integer;
-	P: PByte;
+	X, Y, PX1, PY1, PX2, PY2, i, ii: Integer;
 begin
-	MaskY := Logo.Height * AnimType;
+	PlasmaCtrX1 := PlasmaCtrX1 + 0.3;
+	PlasmaCtrY1 := PlasmaCtrY1 + 0.25;
+	PlasmaCtrX2 := PlasmaCtrX2 + 0.8;
+	PlasmaCtrY2 := PlasmaCtrY2 + 0.5;
+
+	PX1 := Trunc(Sin(PlasmaCtrX1 / 100) * 140);
+	PY1 := Trunc(Cos(PlasmaCtrY1 / 80)  * 116);
+	PX2 := Trunc(Sin(PlasmaCtrX2 / 84)  * 180);
+	PY2 := Trunc(Cos(PlasmaCtrY2 / 71)  * 223);
+
+	ii := Pix[Trunc(15 * Brightness)].Char;
 
 	for Y := 0 to Logo.Height-1 do
 	for X := 0 to Logo.Width-1 do
+	if Logo.Pixels[X, Y] > 0 then
 	begin
-		P := @Mask.Pixels[X, Y + MaskY];
-		i := P^;
-		if (i > 0) then
-		begin
-			ii := i;
-			if ii >= 16 then ii := 15 - (ii - 16); // 16..31 => 15..1
-			ii := Trunc(ii * Brightness);
-			if (Logo.Pixels[X, Y] > 0) then
-				Console.PutChar(DestX + Rect.Left + X, DestY + Rect.Top + Y,
-				Pix[ii].Char, Pix[ii].Color);
+		i := PlasmaFunc1(X + PX1, Y + PY1) + PlasmaFunc2(X + PX2, Y + PY2);
 
-			if Brightness > 0.3 then
-			begin
-				if i < 30 then
-					Inc(i)
-				else
-					i := 1;
-				P^ := i;
-			end;
-		end;
+		if BrightnessChars then
+			ii := Pix[Trunc(i div 16 * Brightness)].Char;
+
+		Console.PutChar(DestX + Rect.Left + X, DestY + Rect.Top + Y,
+			ii, Trunc(i * Brightness) div 2 + 16);
 	end;
 
 	if Fading <> 0 then
 	begin
 		if Fading > 0 then
 		begin
-			Brightness := Brightness + 0.01;
+			Brightness := Brightness + FADESPEED;
 			if Brightness >= 1.0 then
 			begin
 				Brightness := 1.0;
@@ -236,7 +260,7 @@ begin
 		else
 		if Fading < 0 then
 		begin
-			Brightness := Brightness - 0.01;
+			Brightness := Brightness - FADESPEED;
 			if Brightness <= 0.0 then
 			begin
 				Brightness := 0.0;
@@ -254,9 +278,6 @@ begin
 			Counter := 0;
 		end;
 	end;
-
-{for x := 0 to 15 do
-	Console.PutChar(DestX+X, DestY, Pix[15].Char, x+16);}
 end;
 
 // ============================================================================
@@ -265,6 +286,7 @@ end;
 
 procedure TSplashScreen.Show;
 begin
+	Randomize;
 	ScrollText := StringReplace(Scroll_Text, '§', SCRSEP, [rfReplaceAll]);
 end;
 
@@ -283,7 +305,6 @@ end;
 // Called at Create and subsequently if font size changes
 procedure TSplashScreen.Init;
 var
-	Fn: String;
 	W, H: Integer;
 begin
 	Box.GetPixelRect(DR);
@@ -301,13 +322,8 @@ begin
 end;
 
 constructor TSplashScreen.Create;
-const
-	I = 50;
-	X = 60 * 3;
-	Y = 60;
 var
 	Button: TCWEButton;
-	n: Integer;
 const
 	URL = 'http://hukka.yiff.fi/porotracker/';
 begin
@@ -317,7 +333,7 @@ begin
 		Types.Rect(3, 4-1, Console.Width-3, Console.Height-12-1), True);
 
 	Box.SetBorder(True, True, True, False);
-	Box.ColorBack := 15;
+	Box.ColorBack := 0;//15;
 //	Box.OnMouseDown := BoxMouseDown;
 //	Box.WantMouse := True;
 
@@ -346,8 +362,6 @@ end;
 procedure TSplashScreen.Paint;
 var
 	Y: Integer;
-const
-	X = 6;
 begin
 	if TRANSCOLOR <> Console.Palette[TConsole.COLOR_PANEL] then
 	begin
@@ -361,7 +375,6 @@ begin
 
 	Console.WriteCentered(' 2016-2017 hukka (Joel Toivonen)', Y+0);
 	Console.WriteCentered(' Original playroutine by 8bitbubsy (Olav Sorensen)', Y+2);
-//	Console.WriteCentered(' http://hukka.yiff.fi/porotracker/', Y+4);
 
 	inherited;
 end;
@@ -422,11 +435,11 @@ begin
 		Scroll);
 end;
 
-function TSplashScreen.BoxMouseDown(Ctrl: TCWEControl;
+{function TSplashScreen.BoxMouseDown(Ctrl: TCWEControl;
 	Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
 begin
 	Result := True;
-end;
+end;}
 
 end.
 

@@ -56,7 +56,7 @@ type
 		Cursor: 	TConsoleCursor;
 		Bitmap: 	TBitmap32;
 		Buffer: 	packed array of packed array of TConsoleChar;
-		Palette: 	array[0..15+16] of TColor32;
+		Palette: 	array[0..255] of TColor32;
 		Font: 		TConsoleFont;
 		OnChange: 	procedure of Object;
 
