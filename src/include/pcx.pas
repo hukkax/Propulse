@@ -12,12 +12,14 @@ type
 	public
 		BitsPerPixel,
 		Width,
-		Height:		Integer;
+		Height:		Cardinal;
 		Palette:	TPalette32;
 		Pixels: 	array of array of Byte;
 
 		constructor Create(W, H: Integer); overload;
+
 		function 	LoadFromFile(const Filename: String): Boolean;
+
 		procedure 	Clear(val: Byte);
 		procedure 	DrawTo(var buffer: TBitmap32);
 	end;
@@ -32,7 +34,7 @@ uses
 constructor TPCXImage.Create(W, H: Integer);
 begin
 	inherited Create;
-	Width := W;
+	Width  := W;
 	Height := H;
 	SetLength(Pixels, W, H);
 	Clear(0);
@@ -40,11 +42,11 @@ end;
 
 function TPCXImage.LoadFromFile(const Filename: String): Boolean;
 var
-	Bf: RawByteString;
+	Bf: array of array of Byte;
 	fsize: Int64;
 	b: Byte;
-	tavu1, tavu2, y,
-	position, bytesperline, bytestoread: Integer;
+	tavu1, tavu2, x, y, linepadding,
+	position, bytesperline: Integer;
 	PCXFile: TFileStreamEx;
 label
 	Done;
@@ -64,36 +66,46 @@ begin
 	Width  := PCXFile.ReadWord + 1;
 	Height := PCXFile.ReadWord + 1;
 
-	Bf := '';
-	SetCodePage(Bf, 1252, False);
+	SetLength(Bf, Width, Height);
+	SetLength(Pixels, Width, Height);
+
+	PCXFile.SeekTo($42);
+	bytesperline := PCXFile.ReadWord;
+	//bytestoread := Height * bytesperline;
+	linepadding := ((bytesperline * (8 div BitsPerPixel)) - Width) div 8;
+
 	PCXFile.SeekTo(128);
 	position := PCXFile.Position;
 
-	case BitsPerPixel of
-		1:	bytesperline := Width div 8;
-		4:	bytesperline := Width div 2;
-	else
-		bytesperline := Width;
-	end;
-	bytestoread := Height * bytesperline;
-
-	while Length(Bf) < bytestoread do
+	for y := 0 to Height-1 do
 	begin
-		tavu1 := PCXFile.ReadByte;
-		Inc(position);
-		if position > fsize then Break;
-		if tavu1 > 192 then
+		x := 0;
+		while x < bytesperline do
 		begin
-			tavu2 := PCXFile.ReadByte;
+			tavu1 := PCXFile.ReadByte;
 			Inc(position);
-			while tavu1 > 192 do
+			if position > fsize then Break;
+			if (tavu1 and $C0) = $C0 then
 			begin
-				Bf := Bf + Chr(tavu2);
-				Dec(tavu1);
+				tavu1 := tavu1 and $3F;
+				tavu2 := PCXFile.ReadByte;
+				Inc(position);
+				while tavu1 > 0 do
+				begin
+					Bf[x, y] := tavu2;
+					Inc(x);
+					Dec(tavu1);
+					if x >= bytesperline then Break;
+				end;
+			end
+			else
+			begin
+				Bf[x, y] := tavu1;
+				Inc(x);
 			end;
-		end
-		else
-			Bf := Bf + Chr(tavu1);
+		end;
+		{if linepadding > 0 then
+			PCXFile.Skip(linepadding);}
 	end;
 
 	// read 16-color palette
@@ -103,17 +115,15 @@ begin
 			PCXFile.ReadByte, PCXFile.ReadByte, PCXFile.ReadByte);
 
 	Result := True;
-	SetLength(Pixels, Width, Height);
-	position := 1;
 
 	case BitsPerPixel of
 	1:	begin
+			bytesperline := Width div 8;
 			// get pixels
 			for tavu1 := 0 to Height-1 do
 			for tavu2 := 0 to bytesperline-1 do
 			begin
-				b := Ord(Bf[position]);
-				Inc(position);
+				b := Bf[tavu2, tavu1];
 				for y := 0 to 7 do
 				begin
 					if (b and 128) <> 0 then
@@ -126,12 +136,12 @@ begin
 		end;
 
 	4:	begin
+			bytesperline := Width div 2;
 			// get pixels
 			for tavu1 := 0 to Height-1 do
 			for tavu2 := 0 to bytesperline-1 do
 			begin
-				b := Ord(Bf[position]);
-				Inc(position);
+				b := Bf[tavu2, tavu1];
 				Pixels[tavu2*2+0,tavu1] := b shr 4;
 				Pixels[tavu2*2+1,tavu1] := b and 15;
 			end;
@@ -141,10 +151,7 @@ begin
 			// get pixels
 			for tavu1 := 0 to Height-1 do
 			for tavu2 := 0 to Width-1 do
-			begin
-				Pixels[tavu2,tavu1] := Ord(Bf[position]);
-				Inc(position);
-			end;
+				Pixels[tavu2,tavu1] := Bf[tavu2, tavu1];
 
 			// read palette
 			if (fsize > 768) then
