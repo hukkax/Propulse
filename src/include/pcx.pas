@@ -85,17 +85,16 @@ begin
 			tavu1 := PCXFile.ReadByte;
 			Inc(position);
 			if position > fsize then Break;
-			if (tavu1 and $C0) = $C0 then
+			if tavu1 > 192 then
 			begin
-				tavu1 := tavu1 and $3F;
 				tavu2 := PCXFile.ReadByte;
 				Inc(position);
-				while tavu1 > 0 do
+				while tavu1 > 192 do
 				begin
 					Bf[x, y] := tavu2;
 					Inc(x);
 					Dec(tavu1);
-					if x >= bytesperline then Break;
+					if x > bytesperline then Break;
 				end;
 			end
 			else
@@ -118,19 +117,24 @@ begin
 
 	case BitsPerPixel of
 	1:	begin
-			bytesperline := Width div 8;
 			// get pixels
 			for tavu1 := 0 to Height-1 do
 			for tavu2 := 0 to bytesperline-1 do
 			begin
 				b := Bf[tavu2, tavu1];
+
 				for y := 0 to 7 do
 				begin
+					x := tavu2 * 8 + y;
+					if x >= Width then Break;
+
 					if (b and 128) <> 0 then
-						Pixels[tavu2*8+y,tavu1] := 1
+						Pixels[x,tavu1] := 1
 					else
-						Pixels[tavu2*8+y,tavu1] := 0;
+						Pixels[x,tavu1] := 0;
+
 					b := b shl 1;
+					Inc(x);
 				end;
 			end;
 		end;
