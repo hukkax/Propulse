@@ -8,22 +8,26 @@ uses
 	Graphics32, PCX;
 
 type
-	TConsolePixel = record
-		Char,
-		Color:		Byte;
-	end;
-
 	TSplashEffect = class
 	const
-		AnimLength = 50 * 5;
+		AnimLength = 50 * 9;
 		FADESPEED  = 0.025;
+
+		LogoWidth  = 72;
+		LogoHeight = 29;
 	private
 		Fading:				ShortInt;
 		Brightness:			Single;
+		LogoType,
+		LogoTypeCount,
+		LogoFrameCount:		Byte;
+		LogoFrame,
+		LogoAnimDir:		ShortInt;
+		DrawBackground,
 		BrightnessChars: 	Boolean;
 		Counter:			Cardinal;
 		Logo:				TPCXImage;
-		Pix:				array [0..15] of TConsolePixel;
+		PixelChar:			array [0..15] of Byte;
 		PlasmaCtrX1,
 		PlasmaCtrY1,
 		PlasmaCtrX2,
@@ -48,12 +52,12 @@ type
 		ScrollChar: Cardinal;
 		ScrollColor:Byte;
 		ScrollText: AnsiString;
-		Effect: 	TSplashEffect;
 
 		{function 	BoxMouseDown(Ctrl: TCWEControl;
 					Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;}
 	public
 		Box:		TCWEControl;
+		Effect: 	TSplashEffect;
 
 		procedure	Update(Draw: Boolean = True);
 		procedure	Show; override;
@@ -125,44 +129,45 @@ begin
 end;
 
 constructor TSplashEffect.Create(W, H: Cardinal);
-
-	procedure SetPix(i, cc, ci: Byte);
-	begin
-		Pix[i].Char  := cc;
-		Pix[i].Color := ci;
-	end;
-
 begin
 	Logo := TPCXImage.Create;
 	Logo.LoadFromFile(DataPath + 'logo.pcx');
 
 	Rect := Bounds(
-		(W div 2) - (Logo.Width  div 2),
-		(H div 2) - (Logo.Height div 2),
-		Logo.Width, Logo.Height);
+		(W div 2) - (LogoWidth  div 2),
+		(H div 2) - (LogoHeight div 2),
+		Logo.Width, LogoHeight);
 
-	InterpolatePalette(0, 127, $002266, $4488FF);
+	LogoFrameCount := Logo.Height div LogoHeight; // lol
+	LogoTypeCount  := Logo.Width  div LogoWidth;
 
-	SetPix(0,  000, 16);
-	SetPix(1,  155, 17);
-	SetPix(2,  156, 18);
-	SetPix(3,  157, 19);
-	SetPix(4,  158, 20);
-	SetPix(5,  159, 21);
-	SetPix(6,  160, 22);
-	SetPix(7,  161, 23);
-	SetPix(8,  162, 24);
-	SetPix(9,  163, 25);
-	SetPix(10, 164, 26);
-	SetPix(11, 165, 27);
-	SetPix(12, 166, 28);
-	SetPix(13, 167, 29);
-	SetPix(14, 168, 30);
-	SetPix(15, 168, 31);
+	InterpolatePalette(0, 127, $5088FF, $222266);
+
+	PixelChar[0]  := 000;
+	PixelChar[1]  := 155;
+	PixelChar[2]  := 156;
+	PixelChar[3]  := 157;
+	PixelChar[4]  := 158;
+	PixelChar[5]  := 159;
+	PixelChar[6]  := 160;
+	PixelChar[7]  := 161;
+	PixelChar[8]  := 162;
+	PixelChar[9]  := 163;
+	PixelChar[10] := 164;
+	PixelChar[11] := 165;
+	PixelChar[12] := 166;
+	PixelChar[13] := 167;
+	PixelChar[14] := 168;
+	PixelChar[15] := 168;
 
 	Counter := 0;
 	Brightness := 0;
 	Fading := 1;
+	LogoType := 0;
+	LogoAnimDir := Fading;
+	BrightnessChars := False;
+	DrawBackground  := True;
+	LogoFrame := -33;
 end;
 
 destructor TSplashEffect.Destroy;
@@ -173,12 +178,20 @@ end;
 
 procedure TSplashEffect.NextAnimation;
 var
-	C, C2: TColor32;
+	C: TColor32;
+	x, i: Integer;
 begin
-	BrightnessChars := (Random(4) = 1);
+	BrightnessChars := (Random(100) <= 25);
+	DrawBackground  := (Random(100) <= 60);
 
-	case Random(5) of
-	1:
+	Inc(LogoType);
+	if LogoType >= LogoTypeCount then
+		LogoType := 0;
+	LogoFrame := -26;
+	LogoAnimDir := 1;
+
+	case Random(14) of
+		0..1:
 		begin
 			BrightnessChars := False;
 			InterpolatePalette(000, 045, $8ef367, $ee2818);
@@ -186,25 +199,42 @@ begin
 			InterpolatePalette(076, 100, $3838d3, $0bcfee);
 			InterpolatePalette(100, 127, $0bcfee, $8ef367);
 		end;
-
-	2..4:
+		2..8:
 		begin
-			C := Random($FFFFFF); C2 := Random($FFFFFF);
-			InterpolatePalette(0,  48,  Random($FFFFFF), C);
-			InterpolatePalette(48, 92,  C, C2);
-			InterpolatePalette(92, 127, C2, Random($FFFFFF));
-		end
-
-	else
-		C := Random($FFFFFF);
-		InterpolatePalette(0,  64,  Random($FFFFFF), C);
-		InterpolatePalette(64, 127, C, Random($FFFFFF));
+			Console.Palette[16] := Random($FFFFFF);
+			x := 0;
+			repeat
+				i := x;
+				x := x + 20 + Random(80);
+				if x > 127 then x := 127;
+				InterpolatePalette(i, x, Console.Palette[i+16], Random($FFFFFF));
+			until x >= 127;
+		end;
+		9..10:
+		begin
+			InterpolatePalette(0, 127,
+				Color32(Random(70), Random(70), Random(70)),
+				Color32(120+Random(130), 120+Random(130), 120+Random(130)))
+		end;
+		else
+			C := Random($FFFFFF);
+			i := 64 + (Random(40)-20);
+			InterpolatePalette(0,  i,  Random($FFFFFF), C);
+			InterpolatePalette(i, 127, C, Random($FFFFFF));
 	end;
 
-	PlasmaCtrX1 := Random(100);
-	PlasmaCtrY1 := Random(100);
-	PlasmaCtrX2 := Random(100);
-	PlasmaCtrY2 := Random(100);
+	if Random(4) = 2 then
+	begin
+		i := 100 - Random(30);
+		InterpolatePalette(i, 127,
+			Console.Palette[i+16],
+			Color32(Random(70), Random(70), Random(70)));
+	end;
+
+	PlasmaCtrX1 := Random(180);
+	PlasmaCtrY1 := Random(180);
+	PlasmaCtrX2 := Random(180);
+	PlasmaCtrY2 := Random(180);
 end;
 
 function PlasmaFunc1(X, Y: Integer): Integer; inline;
@@ -219,8 +249,16 @@ end;
 
 procedure TSplashEffect.Render(var Buffer: TBitmap32; DestX, DestY: Cardinal);
 var
-	X, Y, PX1, PY1, PX2, PY2, i, ii: Integer;
+	X, Y, lx, ly, i, c,
+	PX1, PY1, PX2, PY2: Integer;
 begin
+	lx := LogoType * LogoWidth;
+	ly := CLAMP(LogoFrame, 0, LogoFrameCount-1) * LogoHeight;
+
+	Inc(LogoFrame, LogoAnimDir);
+	if LogoFrame >= LogoFrameCount then
+		LogoFrame := LogoFrameCount-1;
+
 	PlasmaCtrX1 := PlasmaCtrX1 + 0.3;
 	PlasmaCtrY1 := PlasmaCtrY1 + 0.25;
 	PlasmaCtrX2 := PlasmaCtrX2 + 0.8;
@@ -231,20 +269,44 @@ begin
 	PX2 := Trunc(Sin(PlasmaCtrX2 / 84)  * 180);
 	PY2 := Trunc(Cos(PlasmaCtrY2 / 71)  * 223);
 
-	ii := Pix[Trunc(15 * Brightness)].Char;
+	c := PixelChar[Trunc(15 * Brightness)];
 
-	for Y := 0 to Logo.Height-1 do
-	for X := 0 to Logo.Width-1 do
-	if Logo.Pixels[X, Y] > 0 then
+	if BrightnessChars then
 	begin
-		i := PlasmaFunc1(X + PX1, Y + PY1) + PlasmaFunc2(X + PX2, Y + PY2);
-
-		if BrightnessChars then
-			ii := Pix[Trunc(i div 16 * Brightness)].Char;
-
-		Console.PutChar(DestX + Rect.Left + X, DestY + Rect.Top + Y,
-			ii, Trunc(i * Brightness) div 2 + 16);
+		for Y := 0 to LogoHeight-1 do
+		for X := 0 to LogoWidth-1 do
+		if Logo.Pixels[X+lx, Y+ly] = 1 then
+		begin
+			i := PlasmaFunc1(X + PX1, Y + PY1) + PlasmaFunc2(X + PX2, Y + PY2);
+			Console.PutChar(DestX + Rect.Left + X, DestY + Rect.Top + Y,
+				PixelChar[Trunc(i div 16 * Brightness)], i div 2 + 16);
+		end
+		else
+			Console.PutChar(DestX + Rect.Left + X, DestY + Rect.Top + Y,
+				PixelChar[0], 15);
+	end
+	else
+	begin
+		for Y := 0 to LogoHeight-1 do
+		for X := 0 to LogoWidth-1 do
+		begin
+			i := PlasmaFunc1(X + PX1, Y + PY1) + PlasmaFunc2(X + PX2, Y + PY2);
+			i := i div 2 + 16;
+			if Logo.Pixels[X+lx, Y+ly] = 0 then
+			begin
+				if DrawBackground then
+					i := 128 - (i div 2)
+				else
+				begin
+					Console.PutChar(DestX+Rect.Left+X, DestY+Rect.Top+Y, PixelChar[0], 15);
+					Continue;
+				end;
+			end;
+			Console.PutChar(DestX + Rect.Left + X, DestY + Rect.Top + Y, c, i);
+		end;
 	end;
+
+	Inc(Counter);
 
 	if Fading <> 0 then
 	begin
@@ -270,13 +332,12 @@ begin
 		end
 	end
 	else
+	if Counter > AnimLength then
 	begin
-		Inc(Counter);
-		if Counter > AnimLength then
-		begin
-			Fading := -1; // fade out
-			Counter := 0;
-		end;
+		Fading := -1; // fade out
+		Counter := 0;
+		LogoAnimDir := -1;
+		LogoFrame := LogoFrameCount + 45;
 	end;
 end;
 
@@ -330,10 +391,10 @@ begin
 	inherited;
 
 	Box := TCWEControl.Create(Self, '', 'Logo',
-		Types.Rect(3, 4-1, Console.Width-3, Console.Height-12-1), True);
+		Types.Rect(4, 4-1, Console.Width-4, Console.Height-12-1), True);
 
 	Box.SetBorder(True, True, True, False);
-	Box.ColorBack := 0;//15;
+	Box.ColorBack := 15;
 //	Box.OnMouseDown := BoxMouseDown;
 //	Box.WantMouse := True;
 
@@ -425,10 +486,6 @@ begin
 
 		ScrollPix := 0;
 	end;
-
-	{Console.Bitmap.DrawColorKey(DR.Left, DR.Bottom - Scroll.Height-1,
-		Types.Rect(ScrollPix, 0, RectWidth(DR)+ScrollPix-1, Scroll.Height),
-		TRANSCOLOR, Scroll);}
 
 	Console.Bitmap.Draw(DR.Left, DR.Bottom + 5,
 		Types.Rect(ScrollPix, 0, RectWidth(DR)+ScrollPix-1, Scroll.Height),
