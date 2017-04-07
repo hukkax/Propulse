@@ -127,7 +127,7 @@ type
 		Controls:		TObjectList<TCWEControl>;
 
 		ColorBack,
-		ColorFore:		ShortInt;
+		ColorFore:		Integer;
 		Border:			TControlBorder;
 
 		IsProtected:	Boolean;
@@ -141,7 +141,7 @@ type
 
 		procedure	SetBorder(Enabled, Fat, Sunken, Pix: Boolean);
 		procedure 	DrawBorder; overload;
-		procedure 	DrawBorder(R: TRect; BgCol: SmallInt = -1); overload;
+		procedure 	DrawBorder(R: TRect; BgCol: Integer = -1); overload;
 
 		function	Focused: Boolean; inline;
 		function	Hovered: Boolean; inline;
@@ -1047,7 +1047,7 @@ begin
 		DrawBorder(Rect, ColorBack);
 end;
 
-procedure TCWEControl.DrawBorder(R: TRect; BgCol: SmallInt = -1);
+procedure TCWEControl.DrawBorder(R: TRect; BgCol: Integer = -1);
 begin
 	if not Border.Enabled then Exit;
 
@@ -1088,12 +1088,12 @@ end;
 
 procedure TCWEBorder.Paint;
 var
-	Bg: SmallInt;
+	Bg: Integer;
 begin
 	if not Border.Enabled then Exit;
 
 	Bg := ColorBack;
-	if Bg >= 15 then Bg := -1; // !!! dumb hack
+	if Bg > 15 then Bg := -1; // !!! dumb hack
 
 	if Border.Pixel then
 		Console.FrameRectPx(Rect, Border.Sunken, Border.Fat, Bg, Data[0].Value, Data[1].Value)

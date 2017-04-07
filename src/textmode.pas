@@ -102,9 +102,9 @@ type
 		procedure 	FillRect(const R: TRect; const nChar: AnsiChar = ' ';
 					nFgCol: Integer = -1; nBgCol: Integer = -1);
 		procedure 	FrameRect(R: TRect; Sunken: Boolean = False; Fat: Boolean = True;
-					nBgCol: ShortInt=-1; nLightCol: ShortInt=-1; nDarkCol: ShortInt=-1);
+					nBgCol: Integer=-1; nLightCol: Integer=-1; nDarkCol: Integer=-1);
 		procedure 	FrameRectPx(R: TRect; Sunken: Boolean = False; Fat: Boolean = False;
-					nBgCol: ShortInt=-1; nLightCol: ShortInt=-1; nDarkCol: ShortInt=-1);
+					nBgCol: Integer=-1; nLightCol: Integer=-1; nDarkCol: Integer=-1);
 
 		{$IFDEF SPEEDTEST}
 		function	SpeedTest(Times: Word): Cardinal;
@@ -689,7 +689,7 @@ begin
 end;
 
 procedure TConsole.FrameRectPx(R: TRect; Sunken: Boolean = False; Fat: Boolean = False;
-	nBgCol: ShortInt=-1; nLightCol: ShortInt=-1; nDarkCol: ShortInt=-1);
+	nBgCol: Integer=-1; nLightCol: Integer=-1; nDarkCol: Integer=-1);
 var
 	x1, y1, x2, y2: Integer;
 	col: TColor32;
@@ -738,7 +738,7 @@ Draw:
 end;
 
 procedure TConsole.FrameRect(R: TRect; Sunken: Boolean = False; Fat: Boolean = True;
-	nBgCol: ShortInt=-1; nLightCol: ShortInt=-1; nDarkCol: ShortInt=-1);
+	nBgCol: Integer=-1; nLightCol: Integer=-1; nDarkCol: Integer=-1);
 var
 	i, x, y, os: Integer;
 const
