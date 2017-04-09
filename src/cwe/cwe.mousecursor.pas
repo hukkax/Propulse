@@ -72,22 +72,38 @@ begin
 end;
 
 procedure TMouseCursor.Draw;
+var
+	X, Y: Integer;
 begin
-	if (Show) and (InWindow) and (Pos.X >= 0) then
+	if (Show) and (InWindow) then
 	begin
-		Background.Draw(0, 0,
-			Bounds(Pos.X - HotSpot.X, Pos.Y - HotSpot.Y, Size.X, Size.Y),
-			Console.Bitmap);
-		if (Pos.X >= 0) and (Pos.Y >= 0) then
-			Console.Bitmap.DrawColorKey(Pos.X - HotSpot.X, Pos.Y - HotSpot.Y,
-				$FFFF00FF, Bitmap);
+		X := Pos.X - HotSpot.X;
+		Y := Pos.Y - HotSpot.Y;
+		if 	(X >= 0) and (Y >= 0) and
+			(X < Console.Bitmap.Width) and (Y < Console.Bitmap.Height) then
+		begin
+			Background.Draw(0, 0,
+				Bounds(Pos.X - HotSpot.X, Pos.Y - HotSpot.Y, Size.X, Size.Y),
+				Console.Bitmap);
+			if (Pos.X >= 0) and (Pos.Y >= 0) then
+				Console.Bitmap.DrawColorKey(Pos.X - HotSpot.X, Pos.Y - HotSpot.Y,
+					$FFFF00FF, Bitmap);
+		end;
 	end;
 end;
 
 procedure TMouseCursor.Erase;
+var
+	X, Y: Integer;
 begin
-	if (Show) and (InWindow) and (Pos.X >= 0) then
-		Console.Bitmap.Draw(Pos.X - HotSpot.X, Pos.Y - HotSpot.Y, Background);
+	if (Show) and (InWindow) then
+	begin
+		X := Pos.X - HotSpot.X;
+		Y := Pos.Y - HotSpot.Y;
+		if 	(X >= 0) and (Y >= 0) and
+			(X < Console.Bitmap.Width) and (Y < Console.Bitmap.Height) then
+				Console.Bitmap.Draw(X, Y, Background);
+	end;
 end;
 
 end.
