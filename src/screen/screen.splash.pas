@@ -18,6 +18,7 @@ type
 	private
 		Fading:				ShortInt;
 		Brightness:			Single;
+		GradientIndex,
 		LogoType,
 		LogoTypeCount,
 		LogoFrameCount:		Byte;
@@ -26,6 +27,7 @@ type
 		DrawBackground,
 		BrightnessChars: 	Boolean;
 		Counter:			Cardinal;
+		Gradient,
 		Logo:				TPCXImage;
 		PixelChar:			array [0..15] of Byte;
 		PlasmaCtrX1,
@@ -130,6 +132,9 @@ end;
 
 constructor TSplashEffect.Create(W, H: Cardinal);
 begin
+	Gradient := TPCXImage.Create;
+	Gradient.LoadFromFile(DataPath + 'gradient.pcx');
+
 	Logo := TPCXImage.Create;
 	Logo.LoadFromFile(DataPath + 'logo.pcx');
 
@@ -173,6 +178,7 @@ end;
 destructor TSplashEffect.Destroy;
 begin
 	Logo.Free;
+	Gradient.Free;
 	inherited Destroy;
 end;
 
@@ -181,7 +187,7 @@ var
 	C: TColor32;
 	x, i: Integer;
 begin
-	BrightnessChars := (Random(100) <= 25);
+	BrightnessChars := (Random(100) <= 40);
 	DrawBackground  := (Random(100) <= 60);
 
 	Inc(LogoType);
@@ -252,6 +258,10 @@ var
 	X, Y, lx, ly, i, c,
 	PX1, PY1, PX2, PY2: Integer;
 begin
+	Inc(GradientIndex);
+	if GradientIndex >= Gradient.Height then
+		GradientIndex := 0;
+
 	lx := LogoType * LogoWidth;
 	ly := CLAMP(LogoFrame, 0, LogoFrameCount-1) * LogoHeight;
 
@@ -279,7 +289,7 @@ begin
 		begin
 			i := PlasmaFunc1(X + PX1, Y + PY1) + PlasmaFunc2(X + PX2, Y + PY2);
 			Console.PutChar(DestX + Rect.Left + X, DestY + Rect.Top + Y,
-				PixelChar[Trunc(i div 16 * Brightness)], i div 2 + 16);
+				PixelChar[Gradient.Pixels[Trunc(i * Brightness), GradientIndex]], i div 2 + 16);
 		end
 		else
 			Console.PutChar(DestX + Rect.Left + X, DestY + Rect.Top + Y,
