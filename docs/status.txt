@@ -1,15 +1,19 @@
 Propulse Tracker current status
 ===============================
 
-- Some mouse and keyboard input issues due to change from Delphi's form event
-  based input handling to SDL2
-- Some graphical glitches may exist due to changes to graphics API
 - libSOXR support is not implemented yet on non-Windows platforms
 - Mac support needs someone to work on, I don't have access to one
 
 
 Regressions/changes from PoroTracker 0.8.9.3
 ============================================
+
+New features:
+
+- Common file/directory operations can now be done in the file requesters:
+  Shift-F2 to rename file, Shift-F5 to copy file, Shift-F6 to move file,
+  Shift-F7 to create directory, Shift-F8 to delete file (or dir in Windows)
+- Bookmarks can now be renamed
 
 Permanent changes:
 
@@ -21,11 +25,12 @@ Permanent changes:
 - Rendering the current module or selection to WAV is done via the Save Module
   screen by entering a filename ending in .wav. This will display the export
   dialog.
+- Changed visual effect in splash screen
 
 To be fixed:
 
-- Font and mouse pointer images must be in 256-color PCX format
-- Font can't be changed other than by editing the config file
+- Font and mouse pointer images must be in 1/4/8-bit PCX format
+- Font can't be changed via config dialog
 - Palette preset loading/saving disabled for now due to lack of file requester
 
 Platform specific:
@@ -38,7 +43,8 @@ Bugs fixed from PoroTracker 0.8.9.3
 
 - WAV saving: corrected a value in the wav format header
 - Scrollbars didn't work after clicking on them until mouse was moved away
+- Various other widget engine fixes and improvements
 - Other stuff I forgot to write down
 
 -- 
-hukka 2017-03-30 - hukkax@gmail.com - https://github.com/hukkax/Propulse
+hukka 2017-04-10 - hukkax@gmail.com - https://github.com/hukkax/Propulse
