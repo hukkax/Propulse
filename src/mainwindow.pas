@@ -904,7 +904,8 @@ begin
 		        SDL_WINDOWEVENT_LEAVE:	MouseCursor.InWindow := False;
 			end;
 
-		SDL_DROPFILE: ;
+		SDL_DROPFILE:
+			DoLoadModule(InputEvent.drop._file);
 
 		SDL_QUITEV:
 			QuitFlag := True;
