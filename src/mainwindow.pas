@@ -64,11 +64,11 @@ type
 
 		function 	SetupVideo(screenW, screenH: Word; Scale: Byte): Boolean;
 	public
-		Renderer:	PSDL_Renderer;
-		Window:		PSDL_Window;
+		Renderer:			PSDL_Renderer;
+		Window:				PSDL_Window;
 
-		IsFullScreen,
-		vsync60HzPresent:	Boolean;
+		IsFullScreen: 		Boolean;
+		VSyncRate:			Word;
 		sdlVersion: 		TSDL_version;
 		MessageTextTimer,
 		PlayTimeCounter:	Integer;
@@ -412,13 +412,13 @@ begin
 	SDL_SetHint('SDL_VIDEO_X11_XVIDMODE', '1');
 	{$ENDIF}
 
-	if SDL_Init(SDL_INIT_VIDEO {or SDL_INIT_TIMER}) < 0 then Exit;
+	if SDL_Init(SDL_INIT_VIDEO or SDL_INIT_TIMER) < 0 then Exit;
 
-	vsync60HzPresent := False;
+	VSyncRate := 0;
 	if SDL_GetDesktopDisplayMode(0, @dm) = 0 then
-	if dm.refresh_rate in [59, 60] then // 59Hz is a wrong NTSC legacy value from EDID. It's 60Hz!
+	if dm.refresh_rate in [50..61] then // 59Hz is a wrong NTSC legacy value from EDID. It's 60Hz!
 	begin
-		vsync60HzPresent := True;
+		VSyncRate := dm.refresh_rate;
 		rendererFlags := rendererFlags or SDL_RENDERER_PRESENTVSYNC;
 	end;
 
@@ -430,10 +430,10 @@ begin
 	if Window = nil then Exit;
 
 	Renderer := SDL_CreateRenderer(Window, -1, rendererFlags);
-	if (Renderer = nil) and (vsync60HzPresent) then
+	if (Renderer = nil) and (VSyncRate > 0) then
 	begin
 		// try again without vsync flag
-		vsync60HzPresent := False;
+		VSyncRate := 0;
 		rendererFlags := rendererFlags and not SDL_RENDERER_PRESENTVSYNC;
 		Renderer := SDL_CreateRenderer(Window, -1, rendererFlags);
 		if Renderer = nil then Exit;
@@ -912,22 +912,22 @@ begin
 	end;
 end;
 
-procedure TWindow.SyncTo60Hz;
+procedure TWindow.SyncTo60Hz; 				// from PT clone
 var
-	timeNow_64bit: UInt64;
-	delayMs_f, perfFreq_f: Double;
+	delayMs, perfFreq, timeNow_64bit: UInt64;
 begin
-	// this routine almost never delays if we have 60Hz vsync
+	if VSyncRate > 0 then Exit;
 
-	perfFreq_f := SDL_GetPerformanceFrequency; // should be safe for double
-	if (perfFreq_f = 0.0) then Exit; // panic!
+	perfFreq := SDL_GetPerformanceFrequency; // should be safe for double
+	if perfFreq = 0 then Exit; // panic!
 
 	timeNow_64bit := SDL_GetPerformanceCounter;
 	if next60HzTime_64bit > timeNow_64bit then
 	begin
-		delayMs_f := (next60HzTime_64bit - timeNow_64bit) * (1000.0 / perfFreq_f);
-		SDL_Delay(Trunc(delayMs_f + 0.5));
+		delayMs := Trunc((next60HzTime_64bit - timeNow_64bit) * (1000.0 / perfFreq) + 0.5);
+		SDL_Delay(delayMs);
 	end;
+	Inc(next60HzTime_64bit, Trunc(perfFreq / 60 + 0.5));
 end;
 
 procedure TWindow.EscMenu;
@@ -1298,8 +1298,8 @@ begin
 	end;
 
 	Dir := Format('Using SDL %d.%d.%d',[sdlVersion.major, sdlVersion.minor, sdlVersion.patch]);
-	if vsync60HzPresent then
-		Dir := Dir + ' with 60Hz vsync';
+	if VSyncRate > 0 then
+		Dir := Dir + Format(' with %dHz vsync', [VSyncRate]);
 	Log(Dir);
 
 	Options.Features.SOXR := (soxr_version <> '');
