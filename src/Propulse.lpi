@@ -71,7 +71,11 @@
             <CustomOptions Value="-OoLOOPUNROLL
 -OoFASTMATH
 -OoREMOVEEMPTYPROCS
--OpPENTIUMM"/>
+-OpPENTIUMM
+-dRELEASE"/>
+            <OtherDefines Count="1">
+              <Define0 Value="DEBUG"/>
+            </OtherDefines>
           </Other>
         </CompilerOptions>
       </Item2>
@@ -82,6 +86,7 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
+        <CommandLineParams Value="--debug-log=C:\Projects\Propulse\debug.log"/>
       </local>
     </RunParams>
     <RequiredPackages Count="1">
@@ -350,7 +355,6 @@
     <CodeGeneration>
       <Checks>
         <IOChecks Value="True"/>
-        <OverflowChecks Value="True"/>
         <StackChecks Value="True"/>
       </Checks>
     </CodeGeneration>
@@ -375,7 +379,11 @@
         <IgnoredMessages idx3177="True"/>
       </CompilerMessages>
       <CustomOptions Value="-al
--gl"/>
+-gl
+-dDEBUG"/>
+      <OtherDefines Count="1">
+        <Define0 Value="DEBUG"/>
+      </OtherDefines>
     </Other>
   </CompilerOptions>
   <Debugging>
