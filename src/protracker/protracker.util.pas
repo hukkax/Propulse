@@ -6,7 +6,7 @@ uses
 	ConfigurationManager, Types;
 
 const
-	VERSION  =  '0.8.9.5';
+	VERSION  =  '0.8.9.6';
 
 	FILENAME_CONFIG      = 'propulse.ini';
 	FILENAME_KEYBOARD    = 'keyboard.ini';
