@@ -151,9 +151,9 @@ implementation
 uses
 	MainWindow, Math, Layout,
     soxr,
-	SampleEditor,
-	FloatSampleEffects,
-	Screen.FileReqSample, Screen.Editor, Screen.Config, Dialog.ValueQuery;
+	SampleEditor, //FloatSampleEffects,
+	Screen.FileReqSample, Screen.Editor, Screen.Config,
+	Dialog.ValueQuery;
 
 
 procedure TSampleScreen.WaveformKeyDown(Sender: TCWEControl;

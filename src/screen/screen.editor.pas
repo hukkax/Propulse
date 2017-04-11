@@ -659,7 +659,7 @@ const
 	CHR_TRIANGLE = #169;
 	CHR_PERIOD   = #170;
 	CHR_EMPTY    = #143;
-	CHR_SPACE    = #32;
+	//CHR_SPACE    = #32;
 begin
 	if not Active then Exit;
 

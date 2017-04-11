@@ -80,13 +80,8 @@ begin
 
 	Window := TWindow.Create;
 
-    with Window do
-	while not QuitFlag do
-	begin
-        HandleInput;
-		SyncTo60Hz;
-		FlipFrame;
-	end;
+		while not QuitFlag do
+			Window.ProcessFrame;
 
 	Window.Free;
 
