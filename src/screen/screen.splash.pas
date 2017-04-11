@@ -389,6 +389,8 @@ begin
 	ScrollPix  := 0;
 	ScrollChar := 0;
 
+	if Effect <> nil then
+		Effect.Free;
 	Effect := TSplashEffect.Create(RectWidth(Box.Rect), RectHeight(Box.Rect));
 end;
 
