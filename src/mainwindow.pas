@@ -37,21 +37,29 @@ type
 		keyToggleChannel3,		keyToggleChannel4
 	);
 
-	{ TCWEMainMenu }
+	TVideoInfo = record
+		Renderer:		PSDL_Renderer;
+		Window:			PSDL_Window;
+		Texture:		PSDL_Texture;
+
+		IsFullScreen: 	Boolean;
+		VSyncRate:		Word;
+		NextFrameTime:	UInt64;
+
+		NewSDL: Boolean;
+		RendererName,
+		LibraryVersion:	AnsiString;
+	end;
 
 	TCWEMainMenu = class(TCWETwoColumnList)
 		procedure MainMenuCommand(Sender: TCWEControl);
 		function  KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 	end;
 
-	{ TWindow }
 	TWindow = class
 	const
 		TimerInterval = 10;
 	private
-		next60HzTime_64bit:	UInt64;
-
-		Texture:	PSDL_Texture;
 		Screens:	TObjectList<TCWEScreen>;
 
 		procedure 	ModuleSpeedChanged;
@@ -62,14 +70,9 @@ type
 		procedure	UpdateVUMeter(Len: DWord);
 		procedure 	UpdatePatternView;
 
-		function 	SetupVideo(screenW, screenH: Word; Scale: Byte): Boolean;
+		function 	SetupVideo: Boolean;
 	public
-		Renderer:			PSDL_Renderer;
-		Window:				PSDL_Window;
-
-		IsFullScreen: 		Boolean;
-		VSyncRate:			Word;
-		sdlVersion: 		TSDL_version;
+		Video:		TVideoInfo;
 		MessageTextTimer,
 		PlayTimeCounter:	Integer;
 
@@ -103,7 +106,6 @@ var
 	Window: 	TWindow;
 	GlobalKeys: TKeyBindings;
 	QuitFlag:	Boolean;
-	NewSDL: 	Boolean;
 	Initialized:Boolean;
 
 
@@ -113,12 +115,38 @@ uses
 	{$IFDEF WINDOWS}
 	Windows,
 	{$ENDIF}
+	lazlogger,
 	BASS, BuildInfo, Math,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
 	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio,
 	soxr;
 
+
+procedure LogDebug(const Msg: AnsiString);
+begin
+	DebugLn(Msg);
+	{$IFDEF DEBUG}
+	writeln(Msg);
+	{$ENDIF}
+end;
+
+procedure LogIfDebug(const Msg: AnsiString);
+begin
+	{$IFDEF DEBUG}
+	LogDebug(Msg);
+	{$ENDIF}
+end;
+
+procedure LogError(const Msg: AnsiString); inline;
+begin
+	LogDebug('[ERROR] ' + Msg);
+end;
+
+procedure LogFatal(const Msg: AnsiString); inline;
+begin
+	LogDebug('[FATAL] ' + Msg);
+end;
 
 procedure TWindow.DialogCallback(ID: Word; Button: TDialogButton;
 	ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
@@ -187,7 +215,7 @@ end;
 procedure PixelScalingChanged;
 begin
 	MouseCursor.Erase;
-	Window.SetFullScreen(Window.IsFullScreen);
+	Window.SetFullScreen(Window.Video.IsFullScreen);
 end;
 
 procedure ChangeMousePointer;
@@ -228,6 +256,11 @@ begin
 		MouseCursor := TMouseCursor.Create(DataPath + Fn);
 
 	ChangeMousePointer;
+end;
+
+procedure ApplyFont;
+begin
+	Window.SetupVideo;
 end;
 
 procedure TWindow.UpdateVUMeter(Len: DWord);
@@ -377,7 +410,7 @@ begin
 	end;
 end;
 
-function TWindow.SetupVideo(screenW, screenH: Word; Scale: Byte): Boolean;
+function TWindow.SetupVideo: Boolean;
 
 	function GetFontFile(const Fn: String): String;
 	begin
@@ -387,30 +420,55 @@ function TWindow.SetupVideo(screenW, screenH: Word; Scale: Byte): Boolean;
 var
 	dm: TSDL_DisplayMode;
 	windowFlags, rendererFlags: UInt32;
-	sx, sy: Word;
+	screenW, screenH, sx, sy: Word;
 	Icon: PSDL_Surface;
 	Fn: String;
+	rinfo: TSDL_RendererInfo;
+	sdlVersion: TSDL_Version;
 begin
   	Result := False;
+	Locked := True;
+
+	if (Initialized) and (Console <> nil) then
+	begin
+		sx := Console.Font.Width;
+		sy := Console.Font.Height;
+	end;
 
 	Fn := GetFontFile(Options.Display.Font);
 	if not FileExists(Fn) then
 	begin
 		Options.Display.Font := FILENAME_DEFAULTFONT;
 		Fn := GetFontFile(Options.Display.Font);
-		if not FileExists(Fn) then Exit;
+		if (not Initialized) and (not FileExists(Fn)) then Exit;
 	end;
 
-	Console := TConsole.Create(screenW, screenH, Fn, AppPath + 'palette/Propulse.ini');
+	if not Initialized then
+		Console := TConsole.Create(80, 45, Fn, AppPath + 'palette/Propulse.ini')
+	else
+	begin
+		Console.LoadFont(Fn);
+
+		if (sx <> Console.Font.Width) or (sy <> Console.Font.Height) then
+		begin
+			ApplyPointer;
+			SplashScreen.Init;
+		end;
+	end;
 
 	screenW := Console.Bitmap.Width;
 	screenH := Console.Bitmap.Height;
-	if Scale < 1 then Scale := 1;
-	sx := screenW * Scale;
-	sy := screenH * Scale;
+	Options.Display.Scaling := Max(Options.Display.Scaling, 1);
+	sx := screenW * Options.Display.Scaling;
+	sy := screenH * Options.Display.Scaling;
 
-	SDL_GetVersion(@sdlVersion);
-	NewSDL := sdlVersion.patch >= 5; // we want SDL 2.0.5 or newer
+	if not Initialized then
+	begin
+		SDL_GetVersion(@sdlVersion);
+		Video.NewSDL := sdlVersion.patch >= 5; // we want SDL 2.0.5 or newer
+		Video.LibraryVersion := Format('%d.%d.%d',
+			[sdlVersion.major, sdlVersion.minor, sdlVersion.patch]);
+	end;
 
 	windowFlags   := 0;
 	rendererFlags := SDL_RENDERER_ACCELERATED or SDL_RENDERER_TARGETTEXTURE;
@@ -425,67 +483,113 @@ begin
 	SDL_SetHint('SDL_VIDEO_X11_XVIDMODE', '1');
 	{$ENDIF}
 
-	if SDL_Init(SDL_INIT_VIDEO or SDL_INIT_TIMER) < 0 then Exit;
-
-	VSyncRate := 0;
-	if SDL_GetDesktopDisplayMode(0, @dm) = 0 then
-	if dm.refresh_rate in [50..61] then // 59Hz is a wrong NTSC legacy value from EDID. It's 60Hz!
+	if not Initialized then
 	begin
-		VSyncRate := dm.refresh_rate;
-		rendererFlags := rendererFlags or SDL_RENDERER_PRESENTVSYNC;
+		if SDL_Init(SDL_INIT_VIDEO or SDL_INIT_TIMER) < 0 then
+		begin
+			LogFatal('Error initializing SDL: ' + SDL_GetError);
+			Exit;
+		end;
+
+		Video.VSyncRate := 0;
+		if SDL_GetDesktopDisplayMode(0, @dm) = 0 then
+		if dm.refresh_rate in [50..61] then // 59Hz is a wrong NTSC legacy value from EDID. It's 60Hz!
+		begin
+			Video.VSyncRate := dm.refresh_rate;
+			rendererFlags := rendererFlags or SDL_RENDERER_PRESENTVSYNC;
+		end;
+
+		SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 'nearest');
+	end
+	else
+	begin
+		SDL_DestroyRenderer(Video.Renderer);
+		SDL_DestroyTexture(Video.Texture);
+		SDL_DestroyWindow(Video.Window);
+
+		if Video.VSyncRate in [50..61] then // 59Hz is a wrong NTSC legacy value from EDID. It's 60Hz!
+			rendererFlags := rendererFlags or SDL_RENDERER_PRESENTVSYNC;
 	end;
 
-	SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 'nearest');
-
-	Window := SDL_CreateWindow('Propulse Tracker',
+	Video.Window := SDL_CreateWindow('Propulse Tracker',
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, sx, sy, windowFlags);
-	if Window = nil then Exit;
+	if Video.Window = nil then
+	begin
+		LogFatal('Error setting up window: ' + SDL_GetError);
+		Exit;
+	end;
 
-	Renderer := SDL_CreateRenderer(Window, -1, rendererFlags);
-	if (Renderer = nil) and (VSyncRate > 0) then
+	Video.Renderer := SDL_CreateRenderer(Video.Window, -1, rendererFlags);
+	if (Video.Renderer = nil) and (Video.VSyncRate > 0) then
 	begin
 		// try again without vsync flag
-		VSyncRate := 0;
+		Video.VSyncRate := 0;
 		rendererFlags := rendererFlags and not SDL_RENDERER_PRESENTVSYNC;
-		Renderer := SDL_CreateRenderer(Window, -1, rendererFlags);
-		if Renderer = nil then Exit;
+		Video.Renderer := SDL_CreateRenderer(Video.Window, -1, rendererFlags);
+		if Video.Renderer = nil then
+		begin
+			LogFatal('Error creating renderer: ' + SDL_GetError);
+			Exit;
+		end;
 	end;
+	SDL_SetRenderDrawBlendMode(Video.Renderer, SDL_BLENDMODE_NONE);
 
-	SDL_RenderSetLogicalSize(Renderer, screenW, screenH);
-	SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_NONE);
+	SDL_GetRendererInfo(Video.Renderer, @rinfo);
+	Video.RendererName := rinfo.name;
 
-    if NewSDL then
-		SDL_RenderSetIntegerScale(Renderer, SDL_TRUE);
+	if SDL_RenderSetLogicalSize(Video.Renderer, screenW, screenH) <> 0 then
+	begin
+		LogFatal('Error setting renderer size: ' + SDL_GetError);
+		Exit;
+	end;
+    if Video.NewSDL then
+		SDL_RenderSetIntegerScale(Video.Renderer, SDL_TRUE);
 
-	texture := SDL_CreateTexture(Renderer,
+	Video.Texture := SDL_CreateTexture(Video.Renderer,
 		SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, screenW, screenH);
-	if Texture = nil then Exit;
-
-	SDL_SetTextureBlendMode(Texture, SDL_BLENDMODE_NONE);
-
-	next60HzTime_64bit := Trunc(SDL_GetPerformanceCounter +
-		((SDL_GetPerformanceFrequency / 60.0) + 0.5));
+	if Video.Texture = nil then
+	begin
+		LogFatal('Error initializing streaming texture: ' + SDL_GetError);
+		Exit;
+	end;
+	SDL_SetTextureBlendMode(Video.Texture, SDL_BLENDMODE_NONE);
 
 	Icon := SDL_LoadBMP(PAnsiChar(DataPath + 'icon.bmp'));
-	SDL_SetWindowIcon(Window, Icon);
+	SDL_SetWindowIcon(Video.Window, Icon);
 	SDL_FreeSurface(Icon);
 
+	if Initialized then
+	begin
+		Console.Refresh;
+		if CurrentScreen <> nil then
+		begin
+			CurrentScreen.Show;
+			CurrentScreen.Paint;
+		end;
+	end;
+
+	Video.NextFrameTime := Trunc(SDL_GetPerformanceCounter +
+		((SDL_GetPerformanceFrequency / 60.0) + 0.5));
+
 	Result := True;
+	Locked := False;
 end;
 
 procedure TWindow.FlipFrame;
 begin
+	if Locked then Exit;
+
 	if CurrentScreen = SplashScreen then
 		SplashScreen.Update;
 
 	ProcessMouseMovement;
 	MouseCursor.Draw;
 
-	SDL_UpdateTexture(Texture, nil, @Console.Bitmap.Bits[0], Console.Bitmap.Width*4);
-	SDL_RenderClear(Renderer);
-	SDL_RenderCopy(Renderer, Texture, nil, nil);
-	SDL_RenderPresent(Renderer);
+	SDL_UpdateTexture(Video.Texture, nil, @Console.Bitmap.Bits[0], Console.Bitmap.Width*4);
+	SDL_RenderClear(Video.Renderer);
+	SDL_RenderCopy(Video.Renderer, Video.Texture, nil, nil);
+	SDL_RenderPresent(Video.Renderer);
 
 	MouseCursor.Erase;
 end;
@@ -495,16 +599,16 @@ var
 	z, w, h: Integer;
 	X, Y: Single;
 begin
-	IsFullScreen := B;
+	Video.IsFullScreen := B;
 
 	if B then
 	begin
 		{$IFDEF WINDOWS}
-		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 		{$ELSE}
 		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
 		{$ENDIF}
-		SDL_SetWindowGrab(window, SDL_TRUE);
+		SDL_SetWindowGrab(Video.Window, SDL_TRUE);
 	end
 	else
 	begin
@@ -520,16 +624,16 @@ begin
 		w := Console.Bitmap.Width  * z;
 		h := Console.Bitmap.Height * z;
 
-		SDL_SetWindowFullscreen(window, 0);
-		SDL_SetWindowSize(window, w, h);
-		SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-		SDL_SetWindowGrab(window, SDL_FALSE);
+		SDL_SetWindowFullscreen(Video.Window, 0);
+		SDL_SetWindowSize(Video.Window, w, h);
+		SDL_SetWindowPosition(Video.Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		SDL_SetWindowGrab(Video.Window, SDL_FALSE);
 	end;
 
-{    SDL_GetWindowSize(window, @w, @h);
-    SDL_WarpMouseInWindow(window, w div 2, h div 2);}
+	{SDL_GetWindowSize(Video.Window, @w, @h);
+    SDL_WarpMouseInWindow(Video.Window, w div 2, h div 2);}
 
-	SDL_RenderGetScale(Renderer, SDL2.PFloat(@X), SDL2.PFloat(@Y));
+	SDL_RenderGetScale(Video.Renderer, SDL2.PFloat(@X), SDL2.PFloat(@Y));
 	w := Max(Trunc(x), 1); h := Max(Trunc(y), 1);
 	MouseCursor.Scaling := Types.Point(w, h);
 end;
@@ -537,7 +641,7 @@ end;
 procedure TWindow.SetTitle(const Title: AnsiString);
 begin
 	if Initialized then
-		SDL_SetWindowTitle(Window, PAnsiChar(Title));
+		SDL_SetWindowTitle(Video.Window, PAnsiChar(Title));
 end;
 
 procedure TWindow.OnKeyDown(var Key: Integer; Shift: TShiftState);
@@ -659,7 +763,7 @@ begin
 
 		// toggle fullscreen with alt-enter
 		keyProgramFullscreen:
-				SetFullScreen(not IsFullScreen);
+				SetFullScreen(not Video.IsFullScreen);
 
 		keyScreenLog:
 			ChangeScreen(TCWEScreen(LogScreen));
@@ -719,6 +823,7 @@ var
 	P: TPoint;
 	X, Y: Integer;
 begin
+	if Locked then Exit;
 	SDL_PumpEvents;
 	SDL_GetMouseState(@X, @Y);
 
@@ -801,6 +906,8 @@ var
 	end;
 
 begin
+	if Locked then Exit;
+
 	X := MouseCursor.Pos.X;
 	Y := MouseCursor.Pos.Y;
 
@@ -879,7 +986,7 @@ begin
 				begin
 					if PtInRect(CurrentScreen.Rect, GetXY) then
 					begin
-						SDL_CaptureMouse(SDL_TRUE);
+						SDL_SetWindowGrab(Video.Window, SDL_TRUE);
 						B := CurrentScreen.MouseDown(Btn, X, Y, GetXY);
 						// right button for context menu if the button wasn't otherwise handled
 						if (Btn = mbRight) and (not B) and (ModalDialog.Dialog = nil) then
@@ -894,7 +1001,7 @@ begin
 				else
 				if InputEvent.type_ = SDL_MOUSEBUTTONUP then
 				begin
-					SDL_CaptureMouse(SDL_FALSE);
+					SDL_SetWindowGrab(Video.Window, SDL_FALSE);
 					CurrentScreen.MouseUp(Btn, X, Y, GetXY);
 				end;
 			end;
@@ -927,18 +1034,19 @@ procedure TWindow.SyncTo60Hz; 				// from PT clone
 var
 	delayMs, perfFreq, timeNow_64bit: UInt64;
 begin
-	if VSyncRate > 0 then Exit;
+	if (Video.VSyncRate > 0) or (Locked) then Exit;
 
 	perfFreq := SDL_GetPerformanceFrequency; // should be safe for double
 	if perfFreq = 0 then Exit; // panic!
 
 	timeNow_64bit := SDL_GetPerformanceCounter;
-	if next60HzTime_64bit > timeNow_64bit then
+	if Video.NextFrameTime > timeNow_64bit then
 	begin
-		delayMs := Trunc((next60HzTime_64bit - timeNow_64bit) * (1000.0 / perfFreq) + 0.5);
+		delayMs := Trunc((Video.NextFrameTime - timeNow_64bit)
+			* (1000.0 / perfFreq) + 0.5);
 		SDL_Delay(delayMs);
 	end;
-	Inc(next60HzTime_64bit, Trunc(perfFreq / 60 + 0.5));
+	Inc(Video.NextFrameTime, Trunc(perfFreq / 60 + 0.5));
 end;
 
 procedure TWindow.EscMenu;
@@ -1105,7 +1213,7 @@ function TimerTickCallback(interval: Uint32; param: Pointer): UInt32; cdecl;
 var
 	event: TSDL_Event;
 begin
-	if Initialized then
+	if (Initialized) and (not Locked) then
 	begin
 		event.type_ := SDL_USEREVENT;
 		event.user.code := MSG_TIMERTICK;
@@ -1116,7 +1224,7 @@ end;
 
 procedure TWindow.TimerTick;
 begin
-//	if DisableInput then Exit;
+	if Locked then Exit;
 
 	if MessageTextTimer >= 0 then
 	begin
@@ -1156,6 +1264,7 @@ var
 begin
 	Initialized := False;
 	QuitFlag := False;
+	Locked := True;
 
 	// Init application directories
 	//
@@ -1166,6 +1275,13 @@ begin
 		ConfigPath := DataPath;
 	ForceDirectories(ConfigPath);
 	DefaultFormatSettings.DecimalSeparator := '.';
+
+
+	// Setup logging
+	//
+	DebugLogger.LogName := 'debug.txt';
+	LogIfDebug('============================================================');
+	LogIfDebug('Propulse Tracker ' + ProTracker.Util.VERSION + ' starting...');
 
 	// Init list of audio devices
 	//
@@ -1207,7 +1323,7 @@ begin
 		Cfg.AddByte(Sect, 'Scaling', @Display.Scaling, 2)
 		.SetInfo('Pixel scaling', 1, 8, [], PixelScalingChanged);
 		Cfg.AddString(Sect, 'Font', @Display.Font, FILENAME_DEFAULTFONT).
-		SetInfoFromDir('Font', DataPath + 'font/', '*.pcx', nil{ApplyFont});
+		SetInfoFromDir('Font', DataPath + 'font/', '*.pcx', ApplyFont);
 		{Cfg.AddString(Sect, 'Palette', @Display.Palette, 'Propulse').
 		SetInfoFromDir('Palette', ConfigPath + 'palette/', '*.ini', ApplyPalette);}
 		Cfg.AddByte(Sect, 'Mouse', @Display.MousePointer, CURSOR_CUSTOM)
@@ -1269,6 +1385,8 @@ begin
 		.SetInfo('Boost highs', 0, 1, ['No', 'Yes']);
 	end;
 
+	LogIfDebug('Loading configuration...');
+
 	Cfg.Load;
 
 	if Options.Dirs.Modules = '' then
@@ -1279,11 +1397,10 @@ begin
 
 	// Create fake text mode console and init SDL
 	//
-	if not SetupVideo(80, 45, Options.Display.Scaling) then
+	LogIfDebug('Setting up video...');
+	if not SetupVideo then
 	begin
-		{$IFDEF UNIX}
-		writeln('Could not initialize video; quitting!');
-		{$ENDIF}
+		LogFatal('Could not initialize video!');
 		HALT;
 	end;
 
@@ -1315,16 +1432,16 @@ begin
 	Log('Contains code based on work by 8bitbubsy (Olav Sorensen)');
 	Log('');
 
-	if not NewSDL then
+	if not Video.NewSDL then
 	begin
 		Log(TEXT_WARNING + 'Using an older version of SDL. (< 2.0.5)');
 		Log(TEXT_WARNING + 'Visuals may appear worse than intended!');
 		Log('');
 	end;
 
-	Dir := Format('Using SDL %d.%d.%d',[sdlVersion.major, sdlVersion.minor, sdlVersion.patch]);
-	if VSyncRate > 0 then
-		Dir := Dir + Format(' with %dHz vsync', [VSyncRate]);
+	Dir := 'Using SDL ' + Video.LibraryVersion;
+	if Video.VSyncRate > 0 then
+		Dir := Dir + Format(' with %dHz vsync', [Video.VSyncRate]);
 	Log(Dir);
 
 	Options.Features.SOXR := (soxr_version <> '');
@@ -1349,17 +1466,15 @@ begin
 		i := 44100;
 	end;
 
+	LogIfDebug('Initializing audio...');
 	if not AudioInit(i) then
 	begin
-		{$IFDEF UNIX}
-	    writeln('Could not initialize audio; quitting!');
-		{$ENDIF}
+	    LogFatal('Could not initialize audio; quitting!');
 		HALT;
 	end;
 
 
 	Log('');
-
 
 	// Init keyboard commands now so we can log any possible errors with
 	// the initialization of subsequent screens
@@ -1406,6 +1521,7 @@ begin
 		Bind(filekeyCreate,				'File.CreateDir',			'Shift+F7');
 	end;
 
+	LogIfDebug('Initializing GUI...');
 	InitCWE;
 
 	// Create the rest of the screens
@@ -1456,14 +1572,16 @@ begin
 		SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
 	{$ENDIF}
 
-	SetFullScreen(IsFullScreen);
+	SetFullScreen(Video.IsFullScreen);
 
-	{SDL_TimerID := }
 	SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
+
+	LogIfDebug('OK.');
 end;
 
 destructor TWindow.Destroy;
 begin
+	LogIfDebug('Closing down...');
 	Initialized := False;
 
 	// Save configuration
@@ -1480,9 +1598,9 @@ begin
 	Module.Free;
 	AudioClose;
 
-	SDL_DestroyRenderer(Renderer);
-	SDL_DestroyTexture(Texture);
-	SDL_DestroyWindow(Window);
+	SDL_DestroyRenderer(Video.Renderer);
+	SDL_DestroyTexture(Video.Texture);
+	SDL_DestroyWindow(Video.Window);
 	SDL_Quit;
 end;
 
