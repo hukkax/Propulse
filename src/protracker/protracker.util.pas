@@ -114,10 +114,10 @@ type
 
 var
 	AppPath, DataPath, ConfigPath: String;
-	TextVals, HexVals: array [0..255] of AnsiString;
-	FollowPlayback: Boolean;
+	Locked, FollowPlayback: Boolean;
 	Options: TPoroTrackerConfiguration;
 	ConfigManager: TConfigurationManager;
+	TextVals, HexVals: array [0..255] of AnsiString;
 
 const
 	CHR_PERIOD 			= #173;
