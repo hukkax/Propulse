@@ -11,7 +11,7 @@ const
 	FILENAME_CONFIG      = 'propulse.ini';
 	FILENAME_KEYBOARD    = 'keyboard.ini';
 	FILENAME_PALETTE     = 'palette.ini';
-	FILENAME_DEFAULTFONT = 'font';
+	FILENAME_DEFAULTFONT = 'Propulse 8x8';
 
 	ACTION_QUIT				= 1;
 	ACTION_NEWMODULE		= 2;
@@ -79,8 +79,8 @@ type
 
 		Audio: record
 			Driver: 				Byte;
-			Device: 				Integer;	// audio device, 0 = use system default
-			Frequency: 				Integer;	// 0 = 44100
+			Device: 				Byte;		// audio device, 1 = system default
+			Frequency: 				Byte;		// 11025/22050/44100/48000
 			Buffer: 				Integer;	// audio buffer in milliseconds, 0 = detect minimum
 			Amplification: 			Single;		// default: 3.25
 			StereoSeparation: 		Byte;		// 0..100%, 0=mono

@@ -113,7 +113,7 @@ uses
 	{$IFDEF WINDOWS}
 	Windows,
 	{$ENDIF}
-	BuildInfo, Math,
+	BASS, BuildInfo, Math,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
 	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio,
@@ -378,17 +378,30 @@ begin
 end;
 
 function TWindow.SetupVideo(screenW, screenH: Word; Scale: Byte): Boolean;
+
+	function GetFontFile(const Fn: String): String;
+	begin
+		Result := AppPath + 'data/font/' + Fn + '.pcx';
+	end;
+
 var
 	dm: TSDL_DisplayMode;
 	windowFlags, rendererFlags: UInt32;
 	sx, sy: Word;
 	Icon: PSDL_Surface;
+	Fn: String;
 begin
   	Result := False;
 
-	Console := TConsole.Create(screenW, screenH,
-		AppPath + 'data/font.pcx',
-		AppPath + 'palette/Propulse.ini');
+	Fn := GetFontFile(Options.Display.Font);
+	if not FileExists(Fn) then
+	begin
+		Options.Display.Font := FILENAME_DEFAULTFONT;
+		Fn := GetFontFile(Options.Display.Font);
+		if not FileExists(Fn) then Exit;
+	end;
+
+	Console := TConsole.Create(screenW, screenH, Fn, AppPath + 'palette/Propulse.ini');
 
 	screenW := Console.Bitmap.Width;
 	screenH := Console.Bitmap.Height;
@@ -509,6 +522,7 @@ begin
 
 		SDL_SetWindowFullscreen(window, 0);
 		SDL_SetWindowSize(window, w, h);
+		SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 		SDL_SetWindowGrab(window, SDL_FALSE);
 	end;
 
@@ -710,17 +724,12 @@ begin
 
 	X := X div MouseCursor.Scaling.X;
 	Y := Y div MouseCursor.Scaling.Y;
-
 	MouseCursor.Pos := Types.Point(X, Y);
+	P := Types.Point(X div Console.Font.Width, Y div Console.Font.Height);
 
-	P := Types.Point(
-		X div Console.Font.Width,
-		Y div Console.Font.Height);
-
-	if {(not DisableInput) and}
-	((X <> MouseCursor.OldPos.X) or (Y <> MouseCursor.OldPos.Y)) then
+	if (CurrentScreen <> nil) and
+		((X <> MouseCursor.OldPos.X) or (Y <> MouseCursor.OldPos.Y)) then
 	begin
-		if CurrentScreen = nil then Exit;
 		MouseCursor.OldPos := MouseCursor.Pos;
 		CurrentScreen.MouseMove(X, Y, P);
 	end;
@@ -870,13 +879,11 @@ begin
 				begin
 					if PtInRect(CurrentScreen.Rect, GetXY) then
 					begin
-						if InputEvent.type_ = SDL_MOUSEBUTTONDOWN then
-						begin
-							B := CurrentScreen.MouseDown(Btn, X, Y, GetXY);
-							// right button for context menu if the button wasn't otherwise handled
-							if (Btn = mbRight) and (not B) and (ModalDialog.Dialog = nil) then
-								EscMenu;
-						end
+						SDL_CaptureMouse(SDL_TRUE);
+						B := CurrentScreen.MouseDown(Btn, X, Y, GetXY);
+						// right button for context menu if the button wasn't otherwise handled
+						if (Btn = mbRight) and (not B) and (ModalDialog.Dialog = nil) then
+							EscMenu;
 					end
 					else
 					// close context menu by clicking outside it
@@ -886,7 +893,10 @@ begin
 				end
 				else
 				if InputEvent.type_ = SDL_MOUSEBUTTONUP then
+				begin
+					SDL_CaptureMouse(SDL_FALSE);
 					CurrentScreen.MouseUp(Btn, X, Y, GetXY);
+				end;
 			end;
 
 		{SDL_MOUSEMOTION:
@@ -1140,6 +1150,9 @@ var
 	Cfg: TConfigurationManager;
 	Dir: String;
 	Sect: AnsiString;
+	i: Integer;
+	AudioDeviceList: array[1..10] of AnsiString;
+	device: BASS_DEVICEINFO;
 begin
 	Initialized := False;
 	QuitFlag := False;
@@ -1153,6 +1166,17 @@ begin
 		ConfigPath := DataPath;
 	ForceDirectories(ConfigPath);
 	DefaultFormatSettings.DecimalSeparator := '.';
+
+	// Init list of audio devices
+	//
+	BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
+	for i := Low(AudioDeviceList) to High(AudioDeviceList) do
+	begin
+		if BASS_GetDeviceInfo(i, device) then
+			AudioDeviceList[i] := device.name
+		else
+			AudioDeviceList[i] := Format('%d: None', [i]);
+	end;
 
 	// Init configuration
 	//
@@ -1181,9 +1205,9 @@ begin
 
 		Sect := 'Display';
 		Cfg.AddByte(Sect, 'Scaling', @Display.Scaling, 2)
-		.SetInfo('Pixel scaling', 1, 5, [], PixelScalingChanged);
-		Cfg.AddString(Sect, 'Font', @Display.Font, FILENAME_DEFAULTFONT)(*.
-		SetInfoFromDir('Font', DataPath + 'font/', '*.pcx'{'*.png;*.bmp'}, ApplyFont)*);
+		.SetInfo('Pixel scaling', 1, 8, [], PixelScalingChanged);
+		Cfg.AddString(Sect, 'Font', @Display.Font, FILENAME_DEFAULTFONT).
+		SetInfoFromDir('Font', DataPath + 'font/', '*.pcx', nil{ApplyFont});
 		{Cfg.AddString(Sect, 'Palette', @Display.Palette, 'Propulse').
 		SetInfoFromDir('Palette', ConfigPath + 'palette/', '*.ini', ApplyPalette);}
 		Cfg.AddByte(Sect, 'Mouse', @Display.MousePointer, CURSOR_CUSTOM)
@@ -1202,10 +1226,10 @@ begin
 		.SetInfo('Splash screen', 0, 1, ['Disabled', 'Enabled']);
 
 		Sect := 'Audio';
-		Cfg.AddInteger(Sect, 'Device', @Audio.Device, -1)
-		.SetInfo('Audio device', -1, 99, ['Default']);
-		Cfg.AddInteger(Sect, 'Frequency', @Audio.Frequency, 44100)
-		.SetInfo('Sampling rate (Hz)', 8363, 88200, [], nil, '', 100);
+		Cfg.AddByte(Sect, 'Device', @Audio.Device, 1)
+		.SetInfo('Audio device', 1, 10, AudioDeviceList);
+		Cfg.AddByte(Sect, 'Frequency', @Audio.Frequency, 2)
+		.SetInfo('Sampling rate (Hz)', 0, 3, ['11025', '22050', '44100', '48000'], nil);
 		Cfg.AddInteger(Sect, 'Buffer', @Audio.Buffer, 0)
 		.SetInfo('Audio buffer (ms)', 0, 500, ['Automatic']);
 		Cfg.AddFloat(Sect, 'Amplification', @Audio.Amplification, 4.00)
@@ -1316,7 +1340,16 @@ begin
 	else
 		Log('Using SOXR ' + soxr_version);
 
-	if not AudioInit(0) then
+	case Options.Audio.Frequency of
+		0: i := 11025;
+		1: i := 22050;
+		2: i := 44100;
+		3: i := 48000;
+	else
+		i := 44100;
+	end;
+
+	if not AudioInit(i) then
 	begin
 		{$IFDEF UNIX}
 	    writeln('Could not initialize audio; quitting!');
