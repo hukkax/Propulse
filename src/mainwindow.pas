@@ -69,6 +69,7 @@ type
 		function 	GetMaxScaling: Byte;
 		function 	SetupVideo: Boolean;
 		procedure	SetFullScreen(B: Boolean);
+		procedure 	InitConfiguration;
 
 		procedure 	HandleInput;
 		procedure 	ProcessMouseMovement;
@@ -591,7 +592,6 @@ begin
 	if CurrentScreen = SplashScreen then
 		SplashScreen.Update;
 
-	ProcessMouseMovement;
 	MouseCursor.Draw;
 
 	SDL_UpdateTexture(Video.Texture, nil, @Console.Bitmap.Bits[0], Console.Bitmap.Width*4);
@@ -1266,36 +1266,14 @@ begin
 	end;
 end;
 
-constructor TWindow.Create;
+procedure TWindow.InitConfiguration;
 var
 	Cfg: TConfigurationManager;
-	Dir: String;
 	Sect: AnsiString;
 	i: Integer;
 	AudioDeviceList: array[1..10] of AnsiString;
 	device: BASS_DEVICEINFO;
 begin
-	Initialized := False;
-	QuitFlag := False;
-	Locked := True;
-
-	// Init application directories
-	//
-	AppPath := ExtractFilePath(ParamStr(0));
-	DataPath := AppPath + 'data/';
-	ConfigPath := GetAppConfigDir(False);
-	if ConfigPath = '' then
-		ConfigPath := DataPath;
-	ForceDirectories(ConfigPath);
-	DefaultFormatSettings.DecimalSeparator := '.';
-
-
-	// Setup logging
-	//
-	DebugLogger.LogName := 'debug.txt';
-	LogIfDebug('============================================================');
-	LogIfDebug('Propulse Tracker ' + ProTracker.Util.VERSION + ' starting...');
-
 	// Init list of audio devices
 	//
 	BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
@@ -1401,12 +1379,41 @@ begin
 	LogIfDebug('Loading configuration...');
 
 	Cfg.Load;
+end;
+
+constructor TWindow.Create;
+var
+	Dir: String;
+	i: Integer;
+begin
+	Initialized := False;
+	QuitFlag := False;
+	Locked := True;
+
+	// Init application directories
+	//
+	AppPath := ExtractFilePath(ParamStr(0));
+	DataPath := AppPath + 'data/';
+	ConfigPath := GetAppConfigDir(False);
+	if ConfigPath = '' then
+		ConfigPath := DataPath;
+	ForceDirectories(ConfigPath);
+	DefaultFormatSettings.DecimalSeparator := '.';
+
+	// Setup logging
+	//
+	DebugLogger.LogName := 'debug.txt';
+	LogIfDebug('============================================================');
+	LogIfDebug('Propulse Tracker ' + ProTracker.Util.VERSION + ' starting...');
+
+	// Init config
+	//
+	InitConfiguration;
 
 	if Options.Dirs.Modules = '' then
 		Options.Dirs.Modules := AppPath;
 	if Options.Dirs.Samples = '' then
 		Options.Dirs.Samples := Options.Dirs.Modules;
-
 
 	// Create fake text mode console and init SDL
 	//
@@ -1416,7 +1423,6 @@ begin
 		LogFatal('Could not initialize video!');
 		HALT;
 	end;
-
 
 	// Create screens
 	//
@@ -1452,23 +1458,10 @@ begin
 		Log('');
 	end;
 
-	Dir := 'Using SDL ' + Video.LibraryVersion;
+	Dir := Format('Video: SDL %s, %s renderer', [Video.LibraryVersion, Video.RendererName]);
 	if Video.VSyncRate > 0 then
-		Dir := Dir + Format(' with %dHz vsync', [Video.VSyncRate]);
+		Dir := Dir + Format(', %dHz vsync', [Video.VSyncRate]);
 	Log(Dir);
-
-	Options.Features.SOXR := (soxr_version <> '');
-	if not Options.Features.SOXR then
-	begin
-		{$IFDEF UNIX}
-	    Log(TEXT_WARNING + 'SOXR support not implemented on non-Windows platforms.');
-		{$ELSE}
-	    Log(TEXT_WARNING + 'SOXR support not compiled in!');
-		{$ENDIF}
-	    Log(TEXT_WARNING + 'Resampling features disabled.');
-	end
-	else
-		Log('Using SOXR ' + soxr_version);
 
 	case Options.Audio.Frequency of
 		0: i := 11025;
@@ -1486,6 +1479,18 @@ begin
 		HALT;
 	end;
 
+	Options.Features.SOXR := (soxr_version <> '');
+	if not Options.Features.SOXR then
+	begin
+		{$IFDEF UNIX}
+	    Log(TEXT_WARNING + 'SOXR support not implemented on non-Windows platforms.');
+		{$ELSE}
+	    Log(TEXT_WARNING + 'SOXR support not compiled in!');
+		{$ENDIF}
+	    Log(TEXT_WARNING + 'Resampling features disabled.');
+	end
+	else
+		Log('Other: Using ' + soxr_version + ' for resampling');
 
 	Log('');
 
@@ -1628,8 +1633,9 @@ end;
 
 procedure TWindow.ProcessFrame;
 begin
-    HandleInput;
+	HandleInput;
 	SyncTo60Hz;
+	ProcessMouseMovement;
 	FlipFrame;
 end;
 
