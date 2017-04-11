@@ -131,6 +131,8 @@ begin
 end;
 
 constructor TSplashEffect.Create(W, H: Cardinal);
+var
+	i: Integer;
 begin
 	Gradient := TPCXImage.Create;
 	Gradient.LoadFromFile(DataPath + 'gradient.pcx');
@@ -148,21 +150,9 @@ begin
 
 	InterpolatePalette(0, 127, $5088FF, $222266);
 
-	PixelChar[0]  := 000;
-	PixelChar[1]  := 155;
-	PixelChar[2]  := 156;
-	PixelChar[3]  := 157;
-	PixelChar[4]  := 158;
-	PixelChar[5]  := 159;
-	PixelChar[6]  := 160;
-	PixelChar[7]  := 161;
-	PixelChar[8]  := 162;
-	PixelChar[9]  := 163;
-	PixelChar[10] := 164;
-	PixelChar[11] := 165;
-	PixelChar[12] := 166;
-	PixelChar[13] := 167;
-	PixelChar[14] := 168;
+	for i := 1 to 15 do
+		PixelChar[i] := 154 + i;
+	PixelChar[0]  := 032;
 	PixelChar[15] := 168;
 
 	Counter := 0;
