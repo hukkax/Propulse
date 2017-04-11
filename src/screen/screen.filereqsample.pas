@@ -76,8 +76,7 @@ begin
 	Waveform.Init(False, True);
 	RegisterLayoutControl(TCWEControl(Waveform),  CTRLKIND_BOX, False, True, True);
 
-	lblFormat := TCWELabel.Create(Self,
-		'', 'Sample Format',
+	lblFormat := TCWELabel.Create(Self, '', 'Sample Format',
 		Types.Rect(X1, DirList.Rect.Bottom+1, Console.Width-1, DirList.Rect.Bottom+2));
 	RegisterLayoutControl(TCWEControl(lblFormat), CTRLKIND_LABEL, False, True, False);
 
@@ -131,6 +130,8 @@ begin
 		SetDirectory(DirEdit.Caption)
 	else
 	begin
+		if FileList.Focused then
+			FilenameEdit.SetCaption(FileList.GetCaption);
 		Filename := Directory + ValidateFilename(FilenameEdit.Caption);
 		if not SaveMode then
 			LoadFile(Filename)
@@ -148,8 +149,8 @@ begin
 	if Sender <> FileList then Exit;
 
 	S := FileList.GetCaption;
-	FilenameEdit.SetCaption(S);
-	//PrevFile := S;
+	if not SaveMode then
+		FilenameEdit.SetCaption(S);
 
 	Module.Stop;
 	if FileList.ItemIndex >= FileList.Items.Count then Exit;
@@ -215,6 +216,7 @@ begin
 		Filename := Directory + ValidateFilename(FilenameEdit.Caption);
 		Sam.SaveToFile(Filename, SamFmtFromExt);
 		SetDirectory(ExtractFilePath(Filename));
+		ChangeScreen(TCWEScreen(SampleScreen));
 	end;
 end;
 

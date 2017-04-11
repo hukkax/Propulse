@@ -520,7 +520,12 @@ end;
 
 procedure TSampleScreen.SaveSample;
 begin
-	SampleRequester.Show(True, Options.Dirs.Samples);
+	with SampleRequester do
+	begin
+		Show(True, Options.Dirs.Samples);
+		FilenameEdit.SetCaption(GetCurrentSample.GetName);
+		ActivateControl(FilenameEdit);
+	end;
 end;
 
 procedure TSampleScreen.UpdateVUMeter;
@@ -1072,7 +1077,11 @@ begin
 
 		ctrlkeyRETURN:
 			if IsFocused then
-				SampleRequester.Show(False, Options.Dirs.Samples);
+				with SampleRequester do
+				begin
+					SampleRequester.Show(False, Options.Dirs.Samples);
+					ActivateControl(FileList);
+				end;
 
 	else
 		Result := False;

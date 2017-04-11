@@ -123,7 +123,7 @@ type
 		procedure	DeleteDir(DoDialog: Boolean = True);
 		procedure 	CopyFile(const DestDir: String; MoveFile: Boolean = False);
 
-		procedure 	Show(aSaveMode: Boolean; const Dir: String); reintroduce;
+		procedure 	Show(aSaveMode: Boolean; const Dir: String); reintroduce; virtual;
 		procedure 	SetDirectory(Dir: String); dynamic; abstract;
 
 		procedure	LoadBookmarks(const Filename: String);
@@ -138,7 +138,6 @@ type
 	end;
 
 	TModFileScreen = class(TFileScreen)
-	private
 	public
 		procedure 	FileOrDirSelected(Sender: TCWEControl); override;
 
@@ -150,6 +149,7 @@ type
 		procedure 	SetDirectory(Dir: String); override;
 
 		procedure 	Paint; override;
+		procedure 	Show(aSaveMode: Boolean; const Dir: String); override;
 
 		constructor	Create(var Con: TConsole; const sCaption, sID: AnsiString); override;
 	end;
@@ -908,19 +908,18 @@ end;
 
 procedure TModFileScreen.SaveFile(DoDialog: Boolean = True);
 var
-	Filename: String;
-const
-	S_OW = 'Overwrite file?';
+	Filename, StrOW: String;
 begin
 	Filename := Directory + ValidateFilename(FilenameEdit.Caption);
 
 	if (DoDialog) and (FileExists(Filename)) then
 	begin
+		StrOW := Format('Overwrite file "%s"?', [ExtractFilename(Filename)]);
 		if not InSampleReq then
-			ModalDialog.MessageDialog(ACTION_SAVEFILE, 'Save Module', S_OW,
+			ModalDialog.MessageDialog(ACTION_SAVEFILE, 'Save Module', StrOW,
 				[btnYES, btnCancel], btnCancel, Window.DialogCallback, 0)
 		else
-			ModalDialog.MessageDialog(ACTION_SAVEFILE, 'Save Sample', S_OW,
+			ModalDialog.MessageDialog(ACTION_SAVEFILE, 'Save Sample', StrOW,
 				[btnYES, btnCancel], btnCancel, Window.DialogCallback, 0);
 	end
 	else
@@ -935,12 +934,14 @@ begin
 		ModalDialog.ShowMessage('Load Module', 'Invalid filename!');
 end;
 
-procedure TModFileScreen.DirOrFilenameEntered;
+procedure TModFileScreen.DirOrFilenameEntered(Sender: TCWEControl);
 begin
 	if Sender = DirEdit then
 		SetDirectory(Directory)
 	else
 	begin
+		if FileList.Focused then
+			FilenameEdit.SetCaption(FileList.GetCaption);
 		if SaveMode then
 			SaveFile
 		else
@@ -948,14 +949,15 @@ begin
 	end;
 end;
 
-procedure TModFileScreen.FileOrDirSelected;
+procedure TModFileScreen.FileOrDirSelected(Sender: TCWEControl);
 var
 	S: String;
 begin
 	if Sender = FileList then
 	begin
 		S := FileList.GetCaption;
-		FilenameEdit.SetCaption(S);
+		if not SaveMode then
+			FilenameEdit.SetCaption(S);
 		PrevFile := S;
 	end;
 end;
@@ -973,6 +975,23 @@ begin
 		lblHeader.SetCaption('Load Module' + Shortcuts.GetShortcut('', 'Screen.Load', True));
 
 	FileList.Paint;
+end;
+
+procedure TModFileScreen.Show(aSaveMode: Boolean; const Dir: String);
+begin
+	inherited Show(aSaveMode, Dir);
+
+	if aSaveMode then
+	begin
+		if Module.Info.Filename <> '' then
+		begin
+			FilenameEdit.SetCaption(ExtractFilename(Module.Info.Filename));
+			FileList.Select(FilenameEdit.Caption);
+		end;
+		ActivateControl(FilenameEdit);
+	end
+	else
+		ActivateControl(FileList);
 end;
 
 procedure TModFileScreen.SetDirectory(Dir: String);
@@ -1090,6 +1109,8 @@ begin
 	with FileScreen do
 		if lblSearch <> nil then
 		begin
+			// play selected sample instead of searching for filename
+			if (InSampleReq) and (not IsShiftPressed) then Exit(False);
 			lblSearch.Caption := lblSearch.Caption + LowerCase(Key);
 			SearchTermChanged;
 		end;
@@ -1127,10 +1148,11 @@ begin
 		ctrlkeyRETURN:
 			if not InSampleReq then			// Load/save module
 			begin
-				if FileRequester.SaveMode then
+			{	if FileRequester.SaveMode then
 					FileRequester.SaveFile
 				else
-					FileRequester.LoadFile(GetFilename);
+					FileRequester.LoadFile(GetFilename);}
+				FileRequester.DirOrFilenameEntered(Self);
 			end
 			else
 			case Items[ItemIndex].Data of	// load/save sample
