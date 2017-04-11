@@ -92,7 +92,7 @@ type
 
 		constructor 	Create;
 		procedure 		Validate;
-		procedure		ValidateCoords(var X1, X2: Integer);
+		procedure		ValidateCoords(out X1, X2: Integer);
 		function 		ByteLength: Cardinal; inline;
 		procedure		Assign(const Source: TSample);
 		procedure 		GetFloatData(X1, X2: Integer; var buffer: TFloatArray);
@@ -482,7 +482,7 @@ begin
 	end;
 end;
 
-procedure TSample.ValidateCoords(var X1, X2: Integer);
+procedure TSample.ValidateCoords(out X1, X2: Integer);
 var
 	L: Integer;
 begin

@@ -224,24 +224,17 @@ procedure LoadThePlayer(var Module: TPTModule; var ModFile: TFileStreamEx;
 var
 	row_number: array [0..3] of Byte;
 	current_pos: array [0..3] of Cardinal;
-
 	os: Cardinal;
-	i, j, samplecount, pattend, row, channel, rowcount, current_channel: Integer;
-	p: PWordArray;
+	i, j, samplecount, row, channel, current_channel: Integer;
 	s: TSample;
-	ips: TImportedSample;
-	Note: PNote;
-
 	SamPtr: Cardinal;
 	SamPtrs: array[0..31] of Cardinal;
-	PattPtrs: array[0..MAX_PATTERNS-1] of Cardinal;
 	taddr: array[0..127, 0..AMOUNT_CHANNELS-1] of Word;
 	SamplePacked: array[0..31] of Boolean;
 	SamLength: array [0..31] of Cardinal;
-
 	delta: ShortInt;
 	truncate_pos, lowest: Byte;
-	eop, usesD8, usesD4: Boolean;
+	usesD8, usesD4: Boolean;
 	signed_sample_length: SmallInt;
 	sname: AnsiString;
 begin
