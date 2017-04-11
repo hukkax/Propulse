@@ -133,7 +133,7 @@ begin
 					else
 						Pixels[x,tavu1] := 0;
 
-					b := b shl 1;
+					b := Byte(b shl 1);
 					Inc(x);
 				end;
 			end;
