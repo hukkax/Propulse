@@ -324,8 +324,8 @@ end;
 
 procedure TConfigItem.ModifyValue(Amount: Integer);
 begin
-	if Assigned(Callback) then
-		Callback;
+{	if Assigned(Callback) then
+		Callback;}
 end;
 
 { TConfigItemString }

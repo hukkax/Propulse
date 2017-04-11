@@ -673,9 +673,7 @@ var
 	S: AnsiString;
 begin
 	if (LI = nil) then Exit;
-
 	CI := TConfigItem(LI.ObjData);
-
 	if (CI = nil) then Exit;
 
 	S := CI.ValueToString;
@@ -694,9 +692,7 @@ var
 	Modifier: Integer;
 begin
 	Result := False;
-
 	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, []));
-
 	case Sc of
 
 		ctrlkeyLEFT, ctrlkeyRIGHT,
@@ -723,6 +719,8 @@ begin
 			ItemFromConfig(LI);
 			Result := True;
 			Paint;
+
+			if Assigned(CI.Callback) then CI.Callback;
 		end;
 
 	end;
