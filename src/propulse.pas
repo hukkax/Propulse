@@ -19,9 +19,11 @@ program Propulse;
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *)
 
-{$mode delphi}
-{$APPTYPE GUI}
+{$MODE delphi}
 {$R Propulse.res}
+{$IFDEF RELEASE}
+	{$APPTYPE GUI}
+{$ENDIF}
 
 uses
 	{$IFDEF FPC}
@@ -81,8 +83,8 @@ begin
     with Window do
 	while not QuitFlag do
 	begin
-		SyncTo60Hz;
         HandleInput;
+		SyncTo60Hz;
 		FlipFrame;
 	end;
 
