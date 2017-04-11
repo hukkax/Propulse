@@ -521,8 +521,12 @@ end;
 { TConfigItemByte }
 
 procedure TConfigItemByte.Load(const Ini: TIniFile);
+var
+	i: Integer;
 begin
-	PByte(Value)^ := Byte(Ini.ReadInteger(Section, Name, PByte(Value)^));
+	i := Ini.ReadInteger(Section, Name, PByte(Value)^);
+	if (i >= 0) and (i <= 255) then
+		PByte(Value)^ := i;
 end;
 
 procedure TConfigItemByte.Save(const Ini: TIniFile);
@@ -554,10 +558,10 @@ begin
 	if Value = nil then Exit('NIL');
 
 	if (Max - Min) <= Length(ValueNames) then
-		Result := ValueNames[Value^]
+		Result := ValueNames[Value^-Min]
 	else
 	if (Value^ = Min) and (Length(ValueNames) > 0) then
-		Result := ValueNames[0]
+		Result := ValueNames[Min]
 	else
 	if (Value^ = Max) and (High(ValueNames) >= 1) then
 		Result := ValueNames[1]
