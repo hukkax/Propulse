@@ -493,27 +493,43 @@ end;
 procedure TBitmap32.Draw(DstX, DstY: Integer; const SrcRect: TRect; Src: TBitmap32);
 var
 	SrcP, DstP: PColor32;
+	sr: TRect;
 	W, Y, Y1, Y2: Integer;
 begin
 	if Src = nil then Exit;
 
 	ValidateX(DstX);
 
-	W := Min(Src.Width, SrcRect.Right - SrcRect.Left);
+	sr.Left   := Max(SrcRect.Left, 0);
+	if sr.Left >= Src.Width then Exit;
+
+	sr.Right  := Min(SrcRect.Right, Src.Width);
+	if sr.Right < sr.Left then Exit;
+
+	sr.Top    := Max(SrcRect.Top, 0);
+	if sr.Top >= Src.Height then Exit;
+
+	sr.Bottom := Min(SrcRect.Bottom, Src.Height);
+	if sr.Bottom < sr.Top then Exit;
+
+	W := Min(Src.Width, sr.Right - sr.Left);
 	W := Min(W, Self.Width);
 	if W <= 0 then Exit;
-	if DstX+W > BoundsRect.Right then
+	if DstX + W > BoundsRect.Right then
 		W := BoundsRect.Right - DstX;
 
 	Y1 := Max(DstY, 0);
-	Y  := Min(Src.Height, SrcRect.Bottom - SrcRect.Top);
-	Y2 := Min(Self.Height, Y1+Y);
+	if Y1 >= Self.Height then Exit;
+	Y2 := Min(Src.Height, sr.Bottom - sr.Top) + Y1;
+	if (Y2) >= Self.Height then
+		Y2 := Self.Height - Y1 - 1;
+	if (Y2 < Y1) then Exit;
 
-	SrcP := Src.PixelPtr[SrcRect.Left, SrcRect.Top];
+	SrcP := Src.PixelPtr[sr.Left, sr.Top];
 	DstP := Self.PixelPtr[DstX, Y1];
 
 	try
-		for Y := Y1 to Y2-1 do
+		for Y := Y1 to Y2 do
 		begin
 			MoveLongWord(SrcP^, DstP^, W);
 			Inc(SrcP, Src.Width);
@@ -539,16 +555,18 @@ begin
 
 	W  := Min(Src.Width, Self.Width);
 	if W <= 0 then Exit;
-	if DstX+W > BoundsRect.Right then
+	if DstX + W > BoundsRect.Right then
 		W := BoundsRect.Right - DstX;
 
 	Y1 := Max(DstY, 0);
-	Y2 := Min(Self.Height, Y1+Src.Height);
+	if Y1 >= Self.Height then Exit;
+	Y2 := Min(Self.Height, Y1+Src.Height) - 1;
+	if (Y2 < Y1) then Exit;
 
 	SrcP := Src.PixelPtr[0,0];
 	DstP := Self.PixelPtr[DstX, Y1];
 
-	for Y := Y1 to Y2-1 do
+	for Y := Y1 to Y2 do
 	begin
 		SP := SrcP;
 		DP := DstP;
