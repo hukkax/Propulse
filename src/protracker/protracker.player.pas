@@ -325,7 +325,7 @@ type
 	end;
 
 
-	function	AudioInit(WinHandle: Cardinal): Boolean;
+	function	AudioInit(Frequency: Cardinal): Boolean;
 	procedure	AudioClose;
 
 
@@ -361,7 +361,6 @@ var
 	Mixing: Boolean;
 	samplesLeft: Cardinal;
 	outputFreq: Cardinal;
-	MainWindow: Cardinal;
 
 
 // ==========================================================================
@@ -484,45 +483,39 @@ begin
 	Mixing := False;
 end;
 
-function AudioInit(WinHandle: Cardinal): Boolean;
+function AudioInit(Frequency: Cardinal): Boolean;
 var
 	info: BASS_INFO;
 	device: BASS_DEVICEINFO;
-	ver: DWord;
+	ver, flags: DWord;
 	Minbuf: Integer;
 	S: AnsiString;
+	MainWindow: Cardinal = 0;
 begin
 	Result := False;
-	MainWindow := WinHandle;
+	MainWindow := 0;
 	Stream := 0;
 
-	if Options.Audio.Frequency < 8363 then
-		Options.Audio.Frequency := 44100;
-	outputFreq := Options.Audio.Frequency;
+	if Frequency < 11025 then Frequency := 44100;
+	outputFreq := Frequency;
 
 (*	if Assigned(Module) then
 		SetLength(Module.MixBuffer, {samplesPerFrame * 2 + 2}
 			Round(2 * ((outputFreq * 2.5) / 32.0)) );*)
 
+	flags := BASS_DEVICE_STEREO or BASS_DEVICE_LATENCY or BASS_DEVICE_DMIX;
+	BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
 	{$IFDEF WINDOWS}
-	// Speeds up initialization
-	BASS_SetConfig(BASS_CONFIG_VISTA_TRUEPOS, 0);
+	BASS_SetConfig(BASS_CONFIG_VISTA_TRUEPOS, 0); // Speeds up initialization
 	{$ENDIF}
 
-	if not BASS_Init(Options.Audio.Device, outputFreq,
-		BASS_DEVICE_STEREO or BASS_DEVICE_LATENCY or BASS_DEVICE_DMIX,
-        MainWindow, nil) then
+	if not BASS_Init(Options.Audio.Device, outputFreq, flags, MainWindow, nil) then
 	begin
-		Log(TEXT_ERROR + 'Error initializing audio device!');
-		Exit;
-	end
-	else
-	begin
-		ver := BASS_GetVersion;
-		S := Format('Using BASS %d.%d.%d.%d', [
-			ver shr 24 and $FF, ver shr 16 and $FF,
-			ver shr 8 and $FF,  ver and $FF
-		]);
+		if not BASS_Init(-1, outputFreq, flags, MainWindow, nil) then
+		begin
+			Log(TEXT_ERROR + 'Error initializing audio device!');
+			Exit;
+		end;
 	end;
 
 	BASS_GetDeviceInfo(BASS_GetDevice, device);
@@ -542,8 +535,11 @@ begin
 		// User set buffer
 		BASS_SetConfig(BASS_CONFIG_BUFFER, Options.Audio.Buffer);
 
-	S := S + ' with device: ' + device.name;
-	Log(S);
+	ver := BASS_GetVersion;
+	Log('Using BASS %d.%d.%d.%d  with device: %s', [
+		ver shr 24 and $FF, ver shr 16 and $FF,
+		ver shr 8 and $FF,  ver and $FF, device.name
+	]);
 
 	Log('Audio: %d Hz, 16 bit stereo, %d ms buffer',
 		[outputFreq, BASS_GetConfig(BASS_CONFIG_BUFFER)]);
@@ -553,10 +549,16 @@ begin
 	Stream := BASS_StreamCreate(outputFreq, 2, 0, AudioCallback, @Module);
 
 	if Stream = 0 then
+	begin
 		Log(TEXT_ERROR + 'Error creating audio stream!');
+		Exit;
+	end;
 
 	if not BASS_ChannelPlay(Stream, True) then
+	begin
 	    Log(TEXT_ERROR + 'Error starting audio stream playback!');
+		Exit;
+	end;
 
 	Result := True;
 
