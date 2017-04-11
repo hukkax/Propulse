@@ -90,14 +90,14 @@ uses
 const
 	SCRSEP = '%R'#3'%%';
 
-	Scroll_Text: AnsiString = '                                ' +
+	Scroll_Text: AnsiString = '                  ' +
 	'%Ghukka%% presents %WPropulse ' + ProTracker.Util.VERSION + '%% § ' +
 	'%WPT2PLAY%% playroutine and coding help by %G8bitbubsy%% § ' +
 	'Thanks to %Gmuzzy%% § %Gwuffe%% § %GTempest%% § ' +
 	'For full credits press F1 now § ' +
 	'Greets to %WVoid § %Wexec § %Wsvenonacid § %Y#kukkakoodi § %Y#protracker § '+
 	'%GHaikz § %GArchyx § %GHofnarr § %GKaarlo § %GCrank § %Gamaneog § ' +
-	'%%' + '  ';
+	'%%' + '                   ';
 
 
 // ============================================================================
@@ -490,7 +490,7 @@ begin
 			Inc(ScrollChar, 2);
 		end;
 
-		Console.BlitChar(Scroll, Scroll.Width-8, 0,
+		Console.BlitChar(Scroll, Scroll.Width-Console.Font.Width-1, 0,
 			Ord(ScrollText[ScrollChar]),
 			Console.Palette[ScrollColor], TRANSCOLOR);
 
@@ -498,7 +498,7 @@ begin
 	end;
 
 	Console.Bitmap.Draw(DR.Left, DR.Bottom + 5,
-		Types.Rect(ScrollPix, 0, RectWidth(DR)+ScrollPix-1, Scroll.Height),
+		Types.Bounds(ScrollPix, 0, RectWidth(DR)-1, Scroll.Height-1),
 		Scroll);
 end;
 
