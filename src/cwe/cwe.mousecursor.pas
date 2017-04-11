@@ -12,6 +12,9 @@ const
 
 type
 	TMouseCursor = class
+	private
+		function 	ValidCoords(var X, Y: Integer): Boolean;
+	public
 		Show,
 		InWindow: 	Boolean;
 		Bitmap,
@@ -71,24 +74,23 @@ begin
 	Background.SetSize(Size.X, Size.Y);
 end;
 
+function TMouseCursor.ValidCoords(var X, Y: Integer): Boolean;
+begin
+	X := Pos.X - HotSpot.X;
+	Y := Pos.Y - HotSpot.Y;
+	Result := (Show) and (InWindow) and
+		(X >= 0) and (Y >= 0) and
+		(X < Console.Bitmap.Width) and (Y < Console.Bitmap.Height);
+end;
+
 procedure TMouseCursor.Draw;
 var
 	X, Y: Integer;
 begin
-	if (Show) and (InWindow) then
+	if ValidCoords(X, Y) then
 	begin
-		X := Pos.X - HotSpot.X;
-		Y := Pos.Y - HotSpot.Y;
-		if 	(X >= 0) and (Y >= 0) and
-			(X < Console.Bitmap.Width) and (Y < Console.Bitmap.Height) then
-		begin
-			Background.Draw(0, 0,
-				Bounds(Pos.X - HotSpot.X, Pos.Y - HotSpot.Y, Size.X, Size.Y),
-				Console.Bitmap);
-			if (Pos.X >= 0) and (Pos.Y >= 0) then
-				Console.Bitmap.DrawColorKey(Pos.X - HotSpot.X, Pos.Y - HotSpot.Y,
-					$FFFF00FF, Bitmap);
-		end;
+		Background.Draw(0, 0, Bounds(X, Y, Size.X, Size.Y), Console.Bitmap);
+		Console.Bitmap.DrawColorKey(X, Y, $FFFF00FF, Bitmap);
 	end;
 end;
 
@@ -96,14 +98,8 @@ procedure TMouseCursor.Erase;
 var
 	X, Y: Integer;
 begin
-	if (Show) and (InWindow) then
-	begin
-		X := Pos.X - HotSpot.X;
-		Y := Pos.Y - HotSpot.Y;
-		if 	(X >= 0) and (Y >= 0) and
-			(X < Console.Bitmap.Width) and (Y < Console.Bitmap.Height) then
-				Console.Bitmap.Draw(X, Y, Background);
-	end;
+	if ValidCoords(X, Y) then
+		Console.Bitmap.Draw(X, Y, Background);
 end;
 
 end.
