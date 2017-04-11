@@ -63,16 +63,21 @@ type
 		Screens:	TObjectList<TCWEScreen>;
 
 		procedure 	ModuleSpeedChanged;
-		//procedure	ModuleRowChanged;
 		procedure	ModuleOrderChanged;
 		procedure 	TimerTick;
 
+		function 	GetMaxScaling: Byte;
+		function 	SetupVideo: Boolean;
+		procedure	SetFullScreen(B: Boolean);
+
+		procedure 	HandleInput;
+		procedure 	ProcessMouseMovement;
+		procedure	SyncTo60Hz;
+		procedure	FlipFrame;
 		procedure	UpdateVUMeter(Len: DWord);
 		procedure 	UpdatePatternView;
-
-		function 	SetupVideo: Boolean;
 	public
-		Video:		TVideoInfo;
+		Video:				TVideoInfo;
 		MessageTextTimer,
 		PlayTimeCounter:	Integer;
 
@@ -80,13 +85,9 @@ type
 		destructor 	Destroy; override;
 		procedure	Close;
 
-		procedure 	HandleInput;
-		procedure 	ProcessMouseMovement;
-		procedure	SyncTo60Hz;
-		procedure	FlipFrame;
+		procedure	ProcessFrame;
 
 		procedure 	EscMenu;
-		procedure	SetFullScreen(B: Boolean);
 		procedure	SetTitle(const Title: AnsiString);
 		procedure 	DoLoadModule(const Filename: String);
 		procedure 	PlayModeChanged;
@@ -261,6 +262,7 @@ end;
 procedure ApplyFont;
 begin
 	Window.SetupVideo;
+	Window.SetFullScreen(Window.Video.IsFullScreen);
 end;
 
 procedure TWindow.UpdateVUMeter(Len: DWord);
@@ -429,12 +431,6 @@ begin
   	Result := False;
 	Locked := True;
 
-	if (Initialized) and (Console <> nil) then
-	begin
-		sx := Console.Font.Width;
-		sy := Console.Font.Height;
-	end;
-
 	Fn := GetFontFile(Options.Display.Font);
 	if not FileExists(Fn) then
 	begin
@@ -447,6 +443,9 @@ begin
 		Console := TConsole.Create(80, 45, Fn, AppPath + 'palette/Propulse.ini')
 	else
 	begin
+		sx := Console.Font.Width;
+		sy := Console.Font.Height;
+
 		Console.LoadFont(Fn);
 
 		if (sx <> Console.Font.Width) or (sy <> Console.Font.Height) then
@@ -458,7 +457,6 @@ begin
 
 	screenW := Console.Bitmap.Width;
 	screenH := Console.Bitmap.Height;
-	Options.Display.Scaling := Max(Options.Display.Scaling, 1);
 	sx := screenW * Options.Display.Scaling;
 	sy := screenH * Options.Display.Scaling;
 
@@ -518,6 +516,16 @@ begin
 	begin
 		LogFatal('Error setting up window: ' + SDL_GetError);
 		Exit;
+	end;
+
+	// make sure not to exceed display bounds
+	sx := GetMaxScaling;
+	if sx <> Options.Display.Scaling then
+	begin
+		sy := screenH * sx;
+		sx := screenW * sx;
+		SDL_SetWindowSize(Video.Window, sx, sy);
+		SDL_SetWindowPosition(Video.Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 	end;
 
 	Video.Renderer := SDL_CreateRenderer(Video.Window, -1, rendererFlags);
@@ -594,9 +602,25 @@ begin
 	MouseCursor.Erase;
 end;
 
-procedure TWindow.SetFullScreen(B: Boolean);
+function TWindow.GetMaxScaling: Byte;
 var
 	z, w, h: Integer;
+	R: TSDL_Rect;
+begin
+	SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), @R);
+	z := Max(Options.Display.Scaling, 1);
+	repeat
+		w := Console.Bitmap.Width  * z;
+		h := Console.Bitmap.Height * z;
+		if (w <= R.w) and (h <= R.h) then Break;
+		Dec(z);
+	until z <= 1;
+	Result := Max(z, 1);
+end;
+
+procedure TWindow.SetFullScreen(B: Boolean);
+var
+	w, h: Integer;
 	X, Y: Single;
 begin
 	Video.IsFullScreen := B;
@@ -612,26 +636,15 @@ begin
 	end
 	else
 	begin
-		z := Options.Display.Scaling;
-		{repeat
-			w := Console.Bitmap.Width  * z;
-			h := Console.Bitmap.Height * z;
-			if (w >= Screen.
-		until ;}
-		if z < 1 then z := 1;
-		Options.Display.Scaling := z;
-
-		w := Console.Bitmap.Width  * z;
-		h := Console.Bitmap.Height * z;
+		h := GetMaxScaling;
+		w := Console.Bitmap.Width  * h;
+		h := Console.Bitmap.Height * h;
 
 		SDL_SetWindowFullscreen(Video.Window, 0);
 		SDL_SetWindowSize(Video.Window, w, h);
 		SDL_SetWindowPosition(Video.Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 		SDL_SetWindowGrab(Video.Window, SDL_FALSE);
 	end;
-
-	{SDL_GetWindowSize(Video.Window, @w, @h);
-    SDL_WarpMouseInWindow(Video.Window, w div 2, h div 2);}
 
 	SDL_RenderGetScale(Video.Renderer, SDL2.PFloat(@X), SDL2.PFloat(@Y));
 	w := Max(Trunc(x), 1); h := Max(Trunc(y), 1);
@@ -1321,7 +1334,7 @@ begin
 
 		Sect := 'Display';
 		Cfg.AddByte(Sect, 'Scaling', @Display.Scaling, 2)
-		.SetInfo('Pixel scaling', 1, 8, [], PixelScalingChanged);
+		.SetInfo('Maximum scale factor', 1, 8, [], PixelScalingChanged);
 		Cfg.AddString(Sect, 'Font', @Display.Font, FILENAME_DEFAULTFONT).
 		SetInfoFromDir('Font', DataPath + 'font/', '*.pcx', ApplyFont);
 		{Cfg.AddString(Sect, 'Palette', @Display.Palette, 'Propulse').
@@ -1559,7 +1572,11 @@ begin
 
 	DoLoadModule('');
 
-	ChangeScreen(TCWEScreen(Editor));
+	if Options.Display.ShowSplashScreen then
+		ChangeScreen(TCWEScreen(SplashScreen))
+	else
+		ChangeScreen(TCWEScreen(Editor));
+
 	Console.Paint;
 
 	Initialized := True;
@@ -1607,6 +1624,13 @@ end;
 procedure TWindow.Close;
 begin
 	QuitFlag := True;
+end;
+
+procedure TWindow.ProcessFrame;
+begin
+    HandleInput;
+	SyncTo60Hz;
+	FlipFrame;
 end;
 
 { TCWEMainMenu }
