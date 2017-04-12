@@ -85,12 +85,14 @@ var
   riff: TRiffHeader;
   fmtLE: TWaveFormat;
   DataChunk: TChunkHeader;
-  Pos: Int64;
+  Pos, Sz: Int64;
 begin
   Pos := fStream.Position;
   with riff, ChunkHeader do begin
     ID := AUDIO_CHUNK_ID_RIFF;
-    Size := NtoLE(Pos - SizeOf(ChunkHeader));
+	Sz := Pos - SizeOf(ChunkHeader);
+	if Sz < 0 then Sz := 0;
+    Size := NtoLE(Sz);
     Format := AUDIO_CHUNK_ID_WAVE;
   end;
   fmtLE := fmt;
@@ -102,7 +104,9 @@ begin
   end;
   with DataChunk do begin
     Id := AUDIO_CHUNK_ID_data;
-    Size := Pos - SizeOf(DataChunk) - fStream.Position;
+    Sz := Pos - SizeOf(DataChunk) - fStream.Position;
+	if Sz < 0 then Sz := 0;
+	Size := Sz;
   end;
   with fStream do begin
     Result := Write(DataChunk, SizeOf(DataChunk)) = SizeOf(DataChunk);

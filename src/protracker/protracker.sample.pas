@@ -147,6 +147,12 @@ type
 	function IsEmptySample(const Sam: TSample): Boolean; inline;
 	function GetCurrentSample: TSample; inline;
 
+var
+	LastSampleFormat: record
+		isStereo,
+		is16Bit: 	Boolean;
+		Length:		Cardinal;
+	end;
 
 implementation
 
@@ -896,7 +902,6 @@ var
 	ID, sName: AnsiString;
 	X, i: Integer;
 	Len, WavLen: Cardinal;
-	isStereo, is16Bit: Boolean;
 	ips: TImportedSample;
 	Buf: array of SmallInt;
 begin
@@ -917,52 +922,52 @@ begin
 		Wav.LoadFromStream(FileAcc);
 
 		case Wav.fmt.Channels of
-			1:  isStereo := False;
-			2:  isStereo := True;
+			1:  LastSampleFormat.isStereo := False;
+			2:  LastSampleFormat.isStereo := True;
 		else
 			Log(TEXT_ERROR + 'WAV loader: %d-channel samples not supported!', [Wav.fmt.Channels]);
 			Exit;
 		end;
 
 		case Wav.fmt.BitsPerSample of
-			8:  is16Bit := False;
-			16: is16Bit := True;
+			8:  LastSampleFormat.is16Bit := False;
+			16: LastSampleFormat.is16Bit := True;
 		else
 			Log(TEXT_ERROR + 'WAV loader: %d-bit samples not supported!', [Wav.fmt.BitsPerSample]);
 			Exit;
 		end;
 
-		WavLen := Wav.dataSize;
+		WavLen := Min(Wav.dataSize, 1024*1024*3); // 3 megabytes
 		Len := WavLen;
 
-		if isStereo then Len := Len div 2;
-		if is16Bit  then Len := Len div 2;
+		if LastSampleFormat.isStereo then Len := Len div 2;
+		if LastSampleFormat.is16Bit  then Len := Len div 2;
 
 		SetLength(Data, Len + 1);
 		Self.Length := Len div 2;
 
-		if (not isStereo) and (not is16Bit) then
+		if (not LastSampleFormat.isStereo) and (not LastSampleFormat.is16Bit) then
 		begin
 			// mono 8-bit
 			Wav.ReadBuf(Data[0], WavLen);
-			for X := 0 to System.Length(Data)-1 do
-				Data[X] := 127 - Data[X];
+			for X := 0 to WavLen-1 do
+				Data[X] := Byte(127 - Data[X]);
 		end
 		else
-		if is16Bit then
+		if LastSampleFormat.is16Bit then
 		begin
 			SetLength(Buf, WavLen + 1);
 			Wav.ReadBuf(Buf[0], WavLen);
-			if isStereo then
+			if LastSampleFormat.isStereo then
 			begin
 				// stereo 16-bit
-				for X := 0 to Len do
-					Data[X] := (Buf[X*2] + Buf[X*2+1]) div 512;
+				for X := 0 to Len-1 do
+					Data[X] := Byte((Buf[X*2] + Buf[X*2+1]) div 512);
 			end
 			else
 				// mono 16-bit
-				for X := 0 to Len do
-					Data[X] := Buf[X] div 256;
+				for X := 0 to Len-1 do
+					Data[X] := Byte(Buf[X] div 256);
 		end
 		else
 		begin
@@ -1056,6 +1061,13 @@ begin
 
 	ZeroFirstWord;
 	FileAcc.Free;
+
+	if (Self is TImportedSample) then
+	begin
+		TImportedSample(Self).isStereo := LastSampleFormat.isStereo;
+		TImportedSample(Self).is16Bit  := LastSampleFormat.is16Bit;
+	end;
+	LastSampleFormat.Length := Length;
 end;
 
 procedure TSample.LoadData(var ModFile: TFileStreamEx;
@@ -1217,23 +1229,22 @@ begin
 
 		SamFmtWAV:
 		begin
-			L := System.Length(Data);//Self.Length * 2;
+			L := ByteLength;
 			SetLength(Buf, L);
 			for i := 0 to L-1 do
-				Buf[i] := 256 - (Data[i] - 127);
-			Wav := TWavWriter.Create;
+				Buf[i] := ShortInt(256 - (Data[i] - 127));
 
+			Wav := TWavWriter.Create;
 			Wav.fmt.Format := AUDIO_FORMAT_PCM;
 			Wav.fmt.BitsPerSample := 8;
 			Wav.fmt.Channels := 1;
 			Wav.fmt.SampleRate := 16574;
 			Wav.fmt.ByteRate := 16574;
 			Wav.fmt.BlockAlign := 1;
-
-			if not Wav.StoreToFile(Filename) then
+			if Wav.StoreToFile(Filename) then
+				Wav.WriteBuf(Buf[0], L-1)
+			else
 				Log(TEXT_ERROR + 'Error saving WAV file!');
-
-			Wav.WriteBuf(Buf[0], L-1);
 			Wav.Free;
 		end;
 
