@@ -49,7 +49,7 @@ implementation
 
 
 uses
-	Generics.Defaults, FileUtils, //IOUtils,
+	Generics.Defaults,
 	Layout, CWE.Dialogs,
 	ShortcutManager,
 	ProTracker.Util,
@@ -123,8 +123,6 @@ begin
 end;
 
 procedure TSampleFileScreen.DirOrFilenameEntered;
-var
-	Filename: String;
 begin
 	if Sender = DirEdit then
 		SetDirectory(DirEdit.Caption)
@@ -132,9 +130,8 @@ begin
 	begin
 		if FileList.Focused then
 			FilenameEdit.SetCaption(FileList.GetCaption);
-		Filename := Directory + ValidateFilename(FilenameEdit.Caption);
 		if not SaveMode then
-			LoadFile(Filename)
+			LoadFile(GetSelectedFile)
 		else
 			SaveFile(False);
 	end;
@@ -213,7 +210,7 @@ begin
 	Sam := GetCurrentSample;
 	if not IsEmptySample(Sam) then
 	begin
-		Filename := Directory + ValidateFilename(FilenameEdit.Caption);
+		Filename := GetSelectedFile(True, True);
 		Sam.SaveToFile(Filename, SamFmtFromExt);
 		SetDirectory(ExtractFilePath(Filename));
 		ChangeScreen(TCWEScreen(SampleScreen));

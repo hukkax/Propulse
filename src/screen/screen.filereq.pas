@@ -115,6 +115,8 @@ type
 		procedure 	FileOrDirSelected(Sender: TCWEControl); dynamic; abstract;
 		procedure 	DirOrFilenameEntered(Sender: TCWEControl); dynamic; abstract;
 		procedure 	SortFiles;
+		function	GetSelectedFile(FullPath: Boolean = True;
+					WantTypedName: Boolean = False): String;
 		procedure	SelectFile(Filename: String);
 
 		procedure 	LoadFile(const Filename: String); dynamic; abstract;
@@ -282,11 +284,22 @@ begin
 	end;
 end;
 
+function TFileScreen.GetSelectedFile(FullPath: Boolean = True;
+	WantTypedName: Boolean = False): String;
+begin
+	if (SaveMode) and (WantTypedName) and (FilenameEdit.Focused) then
+		Result := ValidateFilename(FilenameEdit.Caption)
+	else
+		Result := ValidateFilename(FileList.GetCaption);
+	if FullPath then
+		Result := IncludeTrailingPathDelimiter(Directory) + Result;
+end;
+
 procedure TFileScreen.DeleteFile(DoDialog: Boolean = True);
 var
 	Filename: String;
 begin
-	Filename := Directory + ValidateFilename(FilenameEdit.Caption);
+	Filename := GetSelectedFile;
 
 	if (Filename = '') or (FileExists(Filename) = False) then
 	begin
@@ -297,7 +310,7 @@ begin
 	if DoDialog then
 	begin
 		ModalDialog.MessageDialog(ACTION_DELETEFILE, 'Delete File',
-			'Delete selected file?',
+			Format('Delete "%s"?', [ExtractFilename(Filename)]),
 			[btnYES, btnCancel], btnCancel, Window.DialogCallback, 0);
 	end
 	else
@@ -311,6 +324,11 @@ procedure TFileScreen.DeleteDir(DoDialog: Boolean = True);
 var
 	Dir: String;
 begin
+	{$IFNDEF WINDOWS}
+	ModalDialog.ShowMessage('Delete Directory', 'Not implemented on non-Windows platforms!');
+	Exit;
+	{$ENDIF}
+
 	Dir := IncludeTrailingPathDelimiter(Directory) +
 		DirList.Items[DirList.ItemIndex].Captions[0];
 
@@ -323,7 +341,7 @@ begin
 	if DoDialog then
 	begin
 		ModalDialog.MessageDialog(ACTION_DELETEDIR, 'Delete Directory',
-			'Delete selected directory?',
+			Format('Delete directory "%s"?', [DirList.Items[DirList.ItemIndex].Captions[0]]),
 			[btnYES, btnCancel], btnCancel, Window.DialogCallback, 0);
 	end
 	else
@@ -343,7 +361,7 @@ begin
 		Exit;
 	end;
 
-	Filename := ValidateFilename(FilenameEdit.Caption);
+	Filename := GetSelectedFile(False);
 	DestFile := IncludeTrailingPathDelimiter(DestDir)   + Filename;
 	Filename := IncludeTrailingPathDelimiter(Directory) + Filename;
 
@@ -540,9 +558,9 @@ begin
 		ACTION_RENAMEFILE:
 		begin
 			Dir := IncludeTrailingPathDelimiter(Directory);
-			if not RenameFile(Dir + FilenameEdit.Caption, Dir + NewName) then
+			if not RenameFile(Dir + GetSelectedFile(False), Dir + NewName) then
 			begin
-				Log(TEXT_ERROR + 'File rename failed! ' + Dir+NewName);
+				Log(TEXT_ERROR + 'File rename failed! ' + Dir + NewName);
 				Exit;
 			end;
 			SetDirectory(Directory);
@@ -554,7 +572,6 @@ begin
 			NewName := IncludeTrailingPathDelimiter(
 				IncludeTrailingPathDelimiter(Directory) + NewName);
 			Dir := IncludeTrailingPathDelimiter(DirList.GetPath(True));
-
 			if not RenameFile(Dir, NewName) then
 			begin
 				Log(TEXT_ERROR + 'Directory rename failed! ');
@@ -612,9 +629,7 @@ begin
 			if FileScreen.InModule then
 				SelectFileInExplorer(SampleRequester.ModFilename)
 			else
-				SelectFileInExplorer(
-					IncludeTrailingPathDelimiter(Directory) +
-					FilenameEdit.Caption);
+				SelectFileInExplorer(GetSelectedFile);
 
 		FILE_COPY,
 		FILE_MOVE:
@@ -636,8 +651,7 @@ begin
 					LISTITEM_BOOKMARK:
 						RemoveBookmark(Bookmarks[DirList.ItemIndex].Path);
 					LISTITEM_DRIVE:
-						ModalDialog.ShowMessage('Delete',
-							'Can''t delete a drive!');
+						ModalDialog.ShowMessage('Delete', 'Can''t delete a drive!');
 					LISTITEM_DIR:
 						DeleteDir(True);
 				end;
@@ -664,7 +678,7 @@ begin
 			else
 			if IsFile then
 				AskString(ACTION_RENAMEFILE, 'Rename File',
-					FilenameEdit.Caption, False, RenameCallback);
+					GetSelectedFile(False), False, RenameCallback);
 
 		FILE_CREATEDIR:
 			AskString(ACTION_CREATEDIR, 'Create Directory',
@@ -910,8 +924,7 @@ procedure TModFileScreen.SaveFile(DoDialog: Boolean = True);
 var
 	Filename, StrOW: String;
 begin
-	Filename := Directory + ValidateFilename(FilenameEdit.Caption);
-
+	Filename := GetSelectedFile(True, True);
 	if (DoDialog) and (FileExists(Filename)) then
 	begin
 		StrOW := Format('Overwrite file "%s"?', [ExtractFilename(Filename)]);
@@ -945,7 +958,7 @@ begin
 		if SaveMode then
 			SaveFile
 		else
-			LoadFile(Directory + FilenameEdit.Caption);
+			LoadFile(GetSelectedFile);
 	end;
 end;
 
@@ -978,6 +991,8 @@ begin
 end;
 
 procedure TModFileScreen.Show(aSaveMode: Boolean; const Dir: String);
+var
+	S: String;
 begin
 	inherited Show(aSaveMode, Dir);
 
@@ -987,7 +1002,12 @@ begin
 		begin
 			FilenameEdit.SetCaption(ExtractFilename(Module.Info.Filename));
 			FileList.Select(FilenameEdit.Caption);
-		end;
+		end
+		else
+		if Trim(Module.Info.Title) <> '' then
+			FilenameEdit.SetCaption(Trim(Module.Info.Title))
+		else
+			FilenameEdit.SetCaption('');
 		ActivateControl(FilenameEdit);
 	end
 	else
@@ -1147,13 +1167,7 @@ begin
 
 		ctrlkeyRETURN:
 			if not InSampleReq then			// Load/save module
-			begin
-			{	if FileRequester.SaveMode then
-					FileRequester.SaveFile
-				else
-					FileRequester.LoadFile(GetFilename);}
-				FileRequester.DirOrFilenameEntered(Self);
-			end
+				FileRequester.DirOrFilenameEntered(Self)
 			else
 			case Items[ItemIndex].Data of	// load/save sample
 
@@ -1172,22 +1186,22 @@ begin
 
 				LI_ENTERABLE:
 					with SampleRequester do
-					if not SaveMode then	// list module samples
-					begin
-						if SampleMod <> nil then
-							FreeAndNil(SampleMod);
-
-						SampleMod := TPTModule.Create(True);
-						ModFilename := GetFilename;
-
-						if SampleMod.LoadFromFile(ModFilename) then
+						if not SaveMode then	// list module samples
 						begin
-							InModule := True;
-							SetDirectory('');
-						end
-						else
-							ModFilename := '';
-					end;
+							if SampleMod <> nil then
+								FreeAndNil(SampleMod);
+
+							SampleMod := TPTModule.Create(True);
+							ModFilename := GetFilename;
+
+							if SampleMod.LoadFromFile(ModFilename) then
+							begin
+								InModule := True;
+								SetDirectory('');
+							end
+							else
+								ModFilename := '';
+						end;
 
 				LI_UNENTER:
 					SampleRequester.SetDirectory(SampleRequester.Directory);
