@@ -8,10 +8,38 @@ uses
 const
 	VERSION  =  '0.8.9.6';
 
+	// ========================================================================
+	// Default files
+
 	FILENAME_CONFIG      = 'propulse.ini';
 	FILENAME_KEYBOARD    = 'keyboard.ini';
 	FILENAME_PALETTE     = 'palette.ini';
 	FILENAME_DEFAULTFONT = 'Propulse 8x8';
+
+	// ========================================================================
+	// Message log
+
+	COLOR_WHITE_BRI	= '$B';
+	COLOR_WHITE		= '$3';
+	COLOR_RED		= '$4';
+	COLOR_GREEN		= '$6';
+	COLOR_BLUE		= '$A';
+	COLOR_YELLOW	= '$5';
+	COLOR_GRAY		= '$C';
+
+	TEXT_HEAD		= COLOR_WHITE_BRI;
+	TEXT_LIGHT		= COLOR_WHITE;
+	TEXT_INIT		= COLOR_BLUE;
+	TEXT_INFO		= COLOR_GRAY;
+	TEXT_ERROR		= COLOR_RED;
+	TEXT_WARNING	= TEXT_ERROR + 'Warning: ';
+	TEXT_ACTION		= COLOR_WHITE;
+	TEXT_SUCCESS	= COLOR_GREEN;
+	TEXT_FAILURE	= COLOR_RED;
+	TEXT_FORMAT		= TEXT_INFO + 'Format: ';
+
+	// ========================================================================
+	// Action IDs for callbacks
 
 	ACTION_QUIT				= 1;
 	ACTION_NEWMODULE		= 2;
@@ -25,9 +53,6 @@ const
 	ACTION_RENAMEDIR		= 10;
 	ACTION_RENAMEBOOKMARK	= 11;
 	ACTION_CREATEDIR		= 12;
-
-	FILTER_PALETTE = 'Palettes|*.ini';
-	FILTER_WAV     = 'WAV Files (*.wav)|*.wav|All Files|*.*';
 
 type
 	// hacks to allow pointer maths on data
@@ -120,15 +145,8 @@ var
 	TextVals, HexVals: array [0..255] of AnsiString;
 
 const
-	CHR_PERIOD 			= #173;
-	CHR_2PERIODS		= CHR_PERIOD + CHR_PERIOD;
-	CHR_3PERIODS		= CHR_PERIOD + CHR_PERIOD + CHR_PERIOD;
-
-	TEXT_HEAD  = '$B';
-	TEXT_LIGHT = '$A';
-	TEXT_INFO  = '$6';
-	TEXT_ERROR = '$4';
-	TEXT_WARNING = TEXT_ERROR + 'Warning: ';
+	// ========================================================================
+	// Alphabet
 
 	LETTER_A = 01;	LETTER_B = 02;	LETTER_C = 03;	LETTER_D = 04;
 	LETTER_E = 05;	LETTER_F = 06;	LETTER_G = 07;	LETTER_H = 08;
@@ -137,6 +155,13 @@ const
 	LETTER_Q = 17;	LETTER_R = 18;	LETTER_S = 19;	LETTER_T = 20;
 	LETTER_U = 21;	LETTER_V = 22;	LETTER_W = 23;	LETTER_X = 24;
 	LETTER_Y = 25;	LETTER_Z = 26;
+
+	// ========================================================================
+	// Pattern view
+
+	CHR_PERIOD 			= #173;
+	CHR_2PERIODS		= CHR_PERIOD + CHR_PERIOD;
+	CHR_3PERIODS		= CHR_PERIOD + CHR_PERIOD + CHR_PERIOD;
 
 	NoteNames: array[0..35] of AnsiString = (
 		'C-1','C#1','D-1','D#1','E-1','F-1','F#1','G-1','G#1','A-1','A#1','B-1',
@@ -149,6 +174,9 @@ const
 		'C-3','C#3','D-3','D#3','E-3','F-3','F#3','G-3','G#3','A-3','A#3','B-3',
 		'???'
 	);
+
+	// ========================================================================
+	// Replayer
 
 	FunkTable: packed array [0..16-1] of Byte = (
 		$00, $05, $06, $07, $08, $0A, $0B, $0D,
@@ -231,38 +259,42 @@ const
 	4186.01, 4434.92, 4698.63, 4978.03, 5274.04, 5587.65, 5919.91, 6271.93, 6644.88, 7040.00, 7458.62, 7902.13
 	);
 
-    function SOXRLoaded(sFeature: AnsiString = ''): Boolean;
+	// ========================================================================
+	// Utility
+
+    function  SOXRLoaded(sFeature: AnsiString = ''): Boolean;
 
     procedure Log(const S: AnsiString); overload;
 	procedure Log(const S: AnsiString; const Args: array of const); overload;
 
-	function ValidFilename(const Filename: String): Boolean; inline;
-	function SplitString(const aString, aSeparator: String; aMax: Integer = 0): TArrayOfString;
+	function  ValidFilename(const Filename: String): Boolean; inline;
+	function  SplitString(const aString, aSeparator: String; aMax: Integer = 0): TArrayOfString;
 
-	function GetPeriodTableOffset(period: Word): Integer;
-	function GetNoteText(period: Word): Integer;
-	function PeriodToHz(period: Word): Cardinal; inline;
+	function  GetPeriodTableOffset(period: Word): Integer;
+	function  GetNoteText(period: Word): Integer;
+	function  PeriodToHz(period: Word): Cardinal; inline;
 
-	function LinearToDecibel(linear: Single): Single; inline;
-	function DecibelToLinear(dB: Single): Single; inline;
+	function  LinearToDecibel(linear: Single): Single; inline;
+	function  DecibelToLinear(dB: Single): Single; inline;
 
-	function RectWidth(Rect: TRect) : Integer; inline;
-	function RectHeight(Rect: TRect) : Integer; inline;
+	function  RectWidth(Rect: TRect) : Integer; inline;
+	function  RectHeight(Rect: TRect) : Integer; inline;
 
 	procedure ZeroMemory(Destination: Pointer; Length: DWord); inline;
     procedure CopyMemory(Destination, Source:pointer; Length:DWord); inline;
 
-    function CLAMP(const x, low, high: Integer): Integer; inline;
-	function CLAMP2(x, low, high: Integer; var clipcount: Integer): Integer; inline;
-	function RoundUp(X: Real): Integer;
-	function Swap16(const x: Word): Word;
-	function GetPtr16(const S: PArrayOfByte): Word;
-	function GetPtr32(const S: PArrayOfByte): Cardinal;
+    function  CLAMP(const x, low, high: Integer): Integer; inline;
+	function  CLAMP2(x, low, high: Integer; var clipcount: Integer): Integer; inline;
+	function  RoundUp(X: Real): Integer;
+	function  Swap16(const x: Word): Word;
+	function  GetPtr16(const S: PArrayOfByte): Word;
+	function  GetPtr32(const S: PArrayOfByte): Cardinal;
+
+	procedure SelectFileInExplorer(const Fn: String);
 
 var
 	OnLog: procedure (const Msg: AnsiString) of Object;
 
-	procedure	SelectFileInExplorer(const Fn: String);
 
 
 implementation
