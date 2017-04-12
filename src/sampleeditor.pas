@@ -266,7 +266,9 @@ begin
 		GetSelection(X1, X2);
 
 		L := Sample.ByteLength - X2;
-		Move(Sample.Data[X2], Sample.Data[X1], L);
+		if L > 0 then
+			Move(Sample.Data[X2], Sample.Data[X1], L);
+
 		Sample.Resize(Sample.ByteLength - (X2 - X1));
 
 		// Fix loop points if loop enabled (from PT clone)
