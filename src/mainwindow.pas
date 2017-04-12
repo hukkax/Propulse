@@ -1446,9 +1446,9 @@ begin
 	Log(TEXT_HEAD + 'Propulse Tracker v' + ProTracker.Util.VERSION + ' (built on ' +
 		Build.CompileDate + ' ' + Build.CompileTime + ')');
 	Log('');
-	Log('2016-2017 hukka (Joel Toivonen)');
-	Log('http://hukka.yiff.fi/porotracker/');
-	Log('Contains code based on work by 8bitbubsy (Olav Sorensen)');
+	Log(TEXT_LIGHT + '2016-2017 hukka (Joel Toivonen)');
+	Log(TEXT_LIGHT + 'http://hukka.yiff.fi/porotracker/');
+	Log(TEXT_LIGHT + 'Contains code based on work by 8bitbubsy (Olav Sorensen)');
 	Log('');
 
 	if not Video.NewSDL then
@@ -1461,7 +1461,7 @@ begin
 	Dir := Format('Video: SDL %s, %s renderer', [Video.LibraryVersion, Video.RendererName]);
 	if Video.VSyncRate > 0 then
 		Dir := Dir + Format(', %dHz vsync', [Video.VSyncRate]);
-	Log(Dir);
+	Log(TEXT_INFO + Dir);
 
 	case Options.Audio.Frequency of
 		0: i := 11025;
@@ -1490,7 +1490,7 @@ begin
 	    Log(TEXT_WARNING + 'Resampling features disabled.');
 	end
 	else
-		Log('Other: Using ' + soxr_version + ' for resampling');
+		Log(TEXT_INFO + 'Other: Using ' + soxr_version + ' for resampling');
 
 	Log('');
 
@@ -1599,6 +1599,7 @@ begin
 	SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
 
 	LogIfDebug('OK.');
+	Log('Program started at ' + DateTimeToStr(Now) + '.');
 end;
 
 destructor TWindow.Destroy;

@@ -536,12 +536,12 @@ begin
 		BASS_SetConfig(BASS_CONFIG_BUFFER, Options.Audio.Buffer);
 
 	ver := BASS_GetVersion;
-	Log('Audio: BASS %d.%d.%d.%d on %s', [
+	Log(TEXT_INFO + 'Audio: BASS %d.%d.%d.%d on %s', [
 		ver shr 24 and $FF, ver shr 16 and $FF,
 		ver shr 8 and $FF,  ver and $FF, device.name
 	]);
 
-	Log('       %d Hz, 16 bit stereo, %d ms buffer',
+	Log(TEXT_INFO + '       %d Hz, 16 bit stereo, %d ms buffer',
 		[outputFreq, BASS_GetConfig(BASS_CONFIG_BUFFER)]);
 	if (Options.Audio.Buffer > 0) and (Options.Audio.Buffer < Minbuf) then
 		Log(TEXT_WARNING + 'audio buffer is below the %d ms recommended minimum', [Minbuf]);
