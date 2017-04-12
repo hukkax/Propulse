@@ -12,30 +12,23 @@ uses
 type
 	TConsole = class;
 
-	TConsoleChar = record
-		Char,
-		ColorBack,
-		ColorFore: Byte;
-		Changed: Boolean;
+	TConsoleChar = packed record
+		Char:		Byte;
+		ColorBack:	Byte;
+		ColorFore:	Byte;
+		Changed:	Boolean;
 	end;
 
 	TConsoleFont = class //record
-		Width,
+		Width:			Integer;
 		Height:			Integer;
 		Bitmap:			TBitmap32;
 		PixelRow:		array[0..255] of array of Cardinal;
 		GlyphRect:		array[0..255] of TRect;
 		IsGlyphEmpty:	array[0..255] of Boolean;
 
-		function 	LoadFromFile(Filename: String; const Console: TConsole): Boolean;
-		destructor	Destroy; override;
-	end;
-
-	TConsoleCursor = record
-		X, Y: 		Byte;
-		ColorBack,
-		ColorFore:	Byte;
-		Visible: 	Boolean;
+		function 		LoadFromFile(Filename: String; const Console: TConsole): Boolean;
+		destructor		Destroy; override;
 	end;
 
 	TConsole = class
@@ -53,7 +46,6 @@ type
 	public
 		Width,
 		Height: 	Integer;
-		Cursor: 	TConsoleCursor;
 		Bitmap: 	TBitmap32;
 		Buffer: 	packed array of packed array of TConsoleChar;
 		Palette: 	array[0..255] of TColor32;
@@ -73,7 +65,6 @@ type
 		function 	CenterAt(CtrlWidth, Y: Byte): TRect; inline;
 
 		procedure	Clear(Force: Boolean; ch: Byte = 32; fg: Integer = -1; bg: Integer = -1);
-		procedure	SetCursor(Show: Boolean; X: Byte = 255; Y: Byte = 255);
 
 		procedure	Paint;
 		procedure	Refresh;
@@ -83,14 +74,12 @@ type
 		procedure	DoDrawChar(const x, y: Byte); inline;
 		procedure	DrawChar(const x, y: Byte); inline;
 		procedure	PutChar(X, Y: Word; nChar: Byte;
-					nFgCol: Integer = -1; nBgCol: Integer = -1;
-					Force: Boolean = False);
+					nFgCol: Integer = -1; nBgCol: Integer = -1; Force: Boolean = False);
 		procedure 	BlitChar(var Buffer: TBitmap32; X, Y: Word;
 					nChar: Byte; nFgCol: TColor32; nBgCol: TColor32 = 0);
 		procedure 	BlitText(var Buffer: TBitmap32; X, Y: Word;
 					const Text: AnsiString; nFgCol: TColor32; nBgCol: TColor32 = 0);
-		procedure	SetColor(X, Y: Word;
-					nFgCol: Integer = -1; nBgCol: Integer = -1);
+		procedure	SetColor(X, Y: Word; nFgCol: Integer = -1; nBgCol: Integer = -1);
 		procedure	Write(const sText: AnsiString; X, Y: Word;
 					nFgCol: Integer = -1; nBgCol: Integer = -1);
 		procedure 	WriteCentered(const sText: AnsiString; Y: Word;
@@ -154,7 +143,6 @@ begin
 		Exit(sFilename);}
 
 	Result := '';
-//	showmessage('not found ' + filename);
 end;
 
 function LoadImage(var Filename: String): TBitmap32;
@@ -319,22 +307,14 @@ begin
 	SetLength(Buffer, Width, Height);
 
 	// Impulse Tracker palette, TODO load from file
-	SetPalette(00,00,00,00);
-	SetPalette(01,31,22,17);
-	SetPalette(02,45,37,30);
-	SetPalette(03,58,58,50);
-	SetPalette(04,44,00,21);
-	SetPalette(05,63,63,21);
-	SetPalette(06,17,38,18);
-	SetPalette(07,19,03,06);
-	SetPalette(08,08,21,00);
-	SetPalette(09,06,29,11);
-	SetPalette(10,14,39,29);
-	SetPalette(11,55,58,56);
-	SetPalette(12,40,40,40);
-	SetPalette(13,35,05,21);
-	SetPalette(14,22,16,15);
-	SetPalette(15,13,12,11);
+	SetPalette(00,00,00,00);	SetPalette(01,31,22,17);
+	SetPalette(02,45,37,30);	SetPalette(03,58,58,50);
+	SetPalette(04,44,00,21);	SetPalette(05,63,63,21);
+	SetPalette(06,17,38,18);	SetPalette(07,19,03,06);
+	SetPalette(08,08,21,00);	SetPalette(09,06,29,11);
+	SetPalette(10,14,39,29);	SetPalette(11,55,58,56);
+	SetPalette(12,40,40,40);	SetPalette(13,35,05,21);
+	SetPalette(14,22,16,15);	SetPalette(15,13,12,11);
 
 	COLOR_TEXT		:= 0;
 	COLOR_PANEL		:= 2;
@@ -473,15 +453,6 @@ begin
 	end;
 end;
 
-procedure TConsole.SetCursor(Show: Boolean; X: Byte = 255; Y: Byte = 255);
-begin
-	if X <> 255 then
-		Cursor.X := X;
-	if Y <> 255 then
-		Cursor.Y := Y;
-	Cursor.Visible := Show;
-end;
-
 procedure TConsole.Clear(Force: Boolean; ch: Byte = 32; fg: Integer = -1; bg: Integer = -1);
 var
 	x, y: Integer;
@@ -489,7 +460,6 @@ begin
 	if bg < 0 then bg := COLOR_BLANK;
 	if fg < 0 then fg := COLOR_TEXT;
 
-	SetCursor(True, 0, 0);
 	for y := 0 to Height-1 do
 	for x := 0 to Width-1 do
 		PutChar(x, y, ch, fg, bg, Force);

@@ -29,15 +29,15 @@ type
 		QueuedOffset: Cardinal;
 		PlayPos:		Integer;
 
-		constructor Create(const OutputFreq: Word);
+		constructor Create(OutputFreq: Word);
 
 		procedure Kill;
 		procedure TurnOffDMA; inline;
 		procedure RestartDMA;
-		procedure SetData(const NewSample, NewOffset: Cardinal); //inline; // can't inline due to compiler bug!
+		procedure SetData(NewSample, NewOffset: Cardinal); inline; // can't inline due to compiler bug!
 		procedure SetDataPtr(const src: PArrayOfShortInt); inline;
-		procedure SetLength(const len: Word); inline;
-		procedure SetPeriod(period: Word);
+		procedure SetLength(len: Cardinal); inline;
+		procedure SetPeriod(period: Word); inline;
 		procedure SetVolume(vol: Word);
 	end;
 
@@ -48,7 +48,7 @@ uses
 	ProTracker.Player;
 
 
-constructor TPaulaVoice.Create(const OutputFreq: Word);
+constructor TPaulaVoice.Create(OutputFreq: Word);
 begin
 	inherited Create;
 
@@ -130,12 +130,12 @@ begin
 		Volume := SRC_VOL;
 end;
 
-procedure TPaulaVoice.SetLength(const len: Word);
+procedure TPaulaVoice.SetLength(len: Cardinal);
 begin
 	SRC_LEN := len * 2;
 end;
 
-procedure TPaulaVoice.SetData(const NewSample, NewOffset: Cardinal);
+procedure TPaulaVoice.SetData(NewSample, NewOffset: Cardinal);
 begin
 	SRC_DAT := @Module.Samples[NewSample].Data[NewOffset];
 	QueuedSample := NewSample;
@@ -145,8 +145,7 @@ end;
 procedure TPaulaVoice.SetDataPtr(const src: PArrayOfShortInt);
 begin
 	SRC_DAT := src;
-	{if src = nil then
-		TurnOffDMA;}
+	//if src = nil then TurnOffDMA;
 end;
 
 
