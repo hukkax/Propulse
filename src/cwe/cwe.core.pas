@@ -50,7 +50,7 @@ type
 		Value: Byte;
 	end;
 
-	TControlBorder = record
+	TControlBorder = packed record
 		Enabled,
 		Fat,
 		Sunken,
@@ -58,25 +58,11 @@ type
 	end;
 
 	ControlKeyNames = (
-		ctrlkeyNONE,
-		ctrlkeyNextCtrl,
-		ctrlkeyPreviousCtrl,
-		ctrlkeyUP,
-		ctrlkeyDOWN,
-		ctrlkeyLEFT,
-		ctrlkeyRIGHT,
-		ctrlkeyRETURN,
-		ctrlkeyTAB,
-		ctrlkeySPACE,
-		ctrlkeyINSERT,
-		ctrlkeyDELETE,
-		ctrlkeyHOME,
-		ctrlkeyEND,
-		ctrlkeyPGUP,
-		ctrlkeyPGDN,
-		ctrlkeyBACKSPACE,
-		ctrlkeyMINUS,
-		ctrlkeyPLUS
+		ctrlkeyNONE,					ctrlkeyNextCtrl,	ctrlkeyPreviousCtrl,
+		ctrlkeyUP,		ctrlkeyDOWN,	ctrlkeyLEFT,		ctrlkeyRIGHT,
+		ctrlkeyRETURN,	ctrlkeyTAB,		ctrlkeySPACE,		ctrlkeyBACKSPACE,
+		ctrlkeyINSERT,	ctrlkeyDELETE,	ctrlkeyHOME,		ctrlkeyEND,
+		ctrlkeyPGUP,	ctrlkeyPGDN,	ctrlkeyMINUS,		ctrlkeyPLUS
 	);
 
 	TMouseInfo = record
@@ -156,7 +142,7 @@ type
 					SetProtect: Boolean = False); virtual;
 		destructor	Destroy; override;
 		//procedure	Init(const Data: array of const); virtual; abstract;
-{		procedure	AddControl(var Ctrl: TCWEControl;
+		{procedure	AddControl(var Ctrl: TCWEControl;
 					const Caption: AnsiString; const Bounds: TRect);}
 
 		procedure	SetColors(Fg, Bg: Byte);

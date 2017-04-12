@@ -5,7 +5,6 @@ interface
 uses
 	Classes, Types, SysUtils,
 	TextMode, CWE.Core, CWE.Widgets.Text,
-	Generics.Collections,
 	ConfigurationManager;
 
 const
@@ -284,7 +283,6 @@ end;
 procedure TCWEDialog.MessageDialog;
 var
 	X, Y, BW: Integer;
-	Btn: TCWEButton;
 	Lbl: TCWELabel;
 	foo: TDialogButton;
 
@@ -292,7 +290,7 @@ var
 	begin
 		if Button in Buttons then
 		begin
-			Btn := AddResultButton(Button, sCaption, X, Y, (Button = DefaultButton));
+			AddResultButton(Button, sCaption, X, Y, (Button = DefaultButton));
 			Inc(X, BTN_WIDTH + 2);
 		end;
 	end;

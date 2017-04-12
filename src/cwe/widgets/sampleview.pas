@@ -4,7 +4,7 @@ interface
 
 uses
 	Classes, Types, Math, Graphics32, TextMode,
-	CWE.Core, CWE.Widgets.Text, CWE.Widgets.Numeric, CWE.Widgets.Scrollers,
+	CWE.Core, CWE.Widgets.Scrollers,
 	ProTracker.Util, ProTracker.Player, ProTracker.Sample;
 
 

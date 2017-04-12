@@ -991,8 +991,6 @@ begin
 end;
 
 procedure TModFileScreen.Show(aSaveMode: Boolean; const Dir: String);
-var
-	S: String;
 begin
 	inherited Show(aSaveMode, Dir);
 
