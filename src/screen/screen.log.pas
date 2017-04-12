@@ -7,15 +7,13 @@ uses
 	TextMode, CWE.Core, CWE.Widgets.Text;
 
 type
-
-	{ TLogScreen }
-
- TLogScreen = class(TCWEScreen)
+	TLogScreen = class(TCWEScreen)
 	private
+		LastLoggedEmpty: Boolean;
 	public
 		Memo:		TCWEMemo;
 
-		procedure Log(const Msg: AnsiString);
+		procedure	Log(const Msg: AnsiString);
 
 		constructor	Create(var Con: TConsole; const sCaption, sID: AnsiString); override;
 	end;
@@ -26,17 +24,34 @@ var
 
 implementation
 
-
 uses
 	Layout, ProTracker.Util, SysUtils;
 
-
 procedure TLogScreen.Log(const Msg: AnsiString);
+var
+	S: AnsiString;
 begin
-	if Copy(Msg, 1, 1) = '$' then
-		Memo.Add(' ' + Copy(Msg, 3, Length(Msg)), StrToInt(Copy(Msg, 1, 2)))
+	if Msg = '-' then
+	begin
+		if not LastLoggedEmpty then
+			Memo.Add(StringOfChar(#205, Memo.Width+1), 15);
+		LastLoggedEmpty := True;
+	end
 	else
-		Memo.Add(' ' + Msg);
+	if Copy(Msg, 1, 1) = '$' then
+	begin
+		S := Copy(Msg, 3, Length(Msg));
+		if not ((LastLoggedEmpty) and (S = '')) then
+			Memo.Add(' ' + S, StrToInt(Copy(Msg, 1, 2)));
+	end
+	else
+	begin
+		S := Msg;
+		if not ((LastLoggedEmpty) and (S = '')) then
+			Memo.Add(' ' + S);
+	end;
+
+	LastLoggedEmpty := (S = '');
 	Paint;
 end;
 
