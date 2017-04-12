@@ -1461,7 +1461,7 @@ begin
 	Dir := Format('Video: SDL %s, %s renderer', [Video.LibraryVersion, Video.RendererName]);
 	if Video.VSyncRate > 0 then
 		Dir := Dir + Format(', %dHz vsync', [Video.VSyncRate]);
-	Log(TEXT_INFO + Dir);
+	Log(TEXT_INIT + Dir);
 
 	case Options.Audio.Frequency of
 		0: i := 11025;
@@ -1490,7 +1490,7 @@ begin
 	    Log(TEXT_WARNING + 'Resampling features disabled.');
 	end
 	else
-		Log(TEXT_INFO + 'Other: Using ' + soxr_version + ' for resampling');
+		Log(TEXT_INIT + 'Other: Using ' + soxr_version + ' for resampling');
 
 	Log('');
 
@@ -1599,7 +1599,8 @@ begin
 	SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
 
 	LogIfDebug('OK.');
-	Log('Program started at ' + DateTimeToStr(Now) + '.');
+	Log(TEXT_SUCCESS + 'Program started at ' + DateTimeToStr(Now) + '.');
+	Log('-');
 end;
 
 destructor TWindow.Destroy;

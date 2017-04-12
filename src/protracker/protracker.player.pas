@@ -34,22 +34,18 @@ const
 	OFFSET_ID			= 1080;
 	OFFSET_PATTERNS		= 1084;
 
-	MAX_PATTERNS	= 100;
+	MODFILESIZE_MIN		=    2108;
+	MODFILESIZE_MAX		= 4195326;
 
-	MODFILESIZE_MIN =    2108;
-	MODFILESIZE_MAX = 4195326;
+	MAX_PATTERNS		= 100;
+	AMOUNT_CHANNELS		= 4;
 
-	DATA_AUDIO		= 0;
-	DATA_SAMPLE		= 1;
+	PLAY_STOPPED		= 0;
+	PLAY_SONG			= 1;
+	PLAY_PATTERN		= 2;
 
-	AMOUNT_CHANNELS	= 4;
-
-	PLAY_STOPPED	= 0;
-	PLAY_SONG		= 1;
-	PLAY_PATTERN	= 2;
-
-	PAULA_PAL_CLK = 3546895;
-	CIA_PAL_CLK   = 709379;
+	PAULA_PAL_CLK 		= 3546895;
+	CIA_PAL_CLK   		= 709379;
 
 type
 	TModuleEvent   		= procedure of Object;
@@ -349,10 +345,8 @@ uses
 	Windows,
 	{$ENDIF}
 	Classes, Math,
-//	WaveIOX,
-	FileStreamEx,
-	fpwavwriter, fpwavformat,
 	SDL2,
+	FileStreamEx, fpwavwriter, fpwavformat,
 	ProTracker.Editor,
 	ProTracker.Format.IT,
 	ProTracker.Format.P61;
@@ -536,12 +530,12 @@ begin
 		BASS_SetConfig(BASS_CONFIG_BUFFER, Options.Audio.Buffer);
 
 	ver := BASS_GetVersion;
-	Log(TEXT_INFO + 'Audio: BASS %d.%d.%d.%d on %s', [
+	Log(TEXT_INIT + 'Audio: BASS %d.%d.%d.%d on %s', [
 		ver shr 24 and $FF, ver shr 16 and $FF,
 		ver shr 8 and $FF,  ver and $FF, device.name
 	]);
 
-	Log(TEXT_INFO + '       %d Hz, 16 bit stereo, %d ms buffer',
+	Log(TEXT_INIT + '       %d Hz, 16 bit stereo, %d ms buffer',
 		[outputFreq, BASS_GetConfig(BASS_CONFIG_BUFFER)]);
 	if (Options.Audio.Buffer > 0) and (Options.Audio.Buffer < Minbuf) then
 		Log(TEXT_WARNING + 'audio buffer is below the %d ms recommended minimum', [Minbuf]);
@@ -990,7 +984,7 @@ begin
 	Info.Filename := Filename;
 
 	Log(TEXT_LIGHT + 'Module saved: ' + Filename + '.');
-	Log('');
+	Log('-');
 
 	Result := True;
 end;
@@ -1100,6 +1094,8 @@ begin
 end;
 
 function TPTModule.LoadFromFile(const Filename: String): Boolean;
+const
+	TEXT_INVALIDMOD = 'Invalid .MOD file!' ;
 var
 	os, i, j, patt, row, ch, pattNum: Integer;
 	p: PWordArray;
@@ -1123,7 +1119,8 @@ var
 			DeleteFile(PChar(TempFilename));
 		if ModFile <> nil then
 			ModFile.Free;
-		Log(Msg, Args);
+		Log(TEXT_FAILURE + 'Load failed: ' + Msg, Args);
+		Log('-');
 	end;
 
 label
@@ -1137,7 +1134,8 @@ begin
 
 	// Read file data
 	//
-	Log(TEXT_HEAD + 'Loading module: ' + Filename);
+	Log('-');
+	Log(TEXT_ACTION + 'Loading module: ' + Filename);
 
 	Reset;
 	ModFile := TFileStreamEx.Create(Filename, fmOpenRead, fmShareDenyNone);
@@ -1159,19 +1157,19 @@ begin
 	else
 	if sFile = 'PX20' then
 	begin
-		ExitError(TEXT_ERROR + 'Encrypted PowerPacker module!', []);
+		ExitError('Encrypted PowerPacker module!', []);
 		Exit;
 	end
 	else
 	if sFile = 'PP20' then
 	begin
 		// decrunch powerpacker module
-		Log('File is packed with PowerPacker.');
+		Log(TEXT_INFO + 'File is packed with PowerPacker.');
 
 		ppPackLen := Info.Filesize;
 		if (ppPackLen and 3) <> 0 then
 		begin
-			ExitError(TEXT_ERROR + 'Load failed: unknown PowerPacker error!', []);
+			ExitError('Unknown PowerPacker error!', []);
 			Exit;
 		end;
 
@@ -1183,7 +1181,7 @@ begin
 		// smallest and biggest possible .MOD
 		if (ppUnpackLen < 2108) or (ppUnpackLen > 4195326) then
 		begin
-			ExitError(TEXT_ERROR + 'Load failed: not a valid module (incorrect unpacked file size)', []);
+			ExitError('Not a valid module (incorrect unpacked file size)', []);
 			Exit;
 		end;
 
@@ -1244,7 +1242,7 @@ begin
 	else
 	if ((Info.Filesize < MODFILESIZE_MIN) or (Info.Filesize > MODFILESIZE_MAX)) then
 	begin
-		ExitError(TEXT_ERROR + 'Load failed: Invalid filesize.', []);
+		ExitError('Invalid filesize.', []);
 		Exit;
 	end;
 
@@ -1357,7 +1355,7 @@ begin
 	begin
 		if Info.OrderCount > 129 then
 		begin
-			ExitError(TEXT_ERROR + 'Load failed: not a valid .MOD file (NumOrders > 127)', []);
+			ExitError(TEXT_INVALIDMOD + '(Orderlist too long)', []);
 			Exit;
 		end
 		else
@@ -1366,7 +1364,7 @@ begin
 	else
 	if Info.OrderCount = 0 then
 	begin
-		ExitError(TEXT_ERROR + 'Load failed: not a valid .MOD file (NumOrders = 0)', []);
+		ExitError(TEXT_INVALIDMOD + '(Zero-length orderlist)', []);
 		Exit;
 	end;
 
@@ -1374,7 +1372,7 @@ begin
 
 	if (mightBeSTK) and ((Info.RestartPos = 0) or (Info.RestartPos > 220)) then
 	begin
-		ExitError(TEXT_ERROR + 'Load failed: not a valid .MOD file', []);
+		ExitError(TEXT_INVALIDMOD + '(Invalid restart pos.)', []);
 		Exit;
 	end;
 
@@ -1383,7 +1381,7 @@ begin
 		// If we're still here at this point and the mightBeSTK flag is set,
 		// then it's definitely a proper The Ultimate SoundTracker (STK) module.
 		Info.Format := FORMAT_STK;
-		Log('Format: Ultimate SoundTracker');
+		Log(TEXT_FORMAT + 'Ultimate SoundTracker');
 
 		if Info.RestartPos = 120 then
 			Info.RestartPos := 125
@@ -1398,25 +1396,24 @@ begin
 	end
 	else
 	if (Info.ID = 'M.K.') then
-		Log('Format: ProTracker 1.x/2.x (M.K.)')
+		Log(TEXT_FORMAT + 'ProTracker 1.x/2.x (M.K.)')
 	else
 	if (Info.ID = 'M!K!') then
-		Log('Format: ProTracker 2.x (M!K!)')
+		Log(TEXT_FORMAT + 'ProTracker 2.x (M!K!)')
 	else
 	if (Info.ID = 'FLT4') then
-		Log('Format: StarTrekker (FLT4)')
+		Log(TEXT_FORMAT + 'StarTrekker (FLT4)')
 	else
 	if (Info.ID = '4CHN') then
-		Log('Format: FastTracker II (4CHN)')
+		Log(TEXT_FORMAT + 'FastTracker II (4CHN)')
 	else
 	if (Info.ID = 'N.T.') then
-		Log('Format: NoiseTracker 1.0 (N.T.)')
+		Log(TEXT_FORMAT + 'NoiseTracker 1.0 (N.T.)')
 	else
 	if (Info.ID = 'FEST') then
-		Log('Format: NoiseTracker (alt) (FEST)')
+		Log(TEXT_FORMAT + 'NoiseTracker (alt) (FEST)')
 	else
-		Log('Format: Unknown');
-
+		Log(TEXT_FORMAT + 'Unknown');
 
 	Info.PatternCount := 0;
 	for i := 0 to 127 do
@@ -1429,7 +1426,7 @@ begin
 //	Inc(Info.PatternCount);
 	if Info.PatternCount > MAX_PATTERNS then
 	begin
-		ExitError(TEXT_ERROR + 'Load failed: not a valid .MOD file (NumPatterns=%d > 100)', [Info.PatternCount]);
+		ExitError(TEXT_INVALIDMOD + '(Too many patterns)', []);
 		Exit;
 	end;
 
@@ -1447,12 +1444,7 @@ begin
 			for ch := 0 to AMOUNT_CHANNELS-1 do
 			begin
 				note := @Notes[patt, ch, row];
-
 				ModFile.Read(bytes[0], 4);
-				{bytes[0] := ModFile.ReadByte;
-				bytes[1] := ModFile.ReadByte;
-				bytes[2] := ModFile.ReadByte;
-				bytes[3] := ModFile.ReadByte;}
 
 				note.Period    := ((bytes[0] and $0F) shl 8) or bytes[1];
 				note.Sample    :=  (bytes[0] and $F0) or (bytes[2] shr 4); // Don't (!) clamp, the player checks for invalid samples
@@ -1610,11 +1602,11 @@ Done:
 	Info.Filename := Filename;
 
 	if not Warnings then
-		Log(TEXT_LIGHT + 'Load success.')
+		Log(TEXT_SUCCESS + 'Load success.')
 	else
-		Log(TEXT_ERROR + 'Loaded with errors/warnings.');
+		Log(TEXT_FAILURE + 'Loaded with errors/warnings.');
 
-	Log('');
+	Log('-');
 
 	if Stream <> 0 then
 		BASS_ChannelPlay(Stream, True);
@@ -2982,14 +2974,14 @@ begin
 		if _volume >= 0 then
 			n_volume := _volume
 		else
-			n_volume   := S.Volume;
+			n_volume := S.Volume;
 		if _length = 0 then
-			n_length   := S.Length
+			n_length := S.Length
 		else
-			n_length   := _length;
+			n_length := _length;
 
-		n_replen   := S.LoopLength;
-		srepeat    := S.LoopStart;
+		n_replen := S.LoopLength;
+		srepeat  := S.LoopStart;
 
 		Paula.PlayPos := -1;
 
@@ -3000,7 +2992,7 @@ begin
 			Exit;
 		end;
 
-		// just play a section of sample, nonlooped
+		// just play a section of sample, unlooped
 		if _length > 0 then
 		begin
 			//srepeat := 0;
