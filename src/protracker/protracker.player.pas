@@ -891,9 +891,25 @@ function TPTModule.SaveToFile(const Filename: String): Boolean;
 var
 	i, j, k, l: Integer;
 	c: Cardinal;
-//	SavePattern: Boolean;
 	Stream: TFileStreamEx;
 begin
+	c := 0;
+	for i := 0 to 30 do // get length of longest sample
+		c := Max(c, Samples[i].Length * 2);
+
+	if c > $1FFFF then // crop samples >127K
+	begin
+		for i := 0 to 30 do
+			Samples[i].Length := Min(Samples[i].Length, $FFFF);
+		Log(TEXT_WARNING + 'Samples longer than 127K have been cropped!');
+	end;
+
+	if c > $FFFF then
+	begin
+		Log(TEXT_WARNING + 'Module contains samples longer than 64K.');
+		Log(TEXT_WARNING + 'This may cause problems with some trackers/players.');
+	end;
+
 	Stream := TFileStreamEx.Create(Filename, fmCreate);
 	Warnings := False;
 
@@ -909,8 +925,8 @@ begin
 		for j := 0 to 21 do
 			Stream.Write8(Samples[i].Name[j]);
 
-		Stream.Write8(Samples[i].Length * 2 shr 9);
-		Stream.Write8(Samples[i].Length * 2 shr 1);
+		Stream.Write8(Byte(Samples[i].Length * 2 shr 9));
+		Stream.Write8(Byte(Samples[i].Length * 2 shr 1));
 		Stream.Write8(Samples[i].Finetune and $0F);
 		Stream.Write8(Min(Samples[i].Volume, 64));
 
@@ -1317,7 +1333,7 @@ begin
 			if s.LoopLength > 2 then
 			begin
 				j := s.LoopStart;
-				s.Length       := s.Length - s.LoopStart;
+				s.Length       := Max(s.Length - s.LoopStart, 0);
 				s.LoopStart    := 0;
 				s.tmpLoopStart := j;
 			end;
