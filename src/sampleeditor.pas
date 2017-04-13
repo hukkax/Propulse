@@ -463,14 +463,15 @@ begin
 				else
 				if S > 127 then
 					S := 127;
-				Sample.Data[X] := ShortInt(S);
+				ShortInt(Sample.Data[X]) := ShortInt(S);
 			end;
 		end
 		else
 		begin
 			for X := X1 to X2 do
-				Sample.Data[X] := ShortInt(
-					Trunc((ShortInt(Sample.Data[X]) / 2) + (ShortInt(Clipbrd[X-X1]) / 2)));
+				ShortInt(Sample.Data[X]) := ShortInt(Trunc(
+					(ShortInt(Sample.Data[X]) / 2) +
+					(ShortInt(Clipbrd[X-X1]) / 2) ));
 		end;
 
 		Sample.Validate;
@@ -530,7 +531,6 @@ begin
 	with Waveform do
 	begin
 		if (not HasSample) or (IsEmptySample(Sample)) then Exit;
-
 		if not GetSelection(X1, X2) then Exit;
 
 		e := X2-1;
@@ -541,9 +541,9 @@ begin
 		for i := X1 to h do
 		begin
 			V := Data[e];
-			Data[e] := ShortInt(
+			Data[e] := Byte(
 				Trunc((ShortInt(Data[e]) / 2) + (ShortInt(Data[i]) / 2)));
-			Data[i] := ShortInt(
+			Data[i] := Byte(
 				Trunc((ShortInt(V) / 2) + (ShortInt(Data[i]) / 2)));
 			Dec(e);
 		end;
@@ -571,7 +571,7 @@ begin
 	Filter(buf, Hz, LP);
 
 	for i := X1 to X2 do
-		Sam.Data[i] := ShortInt(Trunc(buf[i-X1] * 127));
+		ShortInt(Sam.Data[i]) := ShortInt(Trunc(buf[i-X1] * 127));
 
 	Sam.ZeroFirstWord;
 	Module.SetModified;
@@ -630,7 +630,7 @@ begin
 		for i := X1 to X2-1 do
 		begin
 			D := (ShortInt(Sam.Data[i]) + ShortInt(Sam.Data[i+1])) / 2.0;
-			Sam.Data[i] := ShortInt(Clamp(ROUND_SMP_D(D), -128, +127));
+			ShortInt(Sam.Data[i]) := ShortInt(Clamp(ROUND_SMP_D(D), -128, +127));
 		end;
 		Sam.ZeroFirstWord;
 		Module.SetModified;
@@ -657,7 +657,7 @@ begin
 			Dec(tmp16_1, tmp16_3);
 			tmp16_3 := tmp16_2;
 			Inc(tmp16_2, CLAMP(ROUND_SMP_D(tmp16_1 / 4), -128, 127));
-			Sam.Data[i] := ShortInt(Clamp(tmp16_2, -128, +127));
+			ShortInt(Sam.Data[i]) := ShortInt(Clamp(tmp16_2, -128, +127));
 		end;
 
 		Sam.ZeroFirstWord;
@@ -731,7 +731,7 @@ begin
 			WAVE_NOISE:		begin Waveform.Sample.Data[X+i] := Random(255); Continue; end;
 		end;
 
-		Waveform.Sample.Data[X+i] := ShortInt(Trunc(Data * 127));
+		ShortInt(Waveform.Sample.Data[X+i]) := ShortInt(Trunc(Data * 127));
 
 		position_in_period := position_in_period + position_in_period_delta;
 		if position_in_period >= 1.0 then
