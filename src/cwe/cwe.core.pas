@@ -45,6 +45,7 @@ type
 	TCWEMouseLeaveEvent	= 	function (Sender: TCWEControl): Boolean
 							of Object;
 
+
 	TControlData = record
 		Text:  AnsiString;
 		Value: Byte;
@@ -202,6 +203,7 @@ type
 		destructor	Destroy; override;
 
 		property	OnShow: TCWENotifyEvent read FOnShow write FOnShow;
+		function	OnContextMenu: Boolean; virtual;
 
 		procedure	Show; virtual;
 		procedure 	Leave; virtual;
@@ -245,9 +247,7 @@ implementation
 
 uses
 	MainWindow, Math, SDL2,
-	CWE.Widgets.Text,
-	CWE.Dialogs,
-	CWE.Widgets.Scrollers,
+	CWE.Widgets.Text, CWE.Widgets.Scrollers, CWE.Dialogs,
 	Screen.Editor, ProTracker.Editor; // !!! so dumb
 
 // ==========================================================================
@@ -366,6 +366,11 @@ begin
 	AllControls.Free;
 
 	inherited Destroy;
+end;
+
+function TCWEScreen.OnContextMenu: Boolean;
+begin
+	Result := True;
 end;
 
 procedure TCWEScreen.Show;

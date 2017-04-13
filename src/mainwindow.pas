@@ -51,11 +51,6 @@ type
 		LibraryVersion:	AnsiString;
 	end;
 
-	TCWEMainMenu = class(TCWETwoColumnList)
-		procedure MainMenuCommand(Sender: TCWEControl);
-		function  KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
-	end;
-
 	TWindow = class
 	const
 		TimerInterval = 10;
@@ -88,7 +83,6 @@ type
 
 		procedure	ProcessFrame;
 
-		procedure 	EscMenu;
 		procedure	SetTitle(const Title: AnsiString);
 		procedure 	DoLoadModule(const Filename: String);
 		procedure 	PlayModeChanged;
@@ -96,6 +90,7 @@ type
 		procedure 	DialogCallback(ID: Word; Button: TDialogButton;
 					ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
 		procedure	OnKeyDown(var Key: Integer; Shift: TShiftState);
+		function	OnContextMenu: Boolean;
 	end;
 
 
@@ -122,6 +117,7 @@ uses
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
 	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio,
+	CWE.MainMenu,
 	soxr;
 
 
@@ -675,7 +671,7 @@ begin
 			Exit;
 
 		keyMainMenu:
-			EscMenu;
+			ContextMenu.Show;
 
 		// exit program
 		keyProgramQuit:
@@ -871,32 +867,6 @@ begin
 	GetModifierKey(M, Result, KMOD_CAPS,	ssCaps);	// Caps Lock
 end;
 
-(*function ScancodeToChar(Scancode: TSDL_Scancode): Char;
-var
-	Key: TSDL_Keycode;
-begin
-    case Scancode of
-        SDL_SCANCODE_MINUS:          Result := '-';  //SDLK_MINUS;
-        SDL_SCANCODE_EQUALS:         Result := '=';  //SDLK_EQUALS;
-        SDL_SCANCODE_LEFTBRACKET:    Result := '{';  //SDLK_LEFTBRACKET;
-        SDL_SCANCODE_RIGHTBRACKET:   Result := '}';  //SDLK_RIGHTBRACKET;
-        SDL_SCANCODE_BACKSLASH:      Result := '\';  //SDLK_BACKSLASH;
-        SDL_SCANCODE_SEMICOLON:      Result := ';';  //SDLK_SEMICOLON;
-        SDL_SCANCODE_APOSTROPHE:     Result := ''''; //SDLK_QUOTE;
-        SDL_SCANCODE_GRAVE:          Result := '~';  //SDLK_BACKQUOTE;
-        SDL_SCANCODE_COMMA:          Result := ',';  //SDLK_COMMA;
-        SDL_SCANCODE_PERIOD:         Result := '.';  //SDLK_PERIOD;
-        SDL_SCANCODE_SLASH:          Result := '/';  //SDLK_SLASH;
-        SDL_SCANCODE_NONUSBACKSLASH: Result := '\';  //SDLK_LESS;
-	else
-		Key := SDL_GetKeyFromScancode(Scancode);
-	    if (Key < -128) or (Key > 127) then
-			Result := #0
-		else
-			Result := Chr(Key);
-	end;
-end;*)
-
 procedure TWindow.HandleInput;
 var
 	InputEvent: TSDL_Event;
@@ -999,7 +969,7 @@ begin
 						B := CurrentScreen.MouseDown(Btn, X, Y, GetXY);
 						// right button for context menu if the button wasn't otherwise handled
 						if (Btn = mbRight) and (not B) and (ModalDialog.Dialog = nil) then
-							EscMenu;
+							ContextMenu.Show;
 					end
 					else
 					// close context menu by clicking outside it
@@ -1056,166 +1026,6 @@ begin
 		SDL_Delay(delayMs);
 	end;
 	Inc(Video.NextFrameTime, Trunc(perfFreq / 60 + 0.5));
-end;
-
-procedure TWindow.EscMenu;
-var
-	Dlg: TCWEScreen;
-	List: TCWEMainMenu;
-	Section: TKeyBindings;
-
-	procedure AddSection(const Caption: AnsiString);
-	begin
-		List.Items.Add(TCWEListItem.Create(Caption, LISTITEM_HEADER, nil, 3, 2));
-	end;
-
-	procedure AddCmd(Key: Cardinal; const Caption: AnsiString);
-	begin
-		List.Items.Add(TCWEListItem.Create(
-			Caption + COLUMNSEPARATOR + ShortCuts.GetShortcut(Section, Key),
-			Ord(Key), Pointer(Section)));
-	end;
-
-	procedure AddCmd2(Key: Cardinal; const Caption: AnsiString);
-	begin
-		List.Items.Add(TCWEListItem.Create(Caption, $80000000 + Key, Pointer(Section)));
-	end;
-
-var
-	i, W, H: Integer;
-begin
-	W := 34+6;
-	H := 32;
-
-	if ModalDialog.Dialog <> nil then Exit;
-
-	Dlg := ModalDialog.CreateDialog(DIALOG_CONTEXTMENU, Bounds(
-		(Console.Width  div 2) - (W div 2),
-		(Console.Height div 2) - (H div 2), W, H),
-		 'Menu');
-
-	List := TCWEMainMenu.Create(Dlg, '', 'Menu',
-		Types.Rect(1, 2, W-1, H-1), True);
-
-	List.ColorBack := TConsole.COLOR_PANEL;
-	List.ColorFore := TConsole.COLOR_TEXT;
-	List.ColumnColor[0] := List.ColorFore;
-	List.ColumnColor[1] := TConsole.COLOR_3DDARK;
-	List.ColumnWidth[1] := 13;
-	List.ColumnWidth[0] := List.Width - List.ColumnWidth[1];
-	List.OnActivate  := List.MainMenuCommand;
-	List.Selection3D := True;
-
-	List.Data[0].Value := TConsole.COLOR_LIGHT; // bright white
-	for i := 1 to 3 do
-		List.Data[i].Value := 8; // hover bg + border
-
-	with ModalDialog do
-	begin
-		if CurrentScreen = Editor then
-		begin
-			Section := EditorKeys;
-
-			AddSection('Block operations');
-
-			AddCmd(Ord(keyBlockCut),				'Cut');
-			AddCmd(Ord(keyBlockCopy),				'Copy');
-			AddCmd(Ord(keyBlockPaste),				'Paste');
-			AddCmd(Ord(keyBlockOverwrite),			'Overwrite');
-			AddCmd(Ord(keyBlockMix),				'Mix');
-			AddCmd(Ord(keyBlockSwap),				'Swap');
-			AddCmd(Ord(keyBlockDouble),				'Double size');
-			AddCmd(Ord(keyBlockHalve),				'Halve size');
-			AddCmd(Ord(keyBlockSlideWipeEffect),	'Slide effect values');
-			AddCmd(Ord(keyBlockSetSample),			'Replace sample');
-			AddCmd(Ord(keyTransposeSemitoneUp),		'Transpose semitone up');
-			AddCmd(Ord(keyTransposeSemitoneDown),	'Transpose semitone down');
-			AddCmd(Ord(keyTransposeOctaveUp),		'Transpose octave up');
-			AddCmd(Ord(keyTransposeOctaveDown),		'Transpose octave down');
-			{AddSection('Pattern operations'); 		// handled in Screen.Editor
-			AddCmd2(CMD_PATTERN_INSERT,		 		'Insert pattern');
-			AddCmd2(CMD_PATTERN_DELETE,		 		'Delete pattern');
-			AddCmd2(CMD_PATTERN_CLONE,		 		'Duplicate pattern');}
-		end
-		else
-		if CurrentScreen = SampleScreen then
-		begin
-			Section := SampleListKeys;
-			AddSection('Sample');
-
-			AddCmd(Ord(keySampleClear),			'Clear name');
-			AddCmd(Ord(keySampleDelete),		'Delete');
-			AddCmd(Ord(keySampleCopy),			'Copy from...');
-			AddCmd(Ord(keySampleReplace),		'Replace with...');
-			AddCmd(Ord(keySampleSwap),			'Swap with...');
-			AddCmd(Ord(keySampleCutLeft),		'Cut pre-loop');
-			AddCmd(Ord(keySampleCutRight),		'Cut post-loop');
-			AddCmd(Ord(keySampleReverse),		'Reverse');
-			AddCmd(Ord(keySampleInvert),		'Invert');
-			if SOXRLoaded then
-			begin
-				AddCmd(Ord(keySampleResample),		'Resample...');
-			end;
-			AddCmd(Ord(keySampleAmplify),		'Amplify...');
-			AddCmd(Ord(keySampleAmplifyAll),	'Amplify all...');
-			AddCmd(Ord(keySampleSave), 			'Save to file...');
-			AddCmd(Ord(keySampleInsertSlot),	'Insert slot');
-			AddCmd(Ord(keySampleRemoveSlot),	'Remove slot');
-		end
-		else
-		if (CurrentScreen = FileRequester)   or
-		   (CurrentScreen = SampleRequester) then
-		begin
-			AddSection('File listing');
-
-			AddCmd2(FILESORT_NAME,				'Sort by name');
-			AddCmd2(FILESORT_SIZE,				'Sort by size');
-			AddCmd2(FILESORT_DATE,				'Sort by date');
-			{$IFDEF WINDOWS}
-			AddCmd2(FILE_EXPLORE,				'Show file in Explorer');
-			{$ENDIF}
-		end;
-
-		Section := GlobalKeys;
-
-		AddSection('Module');
-
-		AddCmd(Ord(keySongNew),					'New module');
-		AddCmd(Ord(keyScreenLoad), 				'Load module');
-		AddCmd(Ord(keyScreenSave), 				'Save module');
-		AddCmd(Ord(keySongLength), 				'Show length/size');
-		AddCmd(Ord(keyCleanup), 				'Cleanup');
-		AddCmd(Ord(keyRenderToSample),			'Selection to sample');
-
-		AddSection('Screens');
-		if CurrentScreen <> Help then
-			AddCmd(Ord(keyScreenHelp), 			'Help');
-		if CurrentScreen <> Editor then
-			AddCmd(Ord(keyScreenPatternEditor),	'Pattern editor');
-		if CurrentScreen <> SampleScreen then
-			AddCmd(Ord(keyScreenSamples), 		'Samples');
-		if CurrentScreen <> LogScreen then
-			AddCmd(Ord(keyScreenLog), 			'Message log');
-		if CurrentScreen <> ConfigScreen then
-			AddCmd(Ord(keyScreenConfig), 		'Configuration');
-
-		AddSection('Program');
-		AddCmd(Ord(keyProgramFullscreen), 		'Toggle fullscreen');
-		AddCmd(Ord(keyScreenAbout), 			'About...');
-		AddCmd(Ord(keyProgramQuit), 			'Quit');
-
-		H := List.Items.Count + 3;
-
-		ModalDialog.SetBounds(Bounds(
-			(Console.Width  div 2) - (W div 2),
-			(Console.Height div 2) - (H div 2), W, H));
-		List.SetBounds(
-			Types.Rect(1, 2, W-1, H-1));
-		List.ItemIndex := 1;
-		List.Scrollbar.Visible := False;
-
-		Show;
-	end;
 end;
 
 function TimerTickCallback(interval: Uint32; param: Pointer): UInt32; cdecl;
@@ -1561,8 +1371,10 @@ begin
 	SplashScreen := TSplashScreen.Create(Console, '', 'Splash');
 	Screens.Add(SplashScreen);
 
+	// Init context menu
+	ContextMenu := TCWEMainMenu.Create;
+
 	// Load any user-defined shortcuts
-	//
 	Shortcuts.Load(ConfigPath + FILENAME_KEYBOARD);
 
 	Log('');
@@ -1580,10 +1392,9 @@ begin
 
 	Console.Paint;
 
+	MessageTextTimer := -1;
 	Initialized := True;
 	Module.SetModified(False);
-
-	MessageTextTimer := -1;
 
 	{$IFDEF WINDOWS}
 	if Options.HighPriority then
@@ -1611,6 +1422,7 @@ begin
 	ConfigManager.Save;
 	ConfigManager.Free;
 
+	ContextMenu.Free;
 	Console.Free;
 	Screens.Free;
 	MouseCursor.Free;
@@ -1646,72 +1458,39 @@ begin
 	FlipFrame;
 end;
 
-{ TCWEMainMenu }
-
-procedure TCWEMainMenu.MainMenuCommand(Sender: TCWEControl);
-var
-	Item: TCWEListItem;
-	Sect: TKeyBindings;
-	Binding: TKeyBinding;
-	i: Integer;
-	Cmd: Cardinal;
-	Key: Integer;
-	Shift: TShiftState;
+function TWindow.OnContextMenu: Boolean;
 begin
-	// get the Key and Shift codes for a keybinding const (e.g. keyScreenHelp -> F1, [])
-
-	Item := Items[ItemIndex];
-	if Item.ObjData = nil then Exit;
-	Cmd := Item.Data;
-
-	if (Cmd and $80000000) = 0 then
+	with ContextMenu do
 	begin
-		i := Shortcuts.Sections.IndexOf(TKeyBindings(Item.ObjData));
-		if i < 0 then
-		begin
-			Log(TEXT_WARNING+'Section not found!');
-			Exit;
-		end;
+		SetSection(GlobalKeys);
 
-		Sect := Shortcuts.Sections[i];
-		Binding := Sect.FindKey(Cmd);
+		AddSection('Module');
 
-		if Binding = nil then
-		begin
-			Log(TEXT_WARNING+'Binding not found!');
-			Exit;
-		end
-		else
-		begin
-			Key := Binding.Shortcut.Key;
-			Shift := Binding.Shortcut.Shift;
-			if Key <> 0 then
-			begin
-				ModalDialog.Close;
-				Window.OnKeyDown(Key, Shift);
-			end
-			else
-				Log(TEXT_WARNING+'Unhandled command!');
-		end;
-	end
-	else
-	begin
-		ModalDialog.Close;
-		CurrentScreen.HandleCommand(Cmd and $7FFFFFFF);
+		AddCmd(Ord(keySongNew),					'New module');
+		AddCmd(Ord(keyScreenLoad), 				'Load module');
+		AddCmd(Ord(keyScreenSave), 				'Save module');
+		AddCmd(Ord(keySongLength), 				'Show length/size');
+		AddCmd(Ord(keyCleanup), 				'Cleanup');
+		AddCmd(Ord(keyRenderToSample),			'Selection to sample');
+
+		AddSection('Screens');
+		if CurrentScreen <> Help then
+			AddCmd(Ord(keyScreenHelp), 			'Help');
+		if CurrentScreen <> Editor then
+			AddCmd(Ord(keyScreenPatternEditor),	'Pattern editor');
+		if CurrentScreen <> SampleScreen then
+			AddCmd(Ord(keyScreenSamples), 		'Samples');
+		if CurrentScreen <> LogScreen then
+			AddCmd(Ord(keyScreenLog), 			'Message log');
+		if CurrentScreen <> ConfigScreen then
+			AddCmd(Ord(keyScreenConfig), 		'Configuration');
+
+		AddSection('Program');
+		AddCmd(Ord(keyProgramFullscreen), 		'Toggle fullscreen');
+		AddCmd(Ord(keyScreenAbout), 			'About...');
+		AddCmd(Ord(keyProgramQuit), 			'Quit');
 	end;
 end;
-
-function TCWEMainMenu.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
-begin
-	if Key = SDLK_ESCAPE then
-	begin
-		Result := True;
-		ModalDialog.Close;
-	end
-	else
-		Result := inherited;
-end;
-
 
 end.
 

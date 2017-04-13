@@ -110,6 +110,7 @@ type
 		destructor	Destroy; override;
 
 		procedure 	HandleCommand(const Cmd: Cardinal); override;
+		function 	OnContextMenu: Boolean; override;
 
 		procedure 	ListDirs(var List: TCWEList; const Directory, PrevDir: String);
 		procedure 	FileOrDirSelected(Sender: TCWEControl); dynamic; abstract;
@@ -167,10 +168,8 @@ implementation
 uses
 	SDL2,
     Generics.Defaults, FileUtils, FileUtil,
-	{$IFDEF WINDOWS}
-	Windows,
-	{$ENDIF}
-	Layout,
+	{$IFDEF WINDOWS}Windows,{$ENDIF}
+	Layout, CWE.MainMenu,
 	Dialog.ValueQuery,
 	Screen.FileReqSample,
 	ProTracker.Util,
@@ -268,6 +267,23 @@ begin
 		Bookmarks.Free;
 	end;
 	inherited;
+end;
+
+function TFileScreen.OnContextMenu: Boolean;
+begin
+	inherited;
+	with ContextMenu do
+	begin
+		SetSection(EditorKeys);
+		AddSection('File listing');
+
+		AddCmdEx(FILESORT_NAME,				'Sort by name');
+		AddCmdEx(FILESORT_SIZE,				'Sort by size');
+		AddCmdEx(FILESORT_DATE,				'Sort by date');
+		{$IFDEF WINDOWS}
+		AddCmdEx(FILE_EXPLORE,				'Show file in Explorer');
+		{$ENDIF}
+	end;
 end;
 
 function TFileScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
@@ -1361,7 +1377,6 @@ begin
 			Result := Scr.SearchHandler(Key, Shift);
 	end;
 end;
-
 
 end.
 

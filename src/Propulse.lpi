@@ -94,7 +94,7 @@
         <PackageName Value="LazUtils"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="48">
+    <Units Count="49">
       <Unit0>
         <Filename Value="propulse.pas"/>
         <IsPartOfProject Value="True"/>
@@ -331,6 +331,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="FileStreamEx"/>
       </Unit47>
+      <Unit48>
+        <Filename Value="cwe\cwe.mainmenu.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="CWE.MainMenu"/>
+      </Unit48>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

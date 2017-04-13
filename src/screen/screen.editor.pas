@@ -110,6 +110,7 @@ type
 		procedure 	SelectPrevPattern;
 		procedure 	SelectNextPattern;
 
+		function	OnContextMenu: Boolean; override;
 		procedure 	HandleCommand(const Cmd: Cardinal); override;
 		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 
@@ -132,10 +133,8 @@ var
 implementation
 
 uses
-	MainWindow, BuildInfo,
+	MainWindow, BuildInfo, ShortcutManager, Layout, CWE.MainMenu,
 	Graphics32,
-	ShortcutManager,
-	Layout,
 	ProTracker.Sample,
 	ProTracker.Util;
 
@@ -784,6 +783,40 @@ begin
 	AmpSlider.Position := 100 - Trunc(Options.Audio.Amplification * 10);
 	inherited;
 end;
+
+function TEditorScreen.OnContextMenu: Boolean;
+begin
+	inherited;
+	with ContextMenu do
+	begin
+		SetSection(EditorKeys);
+
+		AddSection('Block operations');
+
+		AddCmd(Ord(keyBlockCut),				'Cut');
+		AddCmd(Ord(keyBlockCopy),				'Copy');
+		AddCmd(Ord(keyBlockPaste),				'Paste');
+		AddCmd(Ord(keyBlockOverwrite),			'Overwrite');
+		AddCmd(Ord(keyBlockMix),				'Mix');
+		AddCmd(Ord(keyBlockSwap),				'Swap');
+		AddCmd(Ord(keyBlockDouble),				'Double size');
+		AddCmd(Ord(keyBlockHalve),				'Halve size');
+		AddCmd(Ord(keyBlockSlideWipeEffect),	'Slide effect values');
+		AddCmd(Ord(keyBlockSetSample),			'Replace sample');
+		AddCmd(Ord(keyTransposeSemitoneUp),		'Transpose semitone up');
+		AddCmd(Ord(keyTransposeSemitoneDown),	'Transpose semitone down');
+		AddCmd(Ord(keyTransposeOctaveUp),		'Transpose octave up');
+		AddCmd(Ord(keyTransposeOctaveDown),		'Transpose octave down');
+
+		{AddSection('Pattern operations'); 		// handled in Screen.Editor
+
+		AddCmdEx(CMD_PATTERN_INSERT,		 		'Insert pattern');
+		AddCmdEx(CMD_PATTERN_DELETE,		 		'Delete pattern');
+		AddCmdEx(CMD_PATTERN_CLONE,		 		'Duplicate pattern');}
+	end;
+	Result := True;
+end;
+
 
 // ==========================================================================
 // TOrderList
