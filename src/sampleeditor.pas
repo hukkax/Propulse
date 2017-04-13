@@ -451,7 +451,7 @@ begin
 		end;
 
 		X1 := Max(0, Selection.L);
-		X2 := Min(Length(Clipbrd), Sample.ByteLength) - 1;
+		X2 := Min(X1 + Length(Clipbrd), Sample.ByteLength) - 1;
 
 		if IsShiftPressed then
 		begin
