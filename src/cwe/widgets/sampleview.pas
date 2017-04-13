@@ -550,10 +550,10 @@ begin
 					X2 := Min(X2, High(FSample.Data));
 
 					PrevMousePos := Point(X, Y);
-					Y  := PixelToSampleValue(Y);
+					Y := PixelToSampleValue(Y);
 
 					for X := X1 to X2 do
-						FSample.Data[X] := Y;
+						FSample.Data[X] := Byte(Y);
 					FSample.ZeroFirstWord;
 
 					DrawWaveform;
