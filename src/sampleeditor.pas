@@ -691,6 +691,7 @@ end;
 procedure TSampleEditor.Resample;
 begin
 	Module.Stop;
+	SampleScreen.ResampleDialog(True);
 end;
 
 procedure TSampleEditor.Generate;

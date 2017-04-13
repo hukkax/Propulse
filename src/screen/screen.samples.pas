@@ -119,6 +119,7 @@ type
 					ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
 		procedure 	ResampleDialog(ShowDialog: Boolean);
 		procedure 	DoResampleAfterDialog;
+		function 	OnContextMenu: Boolean; override;
 
 		procedure 	AfterSampleLoaded(const Sam: TSample);
 		procedure 	LoadSample(const Filename: String);
@@ -150,10 +151,9 @@ implementation
 
 uses
 	MainWindow, Math, Layout,
-    soxr,
-	SampleEditor, //FloatSampleEffects,
+    soxr, SampleEditor,
 	Screen.FileReqSample, Screen.Editor, Screen.Config,
-	Dialog.ValueQuery;
+	CWE.MainMenu, Dialog.ValueQuery;
 
 
 procedure TSampleScreen.WaveformKeyDown(Sender: TCWEControl;
@@ -205,7 +205,8 @@ begin
 end;
 
 
-constructor TSampleScreen.Create;
+constructor TSampleScreen.Create(var Con: TConsole; const sCaption,
+	sID: AnsiString);
 
 	procedure AddEditCmd(const Name: String; Action: Integer);
 	var
@@ -371,46 +372,46 @@ begin
 
 		AddEditCmd('Display', -1);		// ----------------------------------
 
-		AddEditCmd('Show All', 			actShowAll);
-		AddEditCmd('Show Range', 		actShowRange);
-		AddEditCmd('Zoom In', 			actZoomIn);
-		AddEditCmd('Zoom Out', 			actZoomOut);
+		AddEditCmd('Show All', 					actShowAll);
+		AddEditCmd('Show Range', 				actShowRange);
+		AddEditCmd('Zoom In', 					actZoomIn);
+		AddEditCmd('Zoom Out', 					actZoomOut);
 
 		AddEditCmd('Select', -1);		// ----------------------------------
 
-		AddEditCmd('Select All', 		actSelectAll);
-		AddEditCmd('Select Loop',		actSelectLoop);
-		AddEditCmd('Select Pre-loop', 	actSelectPreLoop);
-		AddEditCmd('Select Post-loop', 	actSelectPostLoop);
-		AddEditCmd('Select None', 		actSelectNone);
+		AddEditCmd('Select All', 				actSelectAll);
+		AddEditCmd('Select Loop',				actSelectLoop);
+		AddEditCmd('Select Pre-loop', 			actSelectPreLoop);
+		AddEditCmd('Select Post-loop', 			actSelectPostLoop);
+		AddEditCmd('Select None', 				actSelectNone);
 
 		AddEditCmd('Clipboard', -1);	// ----------------------------------
 
-		AddEditCmd('Cut', 				actCut);
-		AddEditCmd('Copy', 				actCopy);
-		AddEditCmd('Paste', 			actPaste);
-		AddEditCmd('Mix Paste',			actMixPaste);
+		AddEditCmd('Cut', 						actCut);
+		AddEditCmd('Copy', 						actCopy);
+		AddEditCmd('Paste', 					actPaste);
+		AddEditCmd('Mix Paste',					actMixPaste);
 
 		AddEditCmd('Effects', -1);		// ----------------------------------
 
-		AddEditCmd('Amplify', 				actAmplify);
-		AddEditCmd('Fade In', 				actFadeIn);
-		AddEditCmd('Fade Out', 				actFadeOut);
-		AddEditCmd('Crossfade',				actCrossfade);
-//		AddEditCmd('Equalizer', 			actEqualizer);
+		AddEditCmd('Amplify', 					actAmplify);
+		AddEditCmd('Fade In', 					actFadeIn);
+		AddEditCmd('Fade Out', 					actFadeOut);
+		AddEditCmd('Crossfade',					actCrossfade);
+//		AddEditCmd('Equalizer', 				actEqualizer);
 
-		AddEditCmd('Lowpass Filter',		actFilterLo);
-		AddEditCmd('Highpass Filter',		actFilterHi);
+		AddEditCmd('Lowpass Filter',			actFilterLo);
+		AddEditCmd('Highpass Filter',			actFilterHi);
 		AddEditCmd('Filter (Decrease Treble)',	actFilterFlt);
 		AddEditCmd('Boost  (Increase Treble)',	actFilterBst);
 
-		AddEditCmd('Reverse', 				actReverse);
-		AddEditCmd('Invert', 				actInvert);
+		AddEditCmd('Reverse', 					actReverse);
+		AddEditCmd('Invert', 					actInvert);
 		if SOXRLoaded then
 		begin
-			//AddEditCmd('Resample', 		actResample);
+			AddEditCmd('Resample', 				actResample);
 		end;
-		AddEditCmd('Generate Waveform...',	actGenerate);
+		AddEditCmd('Generate Waveform...',		actGenerate);
 
 		SampleEdit.Waveform := Waveform;
 		AdjustScrollbar;
@@ -688,6 +689,36 @@ begin
 	);
 
 	UpdateSampleInfo;
+end;
+
+function TSampleScreen.OnContextMenu: Boolean;
+begin
+	inherited;
+	with ContextMenu do
+	begin
+		SetSection(SampleListKeys);
+		AddSection('Sample');
+
+		AddCmd(Ord(keySampleClear),			'Clear name');
+		AddCmd(Ord(keySampleDelete),		'Delete');
+		AddCmd(Ord(keySampleCopy),			'Copy from...');
+		AddCmd(Ord(keySampleReplace),		'Replace with...');
+		AddCmd(Ord(keySampleSwap),			'Swap with...');
+		AddCmd(Ord(keySampleCutLeft),		'Cut pre-loop');
+		AddCmd(Ord(keySampleCutRight),		'Cut post-loop');
+		AddCmd(Ord(keySampleReverse),		'Reverse');
+		AddCmd(Ord(keySampleInvert),		'Invert');
+		if SOXRLoaded then
+		begin
+			AddCmd(Ord(keySampleResample),	'Resample...');
+		end;
+		AddCmd(Ord(keySampleAmplify),		'Amplify...');
+		AddCmd(Ord(keySampleAmplifyAll),	'Amplify all...');
+		AddCmd(Ord(keySampleSave), 			'Save to file...');
+		AddCmd(Ord(keySampleInsertSlot),	'Insert slot');
+		AddCmd(Ord(keySampleRemoveSlot),	'Remove slot');
+	end;
+	Result := True;
 end;
 
 procedure TSampleScreen.ExchangeSamples(iFrom, iTo: Byte;
