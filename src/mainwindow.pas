@@ -161,10 +161,7 @@ begin
 	case ID of
 
 		ACTION_QUIT:
-		begin
-			Module.Modified := False;
-			Close;
-		end;
+			QuitFlag := True;
 
 		ACTION_LOADMODULE:
 			DoLoadModule(Data);
@@ -682,8 +679,7 @@ begin
 
 		// exit program
 		keyProgramQuit:
-			if not InModalDialog then
-				QuitFlag := True;
+			Close;
 
 		keyScreenConfig:
 			ChangeScreen(TCWEScreen(ConfigScreen));
@@ -1038,7 +1034,7 @@ begin
 			DoLoadModule(InputEvent.drop._file);
 
 		SDL_QUITEV:
-			QuitFlag := True;
+			Close;
 
 	end;
 end;
@@ -1630,7 +1626,16 @@ end;
 
 procedure TWindow.Close;
 begin
-	QuitFlag := True;
+	if Module.Modified then
+	begin
+		if ModalDialog.Dialog <> nil then Exit;
+		ModalDialog.MessageDialog(ACTION_QUIT,
+			'Quit Propulse Tracker',
+			'There are unsaved changes. Discard and quit?',
+			[btnOK, btnCancel], btnCancel, DialogCallback, 0)
+	end
+	else
+		QuitFlag := True;
 end;
 
 procedure TWindow.ProcessFrame;
