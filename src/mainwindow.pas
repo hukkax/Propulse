@@ -90,7 +90,7 @@ type
 		procedure 	DialogCallback(ID: Word; Button: TDialogButton;
 					ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
 		procedure	OnKeyDown(var Key: Integer; Shift: TShiftState);
-		function	OnContextMenu: Boolean;
+		function	OnContextMenu(AddGlobal: Boolean): Boolean;
 	end;
 
 
@@ -1458,32 +1458,34 @@ begin
 	FlipFrame;
 end;
 
-function TWindow.OnContextMenu: Boolean;
+function TWindow.OnContextMenu(AddGlobal: Boolean): Boolean;
 begin
 	with ContextMenu do
 	begin
 		SetSection(GlobalKeys);
 
-		AddSection('Module');
+		if AddGlobal then
+		begin
+			AddSection('Module');
+			AddCmd(Ord(keySongNew),					'New module');
+			AddCmd(Ord(keyScreenLoad), 				'Load module');
+			AddCmd(Ord(keyScreenSave), 				'Save module');
+			AddCmd(Ord(keySongLength), 				'Show length/size');
+			AddCmd(Ord(keyCleanup), 				'Cleanup');
+			AddCmd(Ord(keyRenderToSample),			'Selection to sample');
 
-		AddCmd(Ord(keySongNew),					'New module');
-		AddCmd(Ord(keyScreenLoad), 				'Load module');
-		AddCmd(Ord(keyScreenSave), 				'Save module');
-		AddCmd(Ord(keySongLength), 				'Show length/size');
-		AddCmd(Ord(keyCleanup), 				'Cleanup');
-		AddCmd(Ord(keyRenderToSample),			'Selection to sample');
-
-		AddSection('Screens');
-		if CurrentScreen <> Help then
-			AddCmd(Ord(keyScreenHelp), 			'Help');
-		if CurrentScreen <> Editor then
-			AddCmd(Ord(keyScreenPatternEditor),	'Pattern editor');
-		if CurrentScreen <> SampleScreen then
-			AddCmd(Ord(keyScreenSamples), 		'Samples');
-		if CurrentScreen <> LogScreen then
-			AddCmd(Ord(keyScreenLog), 			'Message log');
-		if CurrentScreen <> ConfigScreen then
-			AddCmd(Ord(keyScreenConfig), 		'Configuration');
+			AddSection('Screens');
+			if CurrentScreen <> Help then
+				AddCmd(Ord(keyScreenHelp), 			'Help');
+			if CurrentScreen <> Editor then
+				AddCmd(Ord(keyScreenPatternEditor),	'Pattern editor');
+			if CurrentScreen <> SampleScreen then
+				AddCmd(Ord(keyScreenSamples), 		'Samples');
+			if CurrentScreen <> LogScreen then
+				AddCmd(Ord(keyScreenLog), 			'Message log');
+			if CurrentScreen <> ConfigScreen then
+				AddCmd(Ord(keyScreenConfig), 		'Configuration');
+		end;
 
 		AddSection('Program');
 		AddCmd(Ord(keyProgramFullscreen), 		'Toggle fullscreen');

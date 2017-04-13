@@ -99,8 +99,9 @@ begin
 			Data[i].Value := 8; // hover bg + border
 	end;
 
-	if CurrentScreen.OnContextMenu then
-		Window.OnContextMenu;
+	// fill context menu items; only add global items if
+	// CurrentScreen.OnContextMenu returns True
+	Window.OnContextMenu(CurrentScreen.OnContextMenu);
 
 	H := List.Items.Count + 3;
 	ModalDialog.SetBounds(Bounds(
