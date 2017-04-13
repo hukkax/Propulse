@@ -629,9 +629,10 @@ begin
 
 		for i := X1 to X2-1 do
 		begin
-			D := (ShortInt(Sam.Data[i]) + ShortInt(Sam.Data[i+1])) / 2.0;
+			D := (ShortInt(Sam.Data[i]) + ShortInt(Sam.Data[i+1])) / 2;
 			ShortInt(Sam.Data[i]) := ShortInt(Clamp(ROUND_SMP_D(D), -128, +127));
 		end;
+
 		Sam.ZeroFirstWord;
 		Module.SetModified;
 	end;
