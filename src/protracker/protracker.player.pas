@@ -2541,7 +2541,7 @@ begin
 		ch.n_start    := 0; // Data[0]
 		ch.n_finetune := Samples[sample].Finetune;
 		ch.n_volume   := Samples[sample].Volume;
-		ch.n_length   := Samples[sample].Length;
+		ch.n_length   := Samples[sample].Length and $FFFF; // limit to 127K
 		ch.n_replen   := Samples[sample].LoopLength;
 		srepeat       := Samples[sample].LoopStart;
 
@@ -2622,19 +2622,11 @@ procedure TPTModule.IntMusic;
 var
 	i: Integer;
 begin
-	if RenderMode <> RENDER_NONE then
+	if (RenderMode <> RENDER_NONE) and (RenderMode <> RENDER_SAMPLE) then
 	begin
-		if RenderMode <> RENDER_SAMPLE then
-		begin
-			RenderInfo.HasBeenPlayed := False;
-			if Counter = 0 then
-			begin
-				{if PlayPos.Order < 0 then
-					RenderInfo.RowVisitTable[Info.OrderCount - 1, PlayPos.Row] := True
-				else}
-					RenderInfo.RowVisitTable[PlayPos.Order, PlayPos.Row] := True;
-			end;
-		end;
+		RenderInfo.HasBeenPlayed := False;
+		if Counter = 0 then
+			RenderInfo.RowVisitTable[PlayPos.Order, PlayPos.Row] := True;
 	end;
 
 	Inc(Counter);
@@ -2733,14 +2725,15 @@ end;
 
 procedure TPTModule.SetTempo(bpm: Word);
 begin
-	if (bpm < 1) then Exit;
+	if bpm > 0 then
+	begin
+		CurrentBPM := bpm;
+		SetReplayerBPM(CurrentBPM);
 
-	CurrentBPM := bpm;
-	SetReplayerBPM(CurrentBPM);
-
-	if RenderMode = RENDER_NONE then
-		if Assigned(OnSpeedChange) then
-			OnSpeedChange;
+		if RenderMode = RENDER_NONE then
+			if Assigned(OnSpeedChange) then
+				OnSpeedChange;
+	end;
 end;
 
 procedure TPTModule.ApplyAudioSettings;
