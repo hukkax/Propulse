@@ -17,6 +17,7 @@ const
 	LISTITEM_BOOKMARK	= 1337;
 	LISTITEM_DIR		= 1338;
 	LISTITEM_DRIVE		= 1339;
+	LISTITEM_PARENT		= LISTITEM_HEADER;
 
 	// FileSortMode
 	FILESORT_NAME	= 0;
@@ -29,6 +30,7 @@ const
 	FILE_MOVE		= 6;
 	FILE_DELETE		= 7;
 	FILE_CREATEDIR	= 8;
+	FILE_BOOKMARK	= 9;
 
 type
 	FileOpKeyNames = (
@@ -163,6 +165,9 @@ var
 	FileOpKeys: TKeyBindings;
 
 
+	function GetParentDir(const Dir: String): String; inline;
+
+
 implementation
 
 uses
@@ -199,6 +204,12 @@ begin
 	Result := CompareText(
 		R.Captions[FileScreen.SortMode],
 		L.Captions[FileScreen.SortMode]);
+end;
+
+function GetParentDir(const Dir: String): String;
+begin
+	Result := ExpandFileName(
+		IncludeTrailingPathDelimiter(Dir) + '..' + PathDelim);
 end;
 
 // ==========================================================================
@@ -270,19 +281,85 @@ begin
 end;
 
 function TFileScreen.OnContextMenu: Boolean;
+
+	procedure AddCopyMove;
+	begin
+		ContextMenu.AddCmdEx(FILE_COPY,		'Copy file here');
+		ContextMenu.AddCmdEx(FILE_MOVE, 	'Move file here');
+	end;
+
 begin
 	inherited;
 	with ContextMenu do
 	begin
 		SetSection(EditorKeys);
-		AddSection('File listing');
 
-		AddCmdEx(FILESORT_NAME,				'Sort by name');
-		AddCmdEx(FILESORT_SIZE,				'Sort by size');
-		AddCmdEx(FILESORT_DATE,				'Sort by date');
-		{$IFDEF WINDOWS}
-		AddCmdEx(FILE_EXPLORE,				'Show file in Explorer');
-		{$ENDIF}
+		if (FileList.Focused) or (DirList.Focused) then
+		begin
+			if FileList.Focused then
+			begin
+				AddSection('File listing');
+
+				AddCmdEx(FILESORT_NAME,				'Sort by name');
+				AddCmdEx(FILESORT_SIZE,				'Sort by size');
+				AddCmdEx(FILESORT_DATE,				'Sort by date');
+				{$IFDEF WINDOWS}
+				AddCmdEx(FILE_EXPLORE,				'Show file in Explorer');
+				{$ENDIF}
+
+				AddSection('File operations');
+
+				AddCmdEx(FILE_RENAME, 				'Rename file');
+				AddCmdEx(FILE_COPY,					'Copy file to directory');
+				AddCmdEx(FILE_MOVE, 				'Move file to directory');
+				AddCmdEx(FILE_DELETE, 				'Delete file');
+			end
+			else
+			if DirList.Focused then
+			begin
+				case DirList.Items[DirList.ItemIndex].Data of
+
+					LISTITEM_BOOKMARK:
+					begin
+						AddSection('Bookmark operations');
+						AddCopyMove;
+
+						AddCmdEx(FILE_BOOKMARK, 			'Bookmark directory');
+						AddCmdEx(FILE_RENAME, 				'Rename bookmark');
+						AddCmdEx(FILE_DELETE, 				'Delete bookmark');
+					end;
+
+					LISTITEM_DRIVE:
+					begin
+						{$IFDEF WINDOWS}
+						AddSection('Drive operations');
+						AddCopyMove;
+						AddCmdEx(FILE_BOOKMARK, 			'Bookmark drive');
+						{$ELSE}
+						AddSection('Directory operations');
+						AddCopyMove;
+						AddCmdEx(FILE_BOOKMARK, 			'Bookmark directory');
+						{$ENDIF}
+					end;
+
+					LISTITEM_DIR:
+					begin
+						AddSection('Directory operations');
+						AddCopyMove;
+
+						AddCmdEx(FILE_RENAME, 				'Rename directory');
+						AddCmdEx(FILE_CREATEDIR, 			'Create directory');
+						{$IFDEF WINDOWS}
+						AddCmdEx(FILE_DELETE, 				'Delete directory');
+						{$ENDIF}
+						AddCmdEx(FILE_BOOKMARK, 			'Bookmark directory');
+					end;
+
+				end;
+			end;
+
+			Result := False;
+		end;
 	end;
 end;
 
@@ -443,7 +520,7 @@ begin
 	// sort list alphabetically !!!
 	List.Items.Sort(TComparer<TCWEListItem>.Construct(SortAlphabetically));
 
-	li := TCWEListItem.Create(STR_DIRECTORYUP, LISTITEM_HEADER);
+	li := TCWEListItem.Create(STR_DIRECTORYUP, LISTITEM_PARENT);
 	li.ColorFore := COLOR_FG_PARENTDIR;
 	li.ColorBack := TConsole.COLOR_BLANK;
 	List.Items.Insert(0, li); // up a dir
@@ -473,7 +550,7 @@ begin
 		if li.Data = LISTITEM_BOOKMARK then
 			Continue
 		else
-		if li.Data = LISTITEM_HEADER then
+		if li.Data = LISTITEM_PARENT then
 			List.Select(i)
 		else
 		if li.Captions[0] = PrevDir then
@@ -562,12 +639,13 @@ begin
 	NewName := TCWEEdit(Ct).Caption;
 	if NewName = '' then Exit;
 
-	for X := 1 to Length(InvalidChars) do
-	if Pos(InvalidChars[X], NewName) > 0 then
-	begin
-		Log(TEXT_ERROR + 'Rename aborted - name contains illegal characters! ');
-		Exit;
-	end;
+	if ID <> ACTION_RENAMEBOOKMARK then
+		for X := 1 to Length(InvalidChars) do
+			if Pos(InvalidChars[X], NewName) > 0 then
+			begin
+				Log(TEXT_ERROR + 'Rename aborted - name contains illegal characters! ');
+				Exit;
+			end;
 
 	case ID of
 
@@ -647,13 +725,12 @@ begin
 			else
 				SelectFileInExplorer(GetSelectedFile);
 
-		FILE_COPY,
-		FILE_MOVE:
+		FILE_COPY, FILE_MOVE:
 		begin
 			case DirList.Items[DirList.ItemIndex].Data of
 				LISTITEM_BOOKMARK:
 					Dir := Bookmarks[DirList.ItemIndex].Path;
-				LISTITEM_DIR, LISTITEM_HEADER, LISTITEM_DRIVE:
+				LISTITEM_DIR, LISTITEM_PARENT, LISTITEM_DRIVE:
 					Dir := DirList.GetPath(True);
 			end;
 			if Dir <> '' then
@@ -699,6 +776,17 @@ begin
 		FILE_CREATEDIR:
 			AskString(ACTION_CREATEDIR, 'Create Directory',
 				'', False, RenameCallback);
+
+		FILE_BOOKMARK:
+			if not DirList.Focused then
+				AddBookmark(Directory)
+			else
+			case DirList.Items[DirList.ItemIndex].Data of
+				LISTITEM_BOOKMARK:
+					AddBookmark(Directory, DirList.ItemIndex);
+				LISTITEM_DRIVE, LISTITEM_DIR:
+					AddBookmark(DirList.GetPath(True));
+			end;
 
 	end;
 end;
@@ -833,6 +921,7 @@ begin
 	Bm := TBookmark.Create;
 	Bm.Path := Path;
 	Bm.Name := ExtractFilename(ExcludeTrailingPathDelimiter(Path));
+	if Bm.Name = '' then Bm.Name := Path;
 
 	if Index < 0 then
 		Bookmarks.Add(Bm)
@@ -966,7 +1055,7 @@ end;
 procedure TModFileScreen.DirOrFilenameEntered(Sender: TCWEControl);
 begin
 	if Sender = DirEdit then
-		SetDirectory(Directory)
+		SetDirectory(DirEdit.Caption)
 	else
 	begin
 		if FileList.Focused then
@@ -1177,7 +1266,7 @@ begin
 	case Sc of
 
 		ctrlkeyINSERT:
-			FileScreen.AddBookmark(FileScreen.Directory);
+			FileScreen.HandleCommand(FILE_BOOKMARK);
 
 		ctrlkeyRETURN:
 			if not InSampleReq then			// Load/save module
@@ -1283,25 +1372,38 @@ end;
 
 function TDirList.GetPath(Fullpath: Boolean): String;
 begin
-	if Items[ItemIndex].Data = LISTITEM_BOOKMARK then
-	with TFileScreen(Screen) do
-	begin
-		if Fullpath then
-			Result := Bookmarks[ItemIndex].Path
-		else
-			Result := Bookmarks[ItemIndex].Name;
-	end
-	else
-	begin
-		Result := Items[ItemIndex].Captions[0];
-		if Fullpath then
+	case Items[ItemIndex].Data of
+
+		LISTITEM_BOOKMARK:
+		with TFileScreen(Screen) do
 		begin
-			if Result = STR_DIRECTORYUP then
-				Result := ExpandFileName(IncludeTrailingPathDelimiter(TFileScreen(Screen).Directory)
-					+ '..' + PathDelim)
+			if Fullpath then
+				Result := Bookmarks[ItemIndex].Path
 			else
-				Result := IncludeTrailingPathDelimiter(TFileScreen(Screen).Directory) + Result;
+				Result := Bookmarks[ItemIndex].Name;
 		end;
+
+		LISTITEM_DRIVE:
+		begin
+			Result := Items[ItemIndex].Captions[0];
+		end;
+
+		LISTITEM_PARENT:
+		begin
+			// returns STR_DIRECTORYUP for "<Parent>" item if Fullpath = False!
+			Result := Items[ItemIndex].Captions[0];
+			if (Fullpath) and (Result = STR_DIRECTORYUP) then
+				Result := GetParentDir(TFileScreen(Screen).Directory);
+		end;
+
+		LISTITEM_DIR:
+		begin
+			Result := Items[ItemIndex].Captions[0];
+			if Fullpath then
+				Result := IncludeTrailingPathDelimiter(
+					TFileScreen(Screen).Directory) + Result;
+		end;
+
 	end;
 end;
 
@@ -1318,18 +1420,10 @@ begin
 	case Sc of
 
 		ctrlkeyINSERT:
-		begin
 			if Shift = [ssShift] then
 				FileScreen.HandleCommand(FILE_COPY)
 			else
-			case Items[ItemIndex].Data of // no Shift
-				LISTITEM_BOOKMARK:
-					Scr.AddBookmark(Scr.Directory, ItemIndex);
-				LISTITEM_DRIVE,
-				LISTITEM_DIR:
-					Scr.AddBookmark(GetPath(True));
-			end;
-		end;
+				FileScreen.HandleCommand(FILE_BOOKMARK);
 
 		ctrlkeyPLUS,
 		ctrlkeyMINUS:
@@ -1345,7 +1439,7 @@ begin
 					Scr.SetDirectory(Dir);
 					Exit;
 				end;
-				LISTITEM_DIR, LISTITEM_HEADER:
+				LISTITEM_DIR, LISTITEM_PARENT:
 					Dir := GetPath(False);
 				LISTITEM_DRIVE:
 				begin
@@ -1360,9 +1454,7 @@ begin
 			with Scr do
 			begin
 				if Dir = STR_DIRECTORYUP then
-					SetDirectory(
-						ExpandFileName(IncludeTrailingPathDelimiter(Directory)
-						+ '..' + PathDelim))
+					SetDirectory(GetParentDir(Directory))
 				else
 					SetDirectory(Directory + Dir);
 			end;
