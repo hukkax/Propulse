@@ -158,7 +158,6 @@ implementation
 
 uses
 	Math, Classes, SysUtils,
-	//{$IFDEF WINDOWS}Windows,{$ENDIF}
 	fpwavformat, fpwavreader, fpwavwriter,
 	FloatSampleEffects,
 	ProTracker.Player,
@@ -759,7 +758,7 @@ begin
 		{else
 		if (sb > 127) then
 			sb := 127;}
-		Data[i] := ShortInt(Trunc(obuf[i] * 127));
+		ShortInt(Data[i]) := ShortInt(Trunc(obuf[i] * 127));
 	end;
 
 	ZeroFirstWord;
@@ -878,9 +877,9 @@ procedure TSample.Validate;
 var
 	L: Word;
 begin
-	if ByteLength >= $1FFFF then
+	{if ByteLength >= $1FFFF then
 		Resize($1FFFF-1)
-	else
+	else}
 	if ByteLength < (Length * 2) then
 		SetLength(Data, Length * 2 + 1);
 
