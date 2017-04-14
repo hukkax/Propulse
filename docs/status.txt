@@ -11,15 +11,16 @@ Regressions/changes from PoroTracker 0.8.9.3
 New features:
 
 - Common file/directory operations can now be done in the file requesters:
+  Use the context menu (Esc) on file/directory listings or:
   Shift-F2 to rename file, Shift-F5 to copy file, Shift-F6 to move file,
   Shift-F7 to create directory, Shift-F8 to delete file (or dir in Windows)
 - Bookmarks can now be renamed
+- Support for loading/editing samples larger than 128K
 
 Permanent changes:
 
-- Settings for audio API and graphics rendering API removed
+- Settings for audio API and graphics rendering API selection removed
 - Setting "use OS file requesters" removed
-- Setting "task priority" only available on Windows
 - Window scaling (pixel doubling) is changed via settings instead of simply
   resizing the window
 - Rendering the current module or selection to WAV is done via the Save Module
@@ -30,11 +31,11 @@ Permanent changes:
 To be fixed:
 
 - Font and mouse pointer images must be in 1/4/8-bit PCX format
-- Font can't be changed via config dialog
 - Palette preset loading/saving disabled for now due to lack of file requester
 
 Platform specific:
 
+- Setting "task priority" only available on Windows
 - Exploring to a file's location or launching URLs only functional on Windows
 
 
@@ -44,7 +45,8 @@ Bugs fixed from PoroTracker 0.8.9.3
 - WAV saving: corrected a value in the wav format header
 - Scrollbars didn't work after clicking on them until mouse was moved away
 - Various other widget engine fixes and improvements
+- Incorrect sample format shown in file requester
 - Other stuff I forgot to write down
 
 -- 
-hukka 2017-04-10 - hukkax@gmail.com - https://github.com/hukkax/Propulse
+hukka 2017-04-14 - hukkax@gmail.com - https://github.com/hukkax/Propulse
