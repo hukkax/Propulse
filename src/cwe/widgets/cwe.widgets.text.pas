@@ -190,7 +190,7 @@ implementation
 uses
 	MainWindow, DateUtils,
 	{$IFDEF WINDOWS}Windows, ShellAPI,{$ENDIF}
-	TextMode,
+	TextMode, Math,
 	ProTracker.Util;
 
 // ==========================================================================
