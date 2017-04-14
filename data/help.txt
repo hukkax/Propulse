@@ -248,10 +248,25 @@
 §   Ctrl-V       Paste from clipboard
 §   Ctrl-X       Cut sample/selection to clipboard
 §   Ctrl-P       Mix paste from clipboard (blend clipboard with current data)
+§   Ctrl-Shift-P Mix paste without halving volumes
 
 * Sample Effects:
 §
 § TBD
+
+@File Requester
+[   File operations   
+§
+§ Esc            Show context menu (in file list or bookmark/directory list)
+§ Shift-F2       Rename file/directory
+§ Shift-F5       Copy file
+§ Shift-F6       Move file
+§ Shift-F7       Create new directory
+§ Shift-F8       Delete file/directory (directory only on Windows)
+§
+§ Other keys     Type a search term and jump to first matching file
+§                In sample file requester: type with Shift to search,
+§                otherwise play selected sample
 §
 
 @Configuration
