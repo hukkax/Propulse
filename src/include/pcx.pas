@@ -14,7 +14,7 @@ type
 		Width,
 		Height:		Cardinal;
 		Palette:	TPalette32;
-		Pixels: 	array of array of Byte;
+		Pixels: 	packed array of packed array of Byte;
 
 		constructor Create(W, H: Integer); overload;
 

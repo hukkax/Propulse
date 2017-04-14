@@ -236,11 +236,11 @@ type
     function  ModKeys(Key: TShiftStateEnum): Boolean; inline;
 
 var
-	Console: TConsole;
-	Screens: TObjectList<TCWEScreen>;
-	CurrentScreen: TCWEScreen;
-	ControlKeys: TKeyBindings;
-	TimerCallback: TTimerCallback;
+	Console: 		TConsole;
+	Screens: 		TObjectList<TCWEScreen>;
+	CurrentScreen: 	TCWEScreen;
+	ControlKeys: 	TKeyBindings;
+	TimerCallback: 	TTimerCallback;
 
 
 implementation

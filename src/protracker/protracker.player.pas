@@ -213,7 +213,7 @@ type
 		PlayMode:		Byte;
 		Warnings:		Boolean;
 		ClippedSamples: Integer;
-		SampleChanged:  array[0..31] of Boolean;
+		SampleChanged:  packed array[0..31] of Boolean;
 
 		Info: record
 			Format:			TModuleFormat;
@@ -326,12 +326,11 @@ type
 
 
 var
-	Module: TPTModule;
-	Stream: HSTREAM;
-	VUbuffer: array of SmallInt;
-	VUhandled: Boolean;
-	EmptyNote: TNote;
-	AudioDriver: Byte;
+	Module: 		TPTModule;
+	Stream: 		HSTREAM;
+	VUbuffer: 		array of SmallInt;
+	VUhandled: 		Boolean;
+	EmptyNote: 		TNote;
 	MSG_VUMETER,
 	MSG_ROWCHANGE,
 	MSG_ORDERCHANGE,
