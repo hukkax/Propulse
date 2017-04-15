@@ -24,6 +24,7 @@ implementation
 
 uses
 	SysUtils, Math,
+	CWE.Core, Screen.Log,
 	soxr, ProTracker.Import;
 
 const
@@ -420,6 +421,9 @@ begin
 
 	if not SamplesOnly then
 	begin
+		ChangeScreen(TCWEScreen(LogScreen));
+		Log('$6Importing Impulse Tracker Module.');
+
 		Patterns := TExtPatternList.Create(True);
 
 		ModFile.SeekTo($04);
@@ -433,8 +437,8 @@ begin
 	os := ModFile.Read16; // # of Samples
 	Moduli.Info.PatternCount := Min(ModFile.Read16-1, MAX_PATTERNS-1); // # of Patterns
 
-	Log('$6Importing Impulse Tracker Module.');
-	Log('%d samples and %d patterns.', [os, Moduli.Info.PatternCount+1]);
+	if not SamplesOnly then
+		Log('%d samples and %d patterns.', [os, Moduli.Info.PatternCount+1]);
 
 	ModFile.Read16; // Cwt:  Created with tracker. Impulse Tracker y.xx = 0yxxh
 	ModFile.Read16; // Cmwt: Compatible with tracker version > value. (ie. format version)

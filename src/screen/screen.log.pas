@@ -25,7 +25,7 @@ var
 implementation
 
 uses
-	Layout, ProTracker.Util, SysUtils;
+	Layout, ProTracker.Util, SysUtils, MainWindow;
 
 procedure TLogScreen.Log(const Msg: AnsiString);
 var
@@ -52,7 +52,11 @@ begin
 	end;
 
 	LastLoggedEmpty := (S = '');
-	Paint;
+	if Active then
+	begin
+		Paint;
+		Window.ProcessFrame;
+	end;
 end;
 
 constructor TLogScreen.Create(var Con: TConsole; const sCaption, sID: AnsiString);

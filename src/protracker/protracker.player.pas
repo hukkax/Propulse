@@ -1149,8 +1149,11 @@ begin
 
 	// Read file data
 	//
-	Log('-');
-	Log(TEXT_ACTION + 'Loading module: ' + Filename);
+	if not SamplesOnly then
+	begin
+		Log('-');
+		Log(TEXT_ACTION + 'Loading module: ' + Filename);
+	end;
 
 	Reset;
 	ModFile := TFileStreamEx.Create(Filename, fmOpenRead, fmShareDenyNone);
@@ -1179,7 +1182,8 @@ begin
 	if sFile = 'PP20' then
 	begin
 		// decrunch powerpacker module
-		Log(TEXT_INFO + 'File is packed with PowerPacker.');
+		if not SamplesOnly then
+			Log(TEXT_INFO + 'File is packed with PowerPacker.');
 
 		ppPackLen := Info.Filesize;
 		if (ppPackLen and 3) <> 0 then
@@ -1396,7 +1400,8 @@ begin
 		// If we're still here at this point and the mightBeSTK flag is set,
 		// then it's definitely a proper The Ultimate SoundTracker (STK) module.
 		Info.Format := FORMAT_STK;
-		Log(TEXT_FORMAT + 'Ultimate SoundTracker');
+		if not SamplesOnly then
+			Log(TEXT_FORMAT + 'Ultimate SoundTracker');
 
 		if Info.RestartPos = 120 then
 			Info.RestartPos := 125
@@ -1410,25 +1415,28 @@ begin
 		end;
 	end
 	else
-	if (Info.ID = 'M.K.') then
-		Log(TEXT_FORMAT + 'ProTracker 1.x/2.x (M.K.)')
-	else
-	if (Info.ID = 'M!K!') then
-		Log(TEXT_FORMAT + 'ProTracker 2.x (M!K!)')
-	else
-	if (Info.ID = 'FLT4') then
-		Log(TEXT_FORMAT + 'StarTrekker (FLT4)')
-	else
-	if (Info.ID = '4CHN') then
-		Log(TEXT_FORMAT + 'FastTracker II (4CHN)')
-	else
-	if (Info.ID = 'N.T.') then
-		Log(TEXT_FORMAT + 'NoiseTracker 1.0 (N.T.)')
-	else
-	if (Info.ID = 'FEST') then
-		Log(TEXT_FORMAT + 'NoiseTracker (alt) (FEST)')
-	else
-		Log(TEXT_FORMAT + 'Unknown');
+	if not SamplesOnly then
+	begin
+		if (Info.ID = 'M.K.') then
+			Log(TEXT_FORMAT + 'ProTracker 1.x/2.x (M.K.)')
+		else
+		if (Info.ID = 'M!K!') then
+			Log(TEXT_FORMAT + 'ProTracker 2.x (M!K!)')
+		else
+		if (Info.ID = 'FLT4') then
+			Log(TEXT_FORMAT + 'StarTrekker (FLT4)')
+		else
+		if (Info.ID = '4CHN') then
+			Log(TEXT_FORMAT + 'FastTracker II (4CHN)')
+		else
+		if (Info.ID = 'N.T.') then
+			Log(TEXT_FORMAT + 'NoiseTracker 1.0 (N.T.)')
+		else
+		if (Info.ID = 'FEST') then
+			Log(TEXT_FORMAT + 'NoiseTracker (alt) (FEST)')
+		else
+			Log(TEXT_FORMAT + 'Unknown');
+	end;
 
 	Info.PatternCount := 0;
 	for i := 0 to 127 do
@@ -1547,7 +1555,7 @@ begin
 		end; // row
 	end; // pattern
 
-	if Warnings then
+	if (Warnings) and (not SamplesOnly) then
 		Log(TEXT_WARNING + 'Module contains notes above B-3!');
 
 	// Load sample data
@@ -1616,12 +1624,14 @@ Done:
 	Result := True;
 	Info.Filename := Filename;
 
-	if not Warnings then
-		Log(TEXT_SUCCESS + 'Load success.')
-	else
-		Log(TEXT_FAILURE + 'Loaded with errors/warnings.');
-
-	Log('-');
+	if not SamplesOnly then
+	begin
+		if not Warnings then
+			Log(TEXT_SUCCESS + 'Load success.')
+		else
+			Log(TEXT_FAILURE + 'Loaded with errors/warnings.');
+		Log('-');
+	end;
 
 	if Stream <> 0 then
 		BASS_ChannelPlay(Stream, True);
