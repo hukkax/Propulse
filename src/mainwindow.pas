@@ -151,6 +151,14 @@ begin
 	LogDebug('[FATAL] ' + Msg);
 end;
 
+procedure ClearMessageQueue;
+var
+	InputEvent: TSDL_Event;
+begin
+	SDL_Delay(50);
+	while SDL_PollEvent(@InputEvent) <> 0 do;
+end;
+
 procedure TWindow.DialogCallback(ID: Word; Button: TDialogButton;
 	ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
 begin
@@ -214,6 +222,7 @@ end;
 
 procedure PixelScalingChanged;
 begin
+	ClearMessageQueue;
 	MouseCursor.Erase;
 	Window.SetFullScreen(Window.Video.IsFullScreen);
 end;
@@ -260,6 +269,7 @@ end;
 
 procedure ApplyFont;
 begin
+	ClearMessageQueue;
 	Window.SetupVideo;
 	Window.SetFullScreen(Window.Video.IsFullScreen);
 end;
@@ -624,7 +634,8 @@ var
 	R: TSDL_Rect;
     {$ENDIF}
 begin
-	Video.IsFullScreen := B;
+	Locked := True;
+    Video.IsFullScreen := B;
 
 	if B then
 	begin
@@ -652,6 +663,9 @@ begin
 	SDL_RenderGetScale(Video.Renderer, SDL2.PFloat(@X), SDL2.PFloat(@Y));
 	w := Max(Trunc(x), 1); h := Max(Trunc(y), 1);
 	MouseCursor.Scaling := Types.Point(w, h);
+
+    ClearMessageQueue;
+    Locked := False;
 end;
 
 procedure TWindow.SetTitle(const Title: AnsiString);
@@ -980,15 +994,6 @@ begin
 				0: ;
 			else
 				Shift := [];
-				{if (Key <> 0) and (InputEvent.key._repeat = 0) then
-				begin
-					writeln('Key code: ', InputEvent.key.keysym.sym,
-						'  "', SDL_GetKeyName(InputEvent.key.keysym.sym), '"');
-					writeln('Scancode: ', InputEvent.key.keysym.scancode,
-						'  "', SDL_GetScancodeName(InputEvent.key.keysym.scancode ), '"');
-					writeln('Modifiers: ', InputEvent.key.keysym._mod);
-					writeln;
-				end;}
 				if InputEvent.key.keysym._mod <> 0 then
 				begin
 					c := InputEvent.key.keysym._mod;
@@ -1180,7 +1185,7 @@ begin
 
 		Sect := 'Display';
 		Cfg.AddByte(Sect, 'Scaling', @Display.Scaling, 2)
-		.SetInfo('Maximum scale factor', 1, 8, [], PixelScalingChanged);
+		.SetInfo('Maximum scale factor', 1, 9, [], PixelScalingChanged);
 		Cfg.AddString(Sect, 'Font', @Display.Font, FILENAME_DEFAULTFONT).
 		SetInfoFromDir('Font', DataPath + 'font/', '*.pcx', ApplyFont);
 		{Cfg.AddString(Sect, 'Palette', @Display.Palette, 'Propulse').
