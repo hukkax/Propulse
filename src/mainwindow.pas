@@ -7,6 +7,11 @@ type
 	PtrUInt = Cardinal;
 {$ENDIF}
 
+{$IFDEF WINDOWS}
+{$DEFINE ENABLE_FULLSCREEN}
+{$ENDIF}
+
+
 interface
 
 uses
@@ -61,7 +66,7 @@ type
 		procedure	ModuleOrderChanged;
 		procedure 	TimerTick;
 
-		function 	GetMaxScaling: Byte;
+		function 	GetMaxScaling(MaxScale: Byte = 0): Byte;
 		function 	SetupVideo: Boolean;
 		procedure	SetFullScreen(B: Boolean);
 		procedure 	InitConfiguration;
@@ -595,34 +600,42 @@ begin
 	MouseCursor.Erase;
 end;
 
-function TWindow.GetMaxScaling: Byte;
+function TWindow.GetMaxScaling(MaxScale: Byte = 0): Byte;
 var
-	z, w, h: Integer;
+	w, h: Integer;
 	R: TSDL_Rect;
 begin
+    if MaxScale = 0 then MaxScale := Max(Options.Display.Scaling, 1);
 	SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), @R);
-	z := Max(Options.Display.Scaling, 1);
 	repeat
-		w := Console.Bitmap.Width  * z;
-		h := Console.Bitmap.Height * z;
+		w := Console.Bitmap.Width  * MaxScale;
+		h := Console.Bitmap.Height * MaxScale;
 		if (w <= R.w) and (h <= R.h) then Break;
-		Dec(z);
-	until z <= 1;
-	Result := Max(z, 1);
+		Dec(MaxScale);
+	until MaxScale <= 1;
+	Result := Max(MaxScale, 1);
 end;
 
 procedure TWindow.SetFullScreen(B: Boolean);
 var
 	w, h: Integer;
 	X, Y: Single;
+	{$IFNDEF ENABLE_FULLSCREEN}
+	R: TSDL_Rect;
+    {$ENDIF}
 begin
-	{$IFDEF WINDOWS}
 	Video.IsFullScreen := B;
 
 	if B then
 	begin
+    	{$IFDEF ENABLE_FULLSCREEN}
 		SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 		SDL_SetWindowGrab(Video.Window, SDL_TRUE);
+    	{$ELSE}
+        SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), @R);
+        SDL_SetWindowSize(Video.Window, R.w, R.h);
+		SDL_SetWindowPosition(Video.Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        {$ENDIF}
 	end
 	else
 	begin
@@ -639,9 +652,6 @@ begin
 	SDL_RenderGetScale(Video.Renderer, SDL2.PFloat(@X), SDL2.PFloat(@Y));
 	w := Max(Trunc(x), 1); h := Max(Trunc(y), 1);
 	MouseCursor.Scaling := Types.Point(w, h);
-	{$ELSE}
-	Video.IsFullScreen := False;
-	{$ENDIF}
 end;
 
 procedure TWindow.SetTitle(const Title: AnsiString);
