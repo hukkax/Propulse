@@ -74,15 +74,15 @@ type
 	// ========================================
 	// Configuration
 	// ========================================
-	TPoroTrackerConfiguration = record
+	TPoroTrackerConfiguration = packed record
 
 		HighPriority: 		Boolean;
 
-		Features: record
+		Features: packed record
 			SOXR: Boolean;
 		end;
 
-		Tracker: record
+		Tracker: packed record
 			ITCommands: 			Boolean;
 			VolumeColumn:			Boolean;
 			AltHomeEndBehavior:		Boolean;
@@ -90,19 +90,20 @@ type
 			ShowEmptyParamZeroes: 	Boolean;
 		end;
 
-		Display: record
+		Display: packed record
 			Scaling:				Byte;
 			Driver: 				Byte;
 			MousePointer: 			Byte;
-			Font: 					String;
+			VSyncMode:				Byte;
 			ShowSplashScreen: 		Boolean;
-			Palette: 				String;		// default = Camouflage
 			SampleAsBytes: 			Boolean;	// False = show sizes as words like ProTracker
 			SizesAsDecimal: 		Boolean;	// False = show sizes in hex like ProTracker
 			//ShowVolumeColumn: 	Boolean;	// show Cxx command in its own column?
+			Font: 					String;
+			Palette: 				String;		// default = Camouflage
 		end;
 
-		Audio: record
+		Audio: packed record
 			Driver: 				Byte;
 			Device: 				Byte;		// audio device, 1 = system default
 			Frequency: 				Byte;		// 11025/22050/44100/48000
@@ -116,17 +117,17 @@ type
 			EditorInvertLoop: 		Boolean;	// play EFx command like in PT editor?
 		end;
 
-		Dirs: record
+		Dirs: packed record
 			UseOSFileRequester: 	Boolean;
-			Modules: 				String;
-			Samples: 				String;
+			RawFileSizes:			Boolean;
 			FileSortMode:   		Byte;
 			SampleSortMode: 		Byte;
-			RawFileSizes:			Boolean;
+			Modules: 				String;
+			Samples: 				String;
 		end;
 
-		Import: record
-			Resampling: record
+		Import: packed record
+			Resampling: packed record
 				Enable:				Boolean;
 				ResampleFrom:		Integer;	// Hz
 				ResampleTo:			Byte;		// C-1..B-3
@@ -145,6 +146,10 @@ var
 	TextVals, HexVals: array [0..255] of AnsiString;
 
 const
+	VSYNC_AUTO	= 0;
+	VSYNC_FORCE	= 1;
+	VSYNC_OFF	= 2;
+
 	// ========================================================================
 	// Alphabet
 

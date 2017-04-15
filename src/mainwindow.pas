@@ -48,10 +48,11 @@ type
 		Texture:		PSDL_Texture;
 
 		IsFullScreen: 	Boolean;
-		VSyncRate:		Word;
+		HaveVSync:		Boolean;
+		SyncRate:		Word;
 		NextFrameTime:	UInt64;
 
-		NewSDL: Boolean;
+		NewSDL: 		Boolean;
 		RendererName,
 		LibraryVersion:	AnsiString;
 	end;
@@ -498,14 +499,6 @@ begin
 			Exit;
 		end;
 
-		Video.VSyncRate := 0;
-		if SDL_GetDesktopDisplayMode(0, @dm) = 0 then
-		if dm.refresh_rate in [50..61] then // 59Hz is a wrong NTSC legacy value from EDID. It's 60Hz!
-		begin
-			Video.VSyncRate := dm.refresh_rate;
-			rendererFlags := rendererFlags or SDL_RENDERER_PRESENTVSYNC;
-		end;
-
 		SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 'nearest');
 	end
@@ -514,9 +507,23 @@ begin
 		SDL_DestroyRenderer(Video.Renderer);
 		SDL_DestroyTexture(Video.Texture);
 		SDL_DestroyWindow(Video.Window);
+	end;
 
-		if Video.VSyncRate in [50..61] then // 59Hz is a wrong NTSC legacy value from EDID. It's 60Hz!
+    Video.HaveVSync := False;
+	Video.SyncRate := 0;
+
+	if Options.Display.VSyncMode <> VSYNC_OFF then
+	begin
+		if SDL_GetDesktopDisplayMode(0, @dm) = 0 then
+			Video.SyncRate := dm.refresh_rate
+		else
+			Log('GetDesktopDisplayMode failed: ' + SDL_GetError);
+		if (Options.Display.VSyncMode = VSYNC_FORCE) or
+			(Video.SyncRate in [50..61]) then
+		begin
 			rendererFlags := rendererFlags or SDL_RENDERER_PRESENTVSYNC;
+			Video.HaveVSync := True;
+		end;
 	end;
 
 	Video.Window := SDL_CreateWindow('Propulse Tracker',
@@ -538,10 +545,10 @@ begin
 	end;
 
 	Video.Renderer := SDL_CreateRenderer(Video.Window, -1, rendererFlags);
-	if (Video.Renderer = nil) and (Video.VSyncRate > 0) then
+	if (Video.Renderer = nil) and (Video.HaveVSync) then
 	begin
 		// try again without vsync flag
-		Video.VSyncRate := 0;
+        Video.HaveVSync := False;
 		rendererFlags := rendererFlags and not SDL_RENDERER_PRESENTVSYNC;
 		Video.Renderer := SDL_CreateRenderer(Video.Window, -1, rendererFlags);
 		if Video.Renderer = nil then
@@ -1080,7 +1087,7 @@ procedure TWindow.SyncTo60Hz; 				// from PT clone
 var
 	delayMs, perfFreq, timeNow_64bit: UInt64;
 begin
-	if (Video.VSyncRate > 0) or (Locked) then Exit;
+	if (Video.HaveVSync) or (Locked) then Exit;
 
 	perfFreq := SDL_GetPerformanceFrequency; // should be safe for double
 	if perfFreq = 0 then Exit; // panic!
@@ -1186,8 +1193,10 @@ begin
 		Sect := 'Display';
 		Cfg.AddByte(Sect, 'Scaling', @Display.Scaling, 2)
 		.SetInfo('Maximum scale factor', 1, 9, [], PixelScalingChanged);
-		Cfg.AddString(Sect, 'Font', @Display.Font, FILENAME_DEFAULTFONT).
-		SetInfoFromDir('Font', DataPath + 'font/', '*.pcx', ApplyFont);
+		Cfg.AddByte(Sect, 'Vsync', @Display.VSyncMode, VSYNC_AUTO)
+		.SetInfo('Vertical sync', VSYNC_AUTO, VSYNC_OFF, ['Auto', 'Force on', 'Off']);
+		Cfg.AddString(Sect, 'Font', @Display.Font, FILENAME_DEFAULTFONT)
+		.SetInfoFromDir('Font', DataPath + 'font/', '*.pcx', ApplyFont);
 		{Cfg.AddString(Sect, 'Palette', @Display.Palette, 'Propulse').
 		SetInfoFromDir('Palette', ConfigPath + 'palette/', '*.ini', ApplyPalette);}
 		Cfg.AddByte(Sect, 'Mouse', @Display.MousePointer, CURSOR_CUSTOM)
@@ -1331,9 +1340,13 @@ begin
 		Log('');
 	end;
 
-	Dir := Format('Video: SDL %s, %s renderer', [Video.LibraryVersion, Video.RendererName]);
-	if Video.VSyncRate > 0 then
-		Dir := Dir + Format(', %dHz vsync', [Video.VSyncRate]);
+	if Video.SyncRate = 0 then
+		Dir := 'unknown'
+	else
+		Dir := IntToStr(Video.SyncRate);
+	Dir := Format('Video: SDL %s, %s renderer at %s Hz',
+		[Video.LibraryVersion, Video.RendererName, Dir]);
+	if Video.HaveVSync then	Dir := Dir + ' VSync';
 	Log(TEXT_INIT + Dir);
 
 	case Options.Audio.Frequency of
