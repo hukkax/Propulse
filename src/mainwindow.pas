@@ -616,15 +616,12 @@ var
 	w, h: Integer;
 	X, Y: Single;
 begin
+	{$IFDEF WINDOWS}
 	Video.IsFullScreen := B;
 
 	if B then
 	begin
-		{$IFDEF WINDOWS}
 		SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-		{$ELSE}
-		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
-		{$ENDIF}
 		SDL_SetWindowGrab(Video.Window, SDL_TRUE);
 	end
 	else
@@ -642,6 +639,9 @@ begin
 	SDL_RenderGetScale(Video.Renderer, SDL2.PFloat(@X), SDL2.PFloat(@Y));
 	w := Max(Trunc(x), 1); h := Max(Trunc(y), 1);
 	MouseCursor.Scaling := Types.Point(w, h);
+	{$ELSE}
+	Video.IsFullScreen := False;
+	{$ENDIF}
 end;
 
 procedure TWindow.SetTitle(const Title: AnsiString);
@@ -867,6 +867,56 @@ begin
 	GetModifierKey(M, Result, KMOD_CAPS,	ssCaps);	// Caps Lock
 end;
 
+function RemoveDiacritics(const S: String): String;
+var
+	F: Boolean;
+	I: SizeInt;
+	PS, PD: PChar;
+begin
+	SetLength(Result, Length(S));
+	PS := PChar(S);
+	PD := PChar(Result);
+	I := 0;
+	while PS^ <> #0 do
+	begin
+		F := PS^ = #195;
+		if F then
+		case PS[1] of
+			#128..#134:			PD^ := 'A';
+			#135:				PD^ := 'C';
+			#136..#139:			PD^ := 'E';
+			#140..#143:			PD^ := 'I';
+			#144:				PD^ := 'D';
+			#145:				PD^ := 'N';
+			#146..#150, #152:	PD^ := 'O';
+			#151:				PD^ := 'x';
+			#153..#156:			PD^ := 'U';
+			#157:				PD^ := 'Y';
+			#158:				PD^ := 'P';
+			#159:				PD^ := 's';
+			#160..#166:			PD^ := 'a';
+			#167:				PD^ := 'c';
+			#168..#171:			PD^ := 'e';
+			#172..#175:			PD^ := 'i';
+			#176:				PD^ := 'd';
+			#177:				PD^ := 'n';
+			#178..#182, #184:	PD^ := 'o';
+			#183:				PD^ := '-';
+			#185..#188:			PD^ := 'u';
+			#190:				PD^ := 'p';
+			#189, #191:			PD^ := 'y';
+		else
+			F := False;
+		end;
+		if F then
+			Inc(PS)
+		else
+			PD^ := PS^;
+		Inc(I); Inc(PD); Inc(PS);
+	end;
+	SetLength(Result, I);
+end;
+
 procedure TWindow.HandleInput;
 var
 	InputEvent: TSDL_Event;
@@ -876,6 +926,7 @@ var
 	Btn: TMouseButton;
 	Key: Integer;
 	Shift: TShiftState;
+	AnsiInput: AnsiString;
 
 	function GetXY: TPoint;
 	begin
@@ -945,8 +996,9 @@ begin
         SDL_TEXTINPUT:
 			if InputEvent.text.text[0] <> #0 then
 			begin
-				//writeln( 'Text input: "', InputEvent.text.text, '"' );
-				CurrentScreen.TextInput(InputEvent.text.text[0]);
+				AnsiInput := RemoveDiacritics(InputEvent.text.text);
+				if Length(AnsiInput) > 0 then
+					CurrentScreen.TextInput(AnsiInput[1]);
 			end;
 
 		SDL_MOUSEBUTTONDOWN,
