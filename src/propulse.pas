@@ -20,7 +20,7 @@ program Propulse;
 *)
 
 {$MODE delphi}
-{$R Propulse.res}
+{$R propulse.res}
 {$IFDEF RELEASE}
 	{$APPTYPE GUI}
 {$ENDIF}
