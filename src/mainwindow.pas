@@ -658,6 +658,7 @@ begin
 	w := Max(Trunc(x), 1); h := Max(Trunc(y), 1);
 	MouseCursor.Scaling := Types.Point(w, h);
 
+	SDL_SetWindowInputFocus(Video.Window);
     ClearMessageQueue;
     Locked := False;
 end;
@@ -998,6 +999,7 @@ begin
 					GetModifierKey(c, Shift, KMOD_CAPS,	ssCaps);	// Caps Lock
 					GetModifierKey(c, Shift, KMOD_MODE,	ssAltGr);	// AltGr
 				end;
+logdebug('Keypress=' + IntToStr(Key));
 				OnKeyDown(Key, Shift);
 			end;
 		end;
