@@ -274,7 +274,7 @@ const
     procedure Log(const S: AnsiString); overload;
 	procedure Log(const S: AnsiString; const Args: array of const); overload;
 
-	function  GetDataFile(const Filename: String): String;
+	function  GetDataFile(Filename: String): String;
 	function  ValidFilename(const Filename: String): Boolean; inline;
 	function  SplitString(const aString, aSeparator: String; aMax: Integer = 0): TArrayOfString;
 
@@ -368,8 +368,14 @@ begin
 	Result := Abs(Rect.Bottom - Rect.Top);
 end;
 
-function GetDataFile(const Filename: String): String;
+function GetDataFile(Filename: String): String;
 begin
+	if FileExists(Filename) then
+		Exit(Filename)
+	else
+	if Pos(':', Filename) > 0 then
+		Filename := ExtractFileName(Filename);
+
 	Result := DataPath + Filename;
 
 	if (not FileExists(Result)) and (ConfigPath <> DataPath) then

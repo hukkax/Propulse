@@ -400,7 +400,7 @@ function TWindow.SetupVideo: Boolean;
 
 	function GetFontFile(const Fn: String): String;
 	begin
-		Result := GetDataFile('font/' + Fn + '.pcx');
+		Result := 'font/' + Fn + '.pcx';
 	end;
 
 var
@@ -416,23 +416,23 @@ begin
   	Result := False;
 	Locked := True;
 
-	Fn := GetFontFile(Options.Display.Font);
+	Fn := GetDataFile(GetFontFile(Options.Display.Font));
 	if Fn = '' then
 	begin
 		Options.Display.Font := FILENAME_DEFAULTFONT;
-		Fn := GetFontFile(FILENAME_DEFAULTFONT);
+		Fn := GetDataFile(GetFontFile(FILENAME_DEFAULTFONT));
 	end;
 
 	if not Initialized then
 	begin
 		OK := (Fn <> '');
 		if OK then
-			Console := TConsole.Create(80, 45, 'font/' + Options.Display.Font,
+			Console := TConsole.Create(80, 45, GetFontFile(Options.Display.Font),
 				GetDataFile('palette/Propulse.ini'), OK);
 		if not OK then
 		begin
 			LogFatal('Error initializing console emulation!');
-			LogFatal('Probably the file "' + Fn + '" couldn''t be found.');
+			LogFatal('Probably the file "' + Options.Display.Font + '" couldn''t be found.');
 			Exit;
 		end;
 	end
@@ -609,7 +609,7 @@ var
 	w, h: Integer;
 	R: TSDL_Rect;
 begin
-    if MaxScale = 0 then MaxScale := Max(Options.Display.Scaling, 1);
+	if MaxScale = 0 then MaxScale := Max(Options.Display.Scaling, 1);
 	SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), @R);
 	repeat
 		w := Console.Bitmap.Width  * MaxScale;
@@ -1266,6 +1266,7 @@ begin
 	ConfigPath := GetAppConfigDir(False);
 	if ConfigPath = '' then
 		ConfigPath := DataPath;
+	ConfigPath := IncludeTrailingPathDelimiter(ConfigPath);
 	ForceDirectories(ConfigPath);
 	DefaultFormatSettings.DecimalSeparator := '.';
 
@@ -1558,6 +1559,7 @@ begin
 		AddCmd(Ord(keyScreenAbout), 			'About...');
 		AddCmd(Ord(keyProgramQuit), 			'Quit');
 	end;
+	Result := True;
 end;
 
 end.
