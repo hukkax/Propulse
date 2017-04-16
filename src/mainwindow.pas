@@ -999,7 +999,6 @@ begin
 					GetModifierKey(c, Shift, KMOD_CAPS,	ssCaps);	// Caps Lock
 					GetModifierKey(c, Shift, KMOD_MODE,	ssAltGr);	// AltGr
 				end;
-logdebug('Keypress=' + IntToStr(Key));
 				OnKeyDown(Key, Shift);
 			end;
 		end;
