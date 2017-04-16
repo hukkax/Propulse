@@ -289,6 +289,7 @@ var
 begin
 	Sl := TStringList.Create;
 	FileSearch(Dir, Extensions, Sl);
+	Sl.Sort;
 	SetLength(Filelist, Sl.Count);
 	for i := 0 to Sl.Count-1 do
 		Filelist[i] := ChangeFileExt(ExtractFilename(Sl[i]), '');
