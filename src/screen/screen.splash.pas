@@ -135,10 +135,10 @@ var
 	i: Integer;
 begin
 	Gradient := TPCXImage.Create;
-	Gradient.LoadFromFile(DataPath + 'gradient.pcx');
+	Gradient.LoadFromFile(GetDataFile('gradient.pcx'));
 
 	Logo := TPCXImage.Create;
-	Logo.LoadFromFile(DataPath + 'logo.pcx');
+	Logo.LoadFromFile(GetDataFile('logo.pcx'));
 
 	Rect := Bounds(
 		(W div 2) - (LogoWidth  div 2),
@@ -387,8 +387,6 @@ end;
 constructor TSplashScreen.Create;
 var
 	Button: TCWEButton;
-const
-	URL = 'http://hukka.yiff.fi/porotracker/';
 begin
 	inherited;
 
@@ -432,11 +430,11 @@ begin
 		Scroll.Clear(TRANSCOLOR);
 	end;
 
-	Console.WriteHeader('Propulse v' + VERSION + ' '+#7+' '+ Build.CompileDate, 1);
+	Console.WriteHeader('Propulse Tracker v' + VERSION + ' '+#7+' '+ Build.CompileDate, 1);
 
 	Y := Console.Height - 9;
 
-	Console.WriteCentered(' 2016-2017 hukka (Joel Toivonen)', Y+0);
+	Console.WriteCentered(' (C) 2016-2017 hukka (Joel Toivonen)', Y+0);
 	Console.WriteCentered(' Original playroutine by 8bitbubsy (Olav Sorensen)', Y+2);
 
 	inherited;

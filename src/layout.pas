@@ -166,7 +166,6 @@ var
 			Result := StrToInt(S);
 	end;
 
-
 var
 	slSections: TStringList;
 	i: Integer;
@@ -191,11 +190,11 @@ begin
 		Exit;
 	end;
 
-	S := DataPath + 'layout/' + Screen.ID + '.layout';
+	S := GetDataFile('layout/' + Screen.ID + '.layout');
 
-	if not FileExists(S) then
+	if (S = '') or (not FileExists(S)) then
 	begin
-//		writeln(TEXT_WARNING + 'File not found: ' + ExtractFileName(S));
+		//LogDebug(TEXT_WARNING + 'Layout file not found: ' + ExtractFileName(S));
 		Exit;
 	end;
 

@@ -118,7 +118,6 @@ uses
 	{$IFDEF WINDOWS}
 	Windows,
 	{$ENDIF}
-	lazlogger,
 	BASS, BuildInfo, Math,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
@@ -126,31 +125,6 @@ uses
 	CWE.MainMenu,
 	soxr;
 
-
-procedure LogDebug(const Msg: AnsiString);
-begin
-	DebugLn(Msg);
-	{$IFDEF DEBUG}
-	writeln(Msg);
-	{$ENDIF}
-end;
-
-procedure LogIfDebug(const Msg: AnsiString);
-begin
-	{$IFDEF DEBUG}
-	LogDebug(Msg);
-	{$ENDIF}
-end;
-
-procedure LogError(const Msg: AnsiString); inline;
-begin
-	LogDebug('[ERROR] ' + Msg);
-end;
-
-procedure LogFatal(const Msg: AnsiString); inline;
-begin
-	LogDebug('[FATAL] ' + Msg);
-end;
 
 procedure ClearMessageQueue;
 var
@@ -260,10 +234,10 @@ begin
 	if MouseCursor <> nil then
 	begin
 		MouseCursor.Erase;
-		MouseCursor.SetImage(DataPath + Fn);
+		MouseCursor.SetImage(Fn);
 	end
 	else
-		MouseCursor := TMouseCursor.Create(DataPath + Fn);
+		MouseCursor := TMouseCursor.Create(Fn);
 
 	ChangeMousePointer;
 end;
@@ -426,7 +400,7 @@ function TWindow.SetupVideo: Boolean;
 
 	function GetFontFile(const Fn: String): String;
 	begin
-		Result := AppPath + 'data/font/' + Fn + '.pcx';
+		Result := GetDataFile('font/' + Fn + '.pcx');
 	end;
 
 var
@@ -437,27 +411,36 @@ var
 	Fn: String;
 	rinfo: TSDL_RendererInfo;
 	sdlVersion: TSDL_Version;
+	OK: Boolean;
 begin
   	Result := False;
 	Locked := True;
 
 	Fn := GetFontFile(Options.Display.Font);
-	if not FileExists(Fn) then
+	if Fn = '' then
 	begin
 		Options.Display.Font := FILENAME_DEFAULTFONT;
-		Fn := GetFontFile(Options.Display.Font);
-		if (not Initialized) and (not FileExists(Fn)) then Exit;
+		Fn := GetFontFile(FILENAME_DEFAULTFONT);
 	end;
 
 	if not Initialized then
-		Console := TConsole.Create(80, 45, Fn, AppPath + 'palette/Propulse.ini')
+	begin
+		OK := (Fn <> '');
+		if OK then
+			Console := TConsole.Create(80, 45, 'font/' + Options.Display.Font,
+				GetDataFile('palette/Propulse.ini'), OK);
+		if not OK then
+		begin
+			LogFatal('Error initializing console emulation!');
+			LogFatal('Probably the file "' + Fn + '" couldn''t be found.');
+			Exit;
+		end;
+	end
 	else
 	begin
 		sx := Console.Font.Width;
 		sy := Console.Font.Height;
-
 		Console.LoadFont(Fn);
-
 		if (sx <> Console.Font.Width) or (sy <> Console.Font.Height) then
 		begin
 			ApplyPointer;
@@ -579,9 +562,13 @@ begin
 	end;
 	SDL_SetTextureBlendMode(Video.Texture, SDL_BLENDMODE_NONE);
 
-	Icon := SDL_LoadBMP(PAnsiChar(DataPath + 'icon.bmp'));
-	SDL_SetWindowIcon(Video.Window, Icon);
-	SDL_FreeSurface(Icon);
+	Fn := GetDataFile('icon.bmp');
+	if Fn <> '' then
+	begin
+		Icon := SDL_LoadBMP(PAnsiChar(Fn));
+		SDL_SetWindowIcon(Video.Window, Icon);
+		SDL_FreeSurface(Icon);
+	end;
 
 	if Initialized then
 	begin
@@ -1284,7 +1271,6 @@ begin
 
 	// Setup logging
 	//
-	DebugLogger.LogName := 'debug.txt';
 	LogIfDebug('============================================================');
 	LogIfDebug('Propulse Tracker ' + ProTracker.Util.VERSION + ' starting...');
 
@@ -1328,8 +1314,8 @@ begin
 	Log(TEXT_HEAD + 'Propulse Tracker v' + ProTracker.Util.VERSION + ' (built on ' +
 		Build.CompileDate + ' ' + Build.CompileTime + ')');
 	Log('');
-	Log(TEXT_LIGHT + '2016-2017 hukka (Joel Toivonen)');
-	Log(TEXT_LIGHT + 'http://hukka.yiff.fi/porotracker/');
+	Log(TEXT_LIGHT + '(C) 2016-2017 hukka (Joel Toivonen)');
+	Log(TEXT_LIGHT + URL);
 	Log(TEXT_LIGHT + 'Contains code based on work by 8bitbubsy (Olav Sorensen)');
 	Log('');
 
@@ -1455,7 +1441,7 @@ begin
 	ContextMenu := TCWEMainMenu.Create;
 
 	// Load any user-defined shortcuts
-	Shortcuts.Load(ConfigPath + FILENAME_KEYBOARD);
+	Shortcuts.Load(GetDataFile(FILENAME_KEYBOARD));
 
 	Log('');
 

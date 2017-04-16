@@ -8,6 +8,8 @@ uses
 const
 	VERSION  =  '0.8.9.6';
 
+	URL = 'http://hukka.yiff.fi/propulse/';
+
 	// ========================================================================
 	// Default files
 
@@ -272,6 +274,7 @@ const
     procedure Log(const S: AnsiString); overload;
 	procedure Log(const S: AnsiString; const Args: array of const); overload;
 
+	function  GetDataFile(const Filename: String): String;
 	function  ValidFilename(const Filename: String): Boolean; inline;
 	function  SplitString(const aString, aSeparator: String; aMax: Integer = 0): TArrayOfString;
 
@@ -297,6 +300,12 @@ const
 
 	procedure SelectFileInExplorer(const Fn: String);
 
+	procedure LogDebug(const Msg: AnsiString);
+	procedure LogIfDebug(const Msg: AnsiString);
+	procedure LogError(const Msg: AnsiString); inline;
+	procedure LogFatal(const Msg: AnsiString); inline;
+
+
 var
 	OnLog: procedure (const Msg: AnsiString) of Object;
 
@@ -306,12 +315,38 @@ implementation
 
 uses
 	SysUtils, StrUtils, Math,
+	lazlogger,
     {$IFDEF WINDOWS}
     Windows, ShellAPI,
     {$ENDIF}
 	ProTracker.Player,
 	CWE.Dialogs;
 
+
+procedure LogDebug(const Msg: AnsiString);
+begin
+	DebugLn(Msg);
+	{$IFDEF DEBUG}
+	writeln(Msg);
+	{$ENDIF}
+end;
+
+procedure LogIfDebug(const Msg: AnsiString);
+begin
+	{$IFDEF DEBUG}
+	LogDebug(Msg);
+	{$ENDIF}
+end;
+
+procedure LogError(const Msg: AnsiString);
+begin
+	LogDebug('[ERROR] ' + Msg);
+end;
+
+procedure LogFatal(const Msg: AnsiString);
+begin
+	LogDebug('[FATAL] ' + Msg);
+end;
 
 procedure ZeroMemory(Destination: Pointer; Length: DWord);
 begin
@@ -323,7 +358,6 @@ begin
 	Move(Source^, Destination^, Length);
 end;
 
-
 function RectWidth(Rect: TRect) : Integer;
 begin
 	Result := Abs(Rect.Right - Rect.Left);
@@ -332,6 +366,20 @@ end;
 function RectHeight(Rect: TRect) : Integer;
 begin
 	Result := Abs(Rect.Bottom - Rect.Top);
+end;
+
+function GetDataFile(const Filename: String): String;
+begin
+	Result := DataPath + Filename;
+
+	if (not FileExists(Result)) and (ConfigPath <> DataPath) then
+		Result := ConfigPath + Filename;
+
+	if not FileExists(Result) then
+	begin
+		Result := '';
+		LogDebug('GetDataFile: file not found: "' + Filename + '"');
+	end;
 end;
 
 function SOXRLoaded(sFeature: AnsiString = ''): Boolean;
@@ -544,6 +592,8 @@ end;
 var i: Integer;
 
 initialization
+
+	DebugLogger.LogName := 'debug.txt';
 
 	for i := 0 to 255 do
 	begin

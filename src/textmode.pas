@@ -2,9 +2,6 @@ unit TextMode;
 
 interface
 
-{.$DEFINE SHOWREPAINT}
-{.$DEFINE SPEEDTEST}
-
 uses
 	Classes, Types,
 	Graphics32;
@@ -52,7 +49,8 @@ type
 		Font: 		TConsoleFont;
 		OnChange: 	procedure of Object;
 
-		constructor Create(_Width, _Height: Integer; const FontFile, PaletteFile: String);
+		constructor Create(_Width, _Height: Integer; const FontFile, PaletteFile: String;
+					var Success: Boolean);
 		destructor  Destroy; override;
 
 		function 	LoadFont(const Filename: String): Boolean;
@@ -95,11 +93,7 @@ type
 		procedure 	FrameRectPx(R: TRect; Sunken: Boolean = False; Fat: Boolean = False;
 					nBgCol: Integer=-1; nLightCol: Integer=-1; nDarkCol: Integer=-1);
 
-		{$IFDEF SPEEDTEST}
-		function	SpeedTest(Times: Word): Cardinal;
-		{$ENDIF}
-	property
-		IsLocked:	Boolean read Locked;
+		property	IsLocked: Boolean read Locked;
 	end;
 
 
@@ -111,38 +105,16 @@ type
 implementation
 
 uses
-	{$IFDEF SPEEDTEST}
-	TimeMeasurer, Dialogs,
-	{$ENDIF}
-	SysUtils;
+	SysUtils, ProTracker.Util;
 
 
 // ==========================================================================
 // Utility
 // ==========================================================================
 
-// Tries to find the working filename for an image file (BMP or PNG)
-// given a filename with or without an extension.
-//
 function FindImageFile(const Filename: String): String;
-var
-	sFilename: String;
 begin
-	if FileExists(Filename) then Exit(Filename); // original filename
-
-	sFilename := ChangeFileExt(Filename, '.pcx');
-	if (Filename <> sFilename) and (FileExists(sFilename)) then
-		Exit(sFilename);
-
-{	sFilename := ChangeFileExt(Filename, '.bmp');
-	if (Filename <> sFilename) and (FileExists(sFilename)) then
-		Exit(sFilename);
-
-	sFilename := ChangeFileExt(Filename, '.png');
-	if (Filename <> sFilename) and (FileExists(sFilename)) then
-		Exit(sFilename);}
-
-	Result := '';
+	Result := GetDataFile(ChangeFileExt(Filename, '.pcx'));
 end;
 
 function LoadImage(var Filename: String): TBitmap32;
@@ -171,42 +143,6 @@ begin
 	end;
 end;
 
-{$IFDEF SPEEDTEST}
-function TConsole.SpeedTest(Times: Word): Cardinal;
-var
-	i, x, y: Integer;
-	Time: TTimeMeasurer;
-begin
-	Result := 0;
-
-	BeginUpdate;
-	Time.Init;
-	Time.Start;
-
-	for y := 0 to Height-1 do
-	for x := 0 to Width-1 do
-	begin
-		//{
-		Buffer[x,y].Char := Random(255);
-		Buffer[x,y].ColorBack := Random(15);
-		Buffer[x,y].ColorFore := Random(15);
-		//}
-		Buffer[x,y].Changed := True;
-	end;
-
-	for i := 0 to Times do
-		for y := 0 to Height-1 do
-		for x := 0 to Width-1 do
-			DoDrawChar(x,y);
-
-	Time.Stop;
-	EndUpdate;
-
-	Result := Time.Milliseconds;
-	ShowMessage(IntToStr(Result) + ' ms for ' + IntToStr(Times) + ' redraws.');
-end;
-{$ENDIF}
-
 { TConsoleFont }
 
 destructor TConsoleFont.Destroy;
@@ -221,17 +157,15 @@ function TConsoleFont.LoadFromFile(Filename: String;
 var
 	g, x, y, ox, oy, CharsPerRow: Integer;
 begin
-	if not FileExists(Filename) then
-		Filename := ChangeFileExt(Filename, '.pcx');
-
-	Result := FileExists(Filename);
-	if not Result then Exit;
-
 	if Bitmap = nil then
 		Bitmap := TBitmap32.Create;
 
 	Result := (LoadImage(Filename, Bitmap) <> '');
-	if not Result then Exit;
+	if not Result then
+	begin
+		Bitmap.Free;
+		Exit;
+	end;
 
 	// determine if font bitmap has all glyphs in one row or column
 	// or if it's arranged in a 16x16 matrix
@@ -293,7 +227,7 @@ end;
 { TConsole }
 
 constructor TConsole.Create(_Width, _Height: Integer;
-	const FontFile, PaletteFile: String);
+	const FontFile, PaletteFile: String; var Success: Boolean);
 
 	procedure SetPalette(const i, r, g, b: Byte);
 	begin
@@ -325,7 +259,7 @@ begin
 	COLOR_LINK		:= 9;
 
 	LoadPalette(PaletteFile);
-	LoadFont(FontFile);
+	Success := LoadFont(FontFile);
 
 	Clear(False);
 end;
@@ -483,14 +417,6 @@ var
 	Scanline: Cardinal;
 	ScanlinePtr: PColor32;
 begin
-	{$IFDEF SHOWREPAINT}
-	if Locked then
-	begin
-		if (x < Width) and (y < Height) then
-			Buffer[x,y].ColorBack := Random(15);
-	end;
-	{$ENDIF}
-
 	if {(Locked) or} (x >= Width) or (y >= Height) then Exit;
 
 	sx := Font.Width;
@@ -498,11 +424,7 @@ begin
 	bchar := Buffer[x,y];
 	ch := bchar.Char;
 
-	{$IFDEF SHOWREPAINT}
-	Bitmap.FillRectS(x*sx, y*sy, x*sx+sx, y*sy+sy, Palette[Random(15)]);
-	{$ELSE}
 	Bitmap.FillRectS(x*sx, y*sy, x*sx+sx, y*sy+sy, Palette[bchar.ColorBack]);
-	{$ENDIF}
 
 	if Font.IsGlyphEmpty[ch] then Exit;
 
@@ -647,13 +569,6 @@ begin
 	for y := R.Top to R.Bottom-1 do
 	for x := R.Left to R.Right-1 do
 		PutChar(x, y, Ord(nChar), nfgCol, nBgCol);
-	{with Buffer[x,y] do
-	begin
-		Char := Ord(nChar);
-		if nFgCol >= 0 then ColorFore := nFgCol;
-		if nBgCol >= 0 then ColorBack := nBgCol;
-		Changed := True;
-	end;}
 	if nBgCol >= 0 then
 		Bitmap.FillRectS(GetPixelRect(R), Palette[nBgCol]);
 end;

@@ -55,7 +55,7 @@ begin
 	Memo.Lines.Clear;
 
 	sl := TStringList.Create;
-	sl.LoadFromFile(DataPath + 'help.txt');
+	sl.LoadFromFile(GetDataFile('help.txt'));
 
 	{
 		Schism Tracker:
