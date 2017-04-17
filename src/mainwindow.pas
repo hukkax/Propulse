@@ -11,15 +11,13 @@ type
 {$DEFINE ENABLE_FULLSCREEN}
 {$ENDIF}
 
-
 interface
 
 uses
 	Classes, Types, SysUtils, Generics.Collections,
 	SDL2,
-	ConfigurationManager, ShortcutManager,
-	TextMode, CWE.Core, CWE.MouseCursor, CWE.Dialogs,
-	CWE.Widgets.Text,
+	ConfigurationManager, ShortcutManager, TextMode,
+	CWE.Core, CWE.MouseCursor, CWE.Dialogs, CWE.Widgets.Text,
 	ProTracker.Util, ProTracker.Player, ProTracker.Editor;
 
 type
@@ -61,6 +59,9 @@ type
 	const
 		TimerInterval = 10;
 	private
+		{$IFDEF UNIX}
+		PrevKeyTimeStamp: Uint32;
+		{$ENDIF}
 		Screens:	TObjectList<TCWEScreen>;
 
 		procedure 	ModuleSpeedChanged;
@@ -106,25 +107,20 @@ type
 	function 	TimerTickCallback(interval: Uint32; param: Pointer): UInt32; cdecl;
 
 var
-	Window: 	TWindow;
-	GlobalKeys: TKeyBindings;
-	QuitFlag:	Boolean;
-	Initialized:Boolean;
-
+	Window: 		TWindow;
+	GlobalKeys: 	TKeyBindings;
+	QuitFlag:		Boolean;
+	Initialized:	Boolean;
 
 implementation
 
 uses
-	{$IFDEF WINDOWS}
-	Windows,
-	{$ENDIF}
-	BASS, BuildInfo, Math,
+	{$IFDEF WINDOWS}Windows,{$ENDIF}
+	BASS, BuildInfo, Math, soxr,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
 	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio,
-	CWE.MainMenu,
-	soxr;
-
+	CWE.MainMenu;
 
 procedure ClearMessageQueue;
 var
@@ -440,7 +436,7 @@ begin
 	begin
 		sx := Console.Font.Width;
 		sy := Console.Font.Height;
-		Console.LoadFont(Fn);
+		Console.LoadFont('font/' + Options.Display.Font);
 		if (sx <> Console.Font.Width) or (sy <> Console.Font.Height) then
 		begin
 			ApplyPointer;
@@ -981,26 +977,35 @@ begin
 
 		SDL_KEYDOWN:
 		begin
-			Key := InputEvent.key.keysym.sym;
-			case Key of
-				SDLK_LSHIFT, SDLK_RSHIFT,
-				SDLK_LCTRL,  SDLK_RCTRL,
-				SDLK_LALT,   SDLK_RALT,
-				0: ;
-			else
-				Shift := [];
-				if InputEvent.key.keysym._mod <> 0 then
-				begin
-					c := InputEvent.key.keysym._mod;
-					GetModifierKey(c, Shift, KMOD_SHIFT,ssShift);	// Shift
-					GetModifierKey(c, Shift, KMOD_CTRL,	ssCtrl);	// Ctrl
-					GetModifierKey(c, Shift, KMOD_ALT,	ssAlt);		// Alt
-					GetModifierKey(c, Shift, KMOD_GUI,	ssMeta);	// Windows
-					GetModifierKey(c, Shift, KMOD_CAPS,	ssCaps);	// Caps Lock
-					GetModifierKey(c, Shift, KMOD_MODE,	ssAltGr);	// AltGr
+			{$IFDEF UNIX}
+			// hack to fix duplicate keyboard events on Linux with FCITX
+			if (InputEvent.key.timestamp - PrevKeyTimeStamp) > 4 then
+			{$ENDIF}
+			begin
+				Key := InputEvent.key.keysym.sym;
+				case Key of
+					SDLK_LSHIFT, SDLK_RSHIFT,
+					SDLK_LCTRL,  SDLK_RCTRL,
+					SDLK_LALT,   SDLK_RALT,
+					0: ;
+				else
+					Shift := [];
+					if InputEvent.key.keysym._mod <> 0 then
+					begin
+						c := InputEvent.key.keysym._mod;
+						GetModifierKey(c, Shift, KMOD_SHIFT,ssShift);	// Shift
+						GetModifierKey(c, Shift, KMOD_CTRL,	ssCtrl);	// Ctrl
+						GetModifierKey(c, Shift, KMOD_ALT,	ssAlt);		// Alt
+						GetModifierKey(c, Shift, KMOD_GUI,	ssMeta);	// Windows
+						GetModifierKey(c, Shift, KMOD_CAPS,	ssCaps);	// Caps Lock
+						GetModifierKey(c, Shift, KMOD_MODE,	ssAltGr);	// AltGr
+					end;
+					OnKeyDown(Key, Shift);
 				end;
-				OnKeyDown(Key, Shift);
 			end;
+			{$IFDEF UNIX}
+			PrevKeyTimeStamp := InputEvent.key.timestamp;
+			{$ENDIF}
 		end;
 
         SDL_TEXTINPUT:
@@ -1460,6 +1465,9 @@ begin
 
 	Console.Paint;
 
+	{$IFDEF UNIX}
+	PrevKeyTimeStamp := 0;
+	{$ENDIF}
 	MessageTextTimer := -1;
 	Initialized := True;
 	Module.SetModified(False);
@@ -1471,7 +1479,8 @@ begin
 
 	SetFullScreen(Video.IsFullScreen);
 
-	SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
+	if not Video.HaveVSync then
+		SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
 
 	LogIfDebug('OK.');
 	Log(TEXT_SUCCESS + 'Program started at ' + DateTimeToStr(Now) + '.');
