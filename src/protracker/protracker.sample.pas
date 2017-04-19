@@ -1,7 +1,5 @@
 unit ProTracker.Sample;
 
-{$mode delphi}
-
 interface
 
 uses

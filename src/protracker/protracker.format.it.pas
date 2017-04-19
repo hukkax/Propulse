@@ -1,7 +1,5 @@
 unit ProTracker.Format.IT;
 
-{$mode delphi}
-
 // Impulse Tracker loader for PoroTracker
 // TODO: select IT channels to convert if >4
 

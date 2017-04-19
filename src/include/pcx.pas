@@ -1,7 +1,5 @@
 unit PCX;
 
-{$mode delphi}
-
 interface
 
 uses

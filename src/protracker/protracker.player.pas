@@ -10,12 +10,8 @@ unit ProTracker.Player;
 interface
 
 uses
-	{$IFDEF FPC}
-		{$IFDEF BASS_DYNAMIC}
+	{$IFDEF BASS_DYNAMIC}
 		lazdynamic_bass,
-		{$ELSE}
-		BASS,
-		{$ENDIF}
 	{$ELSE}
 		BASS,
 	{$ENDIF}

@@ -1,7 +1,5 @@
 unit BuildInfo;
 
-{$mode delphi}
-
 interface
 
 const

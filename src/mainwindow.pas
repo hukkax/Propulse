@@ -1,14 +1,8 @@
 unit MainWindow;
 
-{$mode delphi}
-{$IFNDEF FPC}
-type
-	PtrInt  = Integer;
-	PtrUInt = Cardinal;
-{$ENDIF}
-
-{$IFDEF WINDOWS}
-{$DEFINE ENABLE_FULLSCREEN}
+{$IFDEF UNIX}
+	{$DEFINE DISABLE_FULLSCREEN}	// disable broken SDL fullscreen mode
+	{$DEFINE LIMIT_KEYBOARD_EVENTS}	// fix duplicate keyboard events on Linux with FCITX
 {$ENDIF}
 
 interface
@@ -59,7 +53,7 @@ type
 	const
 		TimerInterval = 10;
 	private
-		{$IFDEF UNIX}
+		{$IFDEF LIMIT_KEYBOARD_EVENTS}
 		PrevKeyTimeStamp: Uint32;
 		{$ENDIF}
 		Screens:	TObjectList<TCWEScreen>;
@@ -623,7 +617,7 @@ procedure TWindow.SetFullScreen(B: Boolean);
 var
 	w, h: Integer;
 	X, Y: Single;
-	{$IFNDEF ENABLE_FULLSCREEN}
+	{$IFDEF DISABLE_FULLSCREEN}
 	R: TSDL_Rect;
     {$ENDIF}
 begin
@@ -632,7 +626,7 @@ begin
 
 	if B then
 	begin
-    	{$IFDEF ENABLE_FULLSCREEN}
+    	{$IFNDEF DISABLE_FULLSCREEN}
 		SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 		SDL_SetWindowGrab(Video.Window, SDL_TRUE);
     	{$ELSE}
@@ -983,8 +977,7 @@ begin
 
 		SDL_KEYDOWN:
 		begin
-			{$IFDEF UNIX}
-			// hack to fix duplicate keyboard events on Linux with FCITX
+			{$IFDEF LIMIT_KEYBOARD_EVENTS}
 			if (InputEvent.key.timestamp - PrevKeyTimeStamp) > 4 then
 			{$ENDIF}
 			begin
@@ -1009,7 +1002,7 @@ begin
 					OnKeyDown(Key, Shift);
 				end;
 			end;
-			{$IFDEF UNIX}
+			{$IFDEF LIMIT_KEYBOARD_EVENTS}
 			PrevKeyTimeStamp := InputEvent.key.timestamp;
 			{$ENDIF}
 		end;
@@ -1471,7 +1464,7 @@ begin
 
 	Console.Paint;
 
-	{$IFDEF UNIX}
+	{$IFDEF LIMIT_KEYBOARD_EVENTS}
 	PrevKeyTimeStamp := 0;
 	{$ENDIF}
 	MessageTextTimer := -1;

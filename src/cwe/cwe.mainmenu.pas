@@ -1,7 +1,5 @@
 unit CWE.MainMenu;
 
-{$mode delphi}
-
 interface
 
 uses
