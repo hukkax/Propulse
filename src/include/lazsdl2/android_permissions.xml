@@ -1,0 +1,138 @@
+<permissions>
+  <permission Name="ACCESS_CHECKIN_PROPERTIES" Description="Allows read/write access to the &quot;properties&quot; table in the checkin database, to change values that get uploaded." />
+  <permission Name="ACCESS_COARSE_LOCATION" Description="Allows an app to access approximate location." />
+  <permission Name="ACCESS_FINE_LOCATION" Description="Allows an app to access precise location." />
+  <permission Name="ACCESS_LOCATION_EXTRA_COMMANDS" Description="Allows an application to access extra location provider commands." />
+  <permission Name="ACCESS_NETWORK_STATE" Description="Allows applications to access information about networks." />
+  <permission Name="ACCESS_NOTIFICATION_POLICY" Description="Marker permission for applications that wish to access notification policy." />
+  <permission Name="ACCESS_WIFI_STATE" Description="Allows applications to access information about Wi-Fi networks." />
+  <permission Name="ACCOUNT_MANAGER" Description="Allows applications to call into AccountAuthenticators." />
+  <permission Name="ADD_VOICEMAIL" Description="Allows an application to add voicemails into the system." />
+  <permission Name="BATTERY_STATS" Description="Allows an application to collect battery statistics" />
+  <permission Name="BIND_ACCESSIBILITY_SERVICE" Description="Must be required by an AccessibilityService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_APPWIDGET" Description="Allows an application to tell the AppWidget service which application can access AppWidget&apos;s data." />
+  <permission Name="BIND_CARRIER_MESSAGING_SERVICE" Description="This constant was deprecated in API level 23. Use BIND_CARRIER_SERVICES instead" />
+  <permission Name="BIND_CARRIER_SERVICES" Description="The system process that is allowed to bind to services in carrier apps will have this permission." />
+  <permission Name="BIND_CHOOSER_TARGET_SERVICE" Description="Must be required by a ChooserTargetService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_DEVICE_ADMIN" Description="Must be required by device administration receiver, to ensure that only the system can interact with it." />
+  <permission Name="BIND_DREAM_SERVICE" Description="Must be required by an DreamService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_INCALL_SERVICE" Description="Must be required by a InCallService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_INPUT_METHOD" Description="Must be required by an InputMethodService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_MIDI_DEVICE_SERVICE" Description="Must be required by an MidiDeviceService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_NFC_SERVICE" Description="Must be required by a HostApduService or OffHostApduService to ensure that only the system can bind to it." />
+  <permission Name="BIND_NOTIFICATION_LISTENER_SERVICE" Description="Must be required by an NotificationListenerService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_PRINT_SERVICE" Description="Must be required by a PrintService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_REMOTEVIEWS" Description="Must be required by a RemoteViewsService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_TELECOM_CONNECTION_SERVICE" Description="Must be required by a ConnectionService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_TEXT_SERVICE" Description="Must be required by a TextService (eg SpellCheckerService) to ensure that only the system can bind to it." />
+  <permission Name="BIND_TV_INPUT" Description="Must be required by a TvInputService to ensure that only the system can bind to it." />
+  <permission Name="BIND_VOICE_INTERACTION" Description="Must be required by a VoiceInteractionService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_VPN_SERVICE" Description="Must be required by a VpnService, to ensure that only the system can bind to it." />
+  <permission Name="BIND_WALLPAPER" Description="Must be required by a WallpaperService, to ensure that only the system can bind to it." />
+  <permission Name="BLUETOOTH" Description="Allows applications to connect to paired bluetooth devices." />
+  <permission Name="BLUETOOTH_ADMIN" Description="Allows applications to discover and pair bluetooth devices." />
+  <permission Name="BLUETOOTH_PRIVILEGED" Description="Allows applications to pair bluetooth devices without user interaction, and to allow or disallow phonebook access or message access." />
+  <permission Name="BODY_SENSORS" Description="Allows an application to access data from sensors that the user uses to measure what is happening inside his/her body, such as heart rate." />
+  <permission Name="BROADCAST_PACKAGE_REMOVED" Description="Allows an application to broadcast a notification that an application package has been removed." />
+  <permission Name="BROADCAST_SMS" Description="Allows an application to broadcast an SMS receipt notification." />
+  <permission Name="BROADCAST_STICKY" Description="Allows an application to broadcast sticky intents." />
+  <permission Name="BROADCAST_WAP_PUSH" Description="Allows an application to broadcast a WAP PUSH receipt notification." />
+  <permission Name="CALL_PHONE" Description="Allows an application to initiate a phone call without going through the Dialer user interface for the user to confirm the call." />
+  <permission Name="CALL_PRIVILEGED" Description="Allows an application to call any phone number, including emergency numbers, without going through the Dialer user interface for the user to confirm the call being placed." />
+  <permission Name="CAMERA" Description="Required to be able to access the camera device." />
+  <permission Name="CAPTURE_AUDIO_OUTPUT" Description="Allows an application to capture audio output." />
+  <permission Name="CAPTURE_SECURE_VIDEO_OUTPUT" Description="Allows an application to capture secure video output." />
+  <permission Name="CAPTURE_VIDEO_OUTPUT" Description="Allows an application to capture video output." />
+  <permission Name="CHANGE_COMPONENT_ENABLED_STATE" Description="Allows an application to change whether an application component (other than its own) is enabled or not." />
+  <permission Name="CHANGE_CONFIGURATION" Description="Allows an application to modify the current configuration, such as locale." />
+  <permission Name="CHANGE_NETWORK_STATE" Description="Allows applications to change network connectivity state." />
+  <permission Name="CHANGE_WIFI_MULTICAST_STATE" Description="Allows applications to enter Wi-Fi Multicast mode." />
+  <permission Name="CHANGE_WIFI_STATE" Description="Allows applications to change Wi-Fi connectivity state." />
+  <permission Name="CLEAR_APP_CACHE" Description="Allows an application to clear the caches of all installed applications on the device." />
+  <permission Name="CONTROL_LOCATION_UPDATES" Description="Allows enabling/disabling location update notifications from the radio." />
+  <permission Name="DELETE_CACHE_FILES" Description="Allows an application to delete cache files." />
+  <permission Name="DELETE_PACKAGES" Description="Allows an application to delete packages." />
+  <permission Name="DIAGNOSTIC" Description="Allows applications to RW to diagnostic resources." />
+  <permission Name="DISABLE_KEYGUARD" Description="Allows applications to disable the keyguard if it is not secure." />
+  <permission Name="DUMP" Description="Allows an application to retrieve state dump information from system services." />
+  <permission Name="EXPAND_STATUS_BAR" Description="Allows an application to expand or collapse the status bar." />
+  <permission Name="FACTORY_TEST" Description="Run as a manufacturer test application, running as the root user." />
+  <permission Name="FLASHLIGHT" Description="Allows access to the flashlight." />
+  <permission Name="GET_ACCOUNTS" Description="Allows access to the list of accounts in the Accounts Service." />
+  <permission Name="GET_ACCOUNTS_PRIVILEGED" Description="Allows access to the list of accounts in the Accounts Service." />
+  <permission Name="GET_PACKAGE_SIZE" Description="Allows an application to find out the space used by any package." />
+  <permission Name="GET_TASKS" Description="This constant was deprecated in API level 21. No longer enforced." />
+  <permission Name="GLOBAL_SEARCH" Description="This permission can be used on content providers to allow the global search system to access their data." />
+  <permission Name="INSTALL_LOCATION_PROVIDER" Description="Allows an application to install a location provider into the Location Manager." />
+  <permission Name="INSTALL_PACKAGES" Description="Allows an application to install packages." />
+  <permission Name="INSTALL_SHORTCUT" Description="Allows an application to install a shortcut in Launcher." />
+  <permission Name="INTERNET" Description="Allows applications to open network sockets." />
+  <permission Name="KILL_BACKGROUND_PROCESSES" Description="Allows an application to call killBackgroundProcesses(String)." />
+  <permission Name="LOCATION_HARDWARE" Description="Allows an application to use location features in hardware, such as the geofencing api." />
+  <permission Name="MANAGE_DOCUMENTS" Description="Allows an application to manage access to documents, usually as part of a document picker." />
+  <permission Name="MASTER_CLEAR" Description="Not for use by third-party applications." />
+  <permission Name="MEDIA_CONTENT_CONTROL" Description="Allows an application to know what content is playing and control its playback." />
+  <permission Name="MODIFY_AUDIO_SETTINGS" Description="Allows an application to modify global audio settings." />
+  <permission Name="MODIFY_PHONE_STATE" Description="Allows modification of the telephony state - power on, mmi, etc." />
+  <permission Name="MOUNT_FORMAT_FILESYSTEMS" Description="Allows formatting file systems for removable storage." />
+  <permission Name="MOUNT_UNMOUNT_FILESYSTEMS" Description="Allows mounting and unmounting file systems for removable storage." />
+  <permission Name="NFC" Description="Allows applications to perform I/O operations over NFC." />
+  <permission Name="PACKAGE_USAGE_STATS" Description="Allows an application to collect component usage statistics" />
+  <permission Name="Declaring" Description="the permission implies intention to use the API and the user of the device can grant permission through the Settings application." />
+  <permission Name="PERSISTENT_ACTIVITY" Description="This constant was deprecated in API level 9. This functionality will be removed in the future; please do not use. Allow an application to make its activities persistent." />
+  <permission Name="PROCESS_OUTGOING_CALLS" Description="Allows an application to see the number being dialed during an outgoing call with the option to redirect the call to a different number or abort the call altogether." />
+  <permission Name="READ_CALENDAR" Description="Allows an application to read the user&apos;s calendar data." />
+  <permission Name="READ_CALL_LOG" Description="Allows an application to read the user&apos;s call log." />
+  <permission Name="READ_CONTACTS" Description="Allows an application to read the user&apos;s contacts data." />
+  <permission Name="READ_EXTERNAL_STORAGE" Description="Allows an application to read from external storage." />
+  <permission Name="READ_FRAME_BUFFER" Description="Allows an application to take screen shots and more generally get access to the frame buffer data." />
+  <permission Name="READ_INPUT_STATE" Description="This constant was deprecated in API level 16. The API that used this permission has been removed." />
+  <permission Name="READ_LOGS" Description="Allows an application to read the low-level system log files." />
+  <permission Name="READ_PHONE_STATE" Description="Allows read only access to phone state." />
+  <permission Name="READ_SMS" Description="Allows an application to read SMS messages." />
+  <permission Name="READ_SYNC_SETTINGS" Description="Allows applications to read the sync settings." />
+  <permission Name="READ_SYNC_STATS" Description="Allows applications to read the sync stats." />
+  <permission Name="READ_VOICEMAIL" Description="Allows an application to read voicemails in the system." />
+  <permission Name="REBOOT" Description="Required to be able to reboot the device." />
+  <permission Name="RECEIVE_BOOT_COMPLETED" Description="Allows an application to receive the ACTION_BOOT_COMPLETED that is broadcast after the system finishes booting." />
+  <permission Name="RECEIVE_MMS" Description="Allows an application to monitor incoming MMS messages." />
+  <permission Name="RECEIVE_SMS" Description="Allows an application to receive SMS messages." />
+  <permission Name="RECEIVE_WAP_PUSH" Description="Allows an application to receive WAP push messages." />
+  <permission Name="RECORD_AUDIO" Description="Allows an application to record audio." />
+  <permission Name="REORDER_TASKS" Description="Allows an application to change the Z-order of tasks." />
+  <permission Name="REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" Description="Permission an application must hold in order to use ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS." />
+  <permission Name="REQUEST_INSTALL_PACKAGES" Description="Allows an application to request installing packages." />
+  <permission Name="RESTART_PACKAGES" Description="This constant was deprecated in API level 8. The restartPackage(String) API is no longer supported." />
+  <permission Name="SEND_RESPOND_VIA_MESSAGE" Description="Allows an application (Phone) to send a request to other applications to handle the respond-via-message action during incoming calls." />
+  <permission Name="SEND_SMS" Description="Allows an application to send SMS messages." />
+  <permission Name="SET_ALARM" Description="Allows an application to broadcast an Intent to set an alarm for the user." />
+  <permission Name="SET_ALWAYS_FINISH" Description="Allows an application to control whether activities are immediately finished when put in the background." />
+  <permission Name="SET_ANIMATION_SCALE" Description="Modify the global animation scaling factor." />
+  <permission Name="SET_DEBUG_APP" Description="Configure an application for debugging." />
+  <permission Name="SET_PREFERRED_APPLICATIONS" Description="This constant was deprecated in API level 7. No longer useful, see addPackageToPreferred(String) for details." />
+  <permission Name="SET_PROCESS_LIMIT" Description="Allows an application to set the maximum number of (not needed) application processes that can be running." />
+  <permission Name="SET_TIME" Description="Allows applications to set the system time." />
+  <permission Name="SET_TIME_ZONE" Description="Allows applications to set the system time zone." />
+  <permission Name="SET_WALLPAPER" Description="Allows applications to set the wallpaper." />
+  <permission Name="SET_WALLPAPER_HINTS" Description="Allows applications to set the wallpaper hints." />
+  <permission Name="SIGNAL_PERSISTENT_PROCESSES" Description="Allow an application to request that a signal be sent to all persistent processes." />
+  <permission Name="STATUS_BAR" Description="Allows an application to open, close, or disable the status bar and its icons." />
+  <permission Name="SYSTEM_ALERT_WINDOW" Description="Allows an app to create windows using the type TYPE_SYSTEM_ALERT, shown on top of all other apps." />
+  <permission Name="TRANSMIT_IR" Description="Allows using the device&apos;s IR transmitter, if available." />
+  <permission Name="UNINSTALL_SHORTCUT" Description="Allows an application to uninstall a shortcut in Launcher." />
+  <permission Name="UPDATE_DEVICE_STATS" Description="Allows an application to update device statistics." />
+  <permission Name="USE_FINGERPRINT" Description="Allows an app to use fingerprint hardware." />
+  <permission Name="USE_SIP" Description="Allows an application to use SIP service." />
+  <permission Name="VIBRATE" Description="Allows access to the vibrator." />
+  <permission Name="WAKE_LOCK" Description="Allows using PowerManager WakeLocks to keep processor from sleeping or screen from dimming." />
+  <permission Name="WRITE_APN_SETTINGS" Description="Allows applications to write the apn settings." />
+  <permission Name="WRITE_CALENDAR" Description="Allows an application to write the user&apos;s calendar data." />
+  <permission Name="WRITE_CALL_LOG" Description="Allows an application to write (but not read) the user&apos;s contacts data." />
+  <permission Name="WRITE_CONTACTS" Description="Allows an application to write the user&apos;s contacts data." />
+  <permission Name="WRITE_EXTERNAL_STORAGE" Description="Allows an application to write to external storage." />
+  <permission Name="WRITE_GSERVICES" Description="Allows an application to modify the Google service map." />
+  <permission Name="WRITE_SECURE_SETTINGS" Description="Allows an application to read or write the secure system settings." />
+  <permission Name="WRITE_SETTINGS" Description="Allows an application to read or write the system settings." />
+  <permission Name="WRITE_SYNC_SETTINGS" Description="Allows applications to write the sync settings." />
+  <permission Name="WRITE_VOICEMAIL" Description="Allows an application to modify and remove existing voicemails in the system." />
+</permissions>

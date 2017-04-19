@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <Name Value="LazSDL2Design"/>
+    <Type Value="DesignTime"/>
+    <Author Value="Imants Gulbis"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <SearchPaths>
+        <OtherUnitFiles Value="source/design"/>
+        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)/LazSDL2Design"/>
+      </SearchPaths>
+      <Other>
+        <CompilerMessages>
+          <IgnoredMessages idx5024="True"/>
+        </CompilerMessages>
+        <CustomOptions Value="-dDESIGN_TIME"/>
+      </Other>
+    </CompilerOptions>
+    <Description Value="SDL project integration in lazarus"/>
+    <License Value="Mozilla Public License Version 2.0"/>
+    <Version Major="1" Minor="3" Release="3"/>
+    <Files Count="15">
+      <Item1>
+        <Filename Value="source/design/sdl.android.javasource.pas"/>
+        <UnitName Value="SDL.Android.JavaSource"/>
+      </Item1>
+      <Item2>
+        <Filename Value="source/design/sdl.android.options.enviorment.pas"/>
+        <UnitName Value="SDL.Android.Options.Enviorment"/>
+      </Item2>
+      <Item3>
+        <Filename Value="source/design/sdl.android.options.enviorment.fm.pas"/>
+        <UnitName Value="SDL.Android.Options.Enviorment.Fm"/>
+      </Item3>
+      <Item4>
+        <Filename Value="source/design/sdl.android.options.libraries.fm.pas"/>
+        <UnitName Value="SDL.Android.Options.Libraries.Fm"/>
+      </Item4>
+      <Item5>
+        <Filename Value="source/design/sdl.android.options.project.pas"/>
+        <UnitName Value="SDL.Android.Options.Project"/>
+      </Item5>
+      <Item6>
+        <Filename Value="source/design/sdl.android.options.project.fm.pas"/>
+        <UnitName Value="SDL.Android.Options.Project.Fm"/>
+      </Item6>
+      <Item7>
+        <Filename Value="source/design/sdl.android.permissions.fm.pas"/>
+        <UnitName Value="SDL.Android.Permissions.Fm"/>
+      </Item7>
+      <Item8>
+        <Filename Value="source/design/sdl.android.projectbuilder.pas"/>
+        <UnitName Value="SDL.Android.ProjectBuilder"/>
+      </Item8>
+      <Item9>
+        <Filename Value="source/design/sdl.android.sourcetemplates.fm.pas"/>
+        <UnitName Value="SDL.Android.SourceTemplates.Fm"/>
+      </Item9>
+      <Item10>
+        <Filename Value="source/design/sdl.projectbuilder.pas"/>
+        <UnitName Value="SDL.ProjectBuilder"/>
+      </Item10>
+      <Item11>
+        <Filename Value="source/design/sdl2.designstrings.pas"/>
+        <UnitName Value="SDL2.DesignStrings"/>
+      </Item11>
+      <Item12>
+        <Filename Value="source/design/sdl2.newproject.pas"/>
+        <UnitName Value="SDL2.NewProject"/>
+      </Item12>
+      <Item13>
+        <Filename Value="source/design/sdl2.project.pas"/>
+        <UnitName Value="SDL2.Project"/>
+      </Item13>
+      <Item14>
+        <Filename Value="source/design/sdl2.propedits.pas"/>
+        <UnitName Value="SDL2.PropEdits"/>
+      </Item14>
+      <Item15>
+        <Filename Value="source/design/sdl2.register.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="SDL2.Register"/>
+      </Item15>
+    </Files>
+    <RequiredPkgs Count="5">
+      <Item1>
+        <PackageName Value="SynEdit"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="LazSDL2Extensions"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="LazSDL2"/>
+      </Item3>
+      <Item4>
+        <PackageName Value="IDEIntf"/>
+      </Item4>
+      <Item5>
+        <PackageName Value="FCL"/>
+      </Item5>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

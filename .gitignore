@@ -60,10 +60,10 @@ lib
 *.o
 *.ppu
 *.pdf
-Propulse-win32.zip
-
+*.zip
 data/palette/Image1\.png
-
 debug\.txt
-
 Propulse
+src/include/lazsdl2/bin/
+src/include/lazsdl2/tests/
+src/include/lazsdl2/java_templates/

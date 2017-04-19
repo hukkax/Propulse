@@ -1,0 +1,198 @@
+object frmAndroidProjectOptions: TfrmAndroidProjectOptions
+  Left = 0
+  Height = 440
+  Top = 0
+  Width = 517
+  ClientHeight = 440
+  ClientWidth = 517
+  ParentShowHint = False
+  ShowHint = True
+  TabOrder = 0
+  object edPackageName: TEdit
+    Left = 144
+    Height = 27
+    Hint = 'Project package name'
+    Top = 13
+    Width = 358
+    Anchors = [akTop, akLeft, akRight]
+    TabOrder = 0
+  end
+  object lblPackageName: TLabel
+    AnchorSideTop.Control = edPackageName
+    AnchorSideTop.Side = asrCenter
+    AnchorSideRight.Control = edPackageName
+    Left = 38
+    Height = 17
+    Top = 18
+    Width = 102
+    Anchors = [akTop, akRight]
+    BorderSpacing.Right = 4
+    Caption = 'Package name:'
+    ParentColor = False
+  end
+  object cmbOpenGLEs: TComboBox
+    Left = 144
+    Height = 29
+    Hint = 'Witch OpenGL ES version to initialize when creating android surface.'
+    Top = 190
+    Width = 104
+    ItemHeight = 0
+    Items.Strings = (
+      '1.0'
+      '1.1'
+      '2.0'
+      '3.0'
+      '3.1'
+      '3.2'
+    )
+    TabOrder = 1
+  end
+  object lblOpenGLEs: TLabel
+    AnchorSideTop.Control = cmbOpenGLEs
+    AnchorSideTop.Side = asrCenter
+    AnchorSideRight.Control = cmbOpenGLEs
+    Left = 60
+    Height = 17
+    Top = 196
+    Width = 80
+    Anchors = [akTop, akRight]
+    BorderSpacing.Right = 4
+    Caption = 'OpenGL ES:'
+    ParentColor = False
+  end
+  object lblMain: TLabel
+    AnchorSideTop.Control = edtMain
+    AnchorSideTop.Side = asrCenter
+    AnchorSideRight.Control = edtMain
+    Left = 102
+    Height = 17
+    Top = 53
+    Width = 38
+    Anchors = [akTop, akRight]
+    BorderSpacing.Right = 4
+    Caption = 'Main:'
+    ParentColor = False
+  end
+  object edtMain: TEdit
+    Left = 144
+    Height = 27
+    Hint = 'Android main activity class name'
+    Top = 48
+    Width = 358
+    Anchors = [akTop, akLeft, akRight]
+    TabOrder = 2
+  end
+  object lsScreens: TCheckGroup
+    Left = 8
+    Height = 129
+    Top = 240
+    Width = 185
+    AutoFill = True
+    Caption = 'Screens'
+    ChildSizing.LeftRightSpacing = 6
+    ChildSizing.TopBottomSpacing = 6
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 1
+    ClientHeight = 110
+    ClientWidth = 181
+    Items.Strings = (
+      'Small'
+      'Normal'
+      'Large'
+      'xLarge'
+      'Any Density'
+    )
+    TabOrder = 3
+    Data = {
+      050000000202020202
+    }
+  end
+  object lblTarget: TLabel
+    AnchorSideTop.Control = cmbTargetSDK
+    AnchorSideTop.Side = asrCenter
+    AnchorSideRight.Control = cmbTargetSDK
+    Left = 61
+    Height = 17
+    Top = 156
+    Width = 79
+    Anchors = [akTop, akRight]
+    BorderSpacing.Right = 4
+    Caption = 'Target SDK:'
+    ParentColor = False
+  end
+  object lblTargetMinSDK: TLabel
+    AnchorSideTop.Control = cmbTargetMinSDK
+    AnchorSideTop.Side = asrCenter
+    AnchorSideRight.Control = cmbTargetMinSDK
+    Left = 32
+    Height = 17
+    Top = 118
+    Width = 108
+    Anchors = [akTop, akRight]
+    BorderSpacing.Right = 4
+    Caption = 'Target min SDK:'
+    ParentColor = False
+  end
+  object cmbTargetMinSDK: TComboBox
+    Left = 144
+    Height = 29
+    Top = 112
+    Width = 208
+    ItemHeight = 0
+    OnSelect = cmbTargetMinSDKSelect
+    Sorted = True
+    TabOrder = 4
+  end
+  object cmbTargetSDK: TComboBox
+    Left = 144
+    Height = 29
+    Top = 150
+    Width = 208
+    ItemHeight = 0
+    OnSelect = cmbTargetSDKSelect
+    Sorted = True
+    TabOrder = 5
+  end
+  object edtProjectName: TEdit
+    Left = 144
+    Height = 27
+    Hint = 'Android project name. If it is empty target file name is used.'
+    Top = 80
+    Width = 358
+    Anchors = [akTop, akLeft, akRight]
+    TabOrder = 6
+  end
+  object lblProjectName: TLabel
+    AnchorSideTop.Control = edtProjectName
+    AnchorSideTop.Side = asrCenter
+    AnchorSideRight.Control = edtProjectName
+    Left = 46
+    Height = 17
+    Top = 85
+    Width = 94
+    Anchors = [akTop, akRight]
+    BorderSpacing.Right = 4
+    Caption = 'Project name:'
+    ParentColor = False
+  end
+  object lblMinAndroidVersion: TLabel
+    Left = 360
+    Height = 17
+    Top = 118
+    Width = 4
+    Caption = '-'
+    ParentColor = False
+  end
+  object lblAndroidVersion: TLabel
+    Left = 360
+    Height = 17
+    Top = 156
+    Width = 4
+    Caption = '-'
+    ParentColor = False
+  end
+end

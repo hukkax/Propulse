@@ -1,0 +1,41 @@
+object SDLWindow1: TSDLWindow1
+  OnCreate = DataModuleCreate
+  OldCreateOrder = False
+  APS = 60
+  FPS = 60
+  Position.Left = 0
+  Position.Top = 0
+  Size.Width = 800
+  Size.Height = 600
+  Visible = True
+  WindowState = wsSDLNormal
+  SharedContext = 0
+  OnInitOpenGL = DataModuleInitOpenGL
+  OnMinimize = DataModuleMinimize
+  OnRender = DataModuleRender
+  OnRestore = DataModuleRestore
+  Height = 150
+  HorizontalOffset = 413
+  VerticalOffset = 176
+  Width = 150
+  object SDLRenderer1: TSDLRenderer
+    Active = True
+    Camera = SDLCamera1
+    Window = Owner
+    OnRender = SDLRenderer1Render
+    left = 64
+    top = 35
+  end
+  object SDLCamera1: TSDLCamera
+    Active = True
+    Center.X = 0
+    Center.Y = 0
+    Center.Z = 0
+    Eye.X = 0
+    Eye.Y = 0
+    Eye.Z = 20
+    Up = upY
+    left = 74
+    top = 101
+  end
+end
