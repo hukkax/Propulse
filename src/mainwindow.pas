@@ -9,7 +9,7 @@ interface
 
 uses
 	Classes, Types, SysUtils, Generics.Collections,
-	SDL2,
+	SDL.Api.libSDL2, SDL.Api.Types, SDL.Api.Events, SDL.Api.Render, SDL.Api.Keyboard, SDL.Api.Hints,
 	ConfigurationManager, ShortcutManager, TextMode,
 	CWE.Core, CWE.MouseCursor, CWE.Dialogs, CWE.Widgets.Text,
 	ProTracker.Util, ProTracker.Player, ProTracker.Editor;
@@ -95,12 +95,13 @@ type
 	end;
 
 
-	procedure	GetModifierKey(keymod: Integer; var Shift: TShiftState;
-				keymodconst: Word; shiftconst: TShiftStateEnum); inline;
+	procedure	GetModifierKey(keymod: SDL_Keymods; var Shift: TShiftState;
+				keymodconst: Integer; shiftconst: TShiftStateEnum); inline;
 	function 	GetShiftState: TShiftState;
 	function 	TimerTickCallback(interval: Uint32; param: Pointer): UInt32; cdecl;
 
 var
+	SDL:			TSDL2Library;
 	Window: 		TWindow;
 	GlobalKeys: 	TKeyBindings;
 	QuitFlag:		Boolean;
@@ -118,10 +119,10 @@ uses
 
 procedure ClearMessageQueue;
 var
-	InputEvent: TSDL_Event;
+	InputEvent: SDL_Event;
 begin
-	SDL_Delay(50);
-	while SDL_PollEvent(@InputEvent) <> 0 do;
+	SDL.Timer.SDL_Delay(50);
+	while SDL.Events.SDL_PollEvent(@InputEvent) = SDL_TRUE do;
 end;
 
 procedure TWindow.DialogCallback(ID: Word; Button: TDialogButton;
@@ -199,16 +200,16 @@ begin
 	case Options.Display.MousePointer of
 
 		CURSOR_SYSTEM:
-			SDL_ShowCursor(SDL_ENABLE);
+			SDL.Mouse.SDL_ShowCursor(SDL_Cursor_Show);
 
 		CURSOR_CUSTOM:
 			begin
-				SDL_ShowCursor(SDL_DISABLE);
+				SDL.Mouse.SDL_ShowCursor(SDL_Cursor_Hide);
 				MouseCursor.Show := True;
 			end;
 
 		else
-			SDL_ShowCursor(SDL_DISABLE);
+			SDL.Mouse.SDL_ShowCursor(SDL_Cursor_Hide);
 	end;
 end;
 
@@ -388,19 +389,30 @@ end;
 
 function TWindow.SetupVideo: Boolean;
 
+	function SetHint(const Hint: AnsiString; Val: Boolean): Boolean;
+	var
+		bs: AnsiString;
+	begin
+		if Val then bs := '1' else bs := '0';
+		Result := (SDL.Hints.SDL_SetHint(PAnsiChar(Hint), PAnsiChar(bs)) = SDL_TRUE);
+		if not Result then
+			LogIfDebug('Failed to set SDL hint "' + Hint + '"!');
+	end;
+
 	function GetFontFile(const Fn: String): String;
 	begin
 		Result := 'font/' + Fn + '.pcx';
 	end;
 
 var
-	dm: TSDL_DisplayMode;
-	windowFlags, rendererFlags: UInt32;
+	dm: SDL_DisplayMode;
+	windowFlags: SDL_WindowFlags;
+	rendererFlags: SDL_RendererFlags;
 	screenW, screenH, sx, sy: Word;
 	Icon: PSDL_Surface;
 	Fn: String;
-	rinfo: TSDL_RendererInfo;
-	sdlVersion: TSDL_Version;
+	rinfo: SDL_RendererInfo;
+	sdlVersion: SDL_Version;
 	OK: Boolean;
 begin
   	Result := False;
@@ -445,41 +457,43 @@ begin
 
 	if not Initialized then
 	begin
-		SDL_GetVersion(@sdlVersion);
+		SDL.Version.SDL_GetVersion(sdlVersion);
 		Video.NewSDL := sdlVersion.patch >= 5; // we want SDL 2.0.5 or newer
 		Video.LibraryVersion := Format('%d.%d.%d',
 			[sdlVersion.major, sdlVersion.minor, sdlVersion.patch]);
+		LogIfDebug('Loaded SDL ' + Video.LibraryVersion);
 	end;
 
-	windowFlags   := 0;
-	rendererFlags := SDL_RENDERER_ACCELERATED or SDL_RENDERER_TARGETTEXTURE;
+	windowFlags.Value := 0;
+	rendererFlags.Value := UInt32(SDL_RENDERER_ACCELERATED or SDL_RENDERER_TARGETTEXTURE);
 
-	SDL_SetHint(SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING, '1'); // this was fun to figure out, not
-	SDL_SetHint(SDL_HINT_TIMER_RESOLUTION, '1');
-	SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, '1');
-	SDL_SetHint(SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4, '1');
+	if Video.NewSDL then
+		SetHint(SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING, True);
+	SetHint(SDL_HINT_TIMER_RESOLUTION, True);
+	SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, True);
+	SetHint(SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4, True);
 
 	{$IFDEF UNIX}
-	SDL_SetHint('SDL_VIDEO_X11_XRANDR',   '0');
-	SDL_SetHint('SDL_VIDEO_X11_XVIDMODE', '1');
+	SetHint('SDL_VIDEO_X11_XRANDR',   False);
+	SetHint('SDL_VIDEO_X11_XVIDMODE', True);
 	{$ENDIF}
 
 	if not Initialized then
 	begin
-		if SDL_Init(SDL_INIT_VIDEO or SDL_INIT_TIMER) < 0 then
+		if SDL.SDL_Init(SDL_INIT_VIDEO {or SDL_INIT_TIMER}) <> 0 then
 		begin
-			LogFatal('Error initializing SDL: ' + SDL_GetError);
+			LogFatal('Error initializing SDL: ' + SDL.Error.SDL_GetError);
 			Exit;
 		end;
 
-		SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
-		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 'nearest');
+		SDL.Threads.SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
+		SDL.Hints.SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 'nearest');
 	end
 	else
 	begin
-		SDL_DestroyRenderer(Video.Renderer);
-		SDL_DestroyTexture(Video.Texture);
-		SDL_DestroyWindow(Video.Window);
+		SDL.Render.SDL_DestroyRenderer(Video.Renderer);
+		SDL.Render.SDL_DestroyTexture(Video.Texture);
+		SDL.Video.SDL_DestroyWindow(Video.Window);
 	end;
 
     Video.HaveVSync := False;
@@ -487,23 +501,26 @@ begin
 
 	if Options.Display.VSyncMode <> VSYNC_OFF then
 	begin
-		if SDL_GetDesktopDisplayMode(0, @dm) = 0 then
+		if SDL.Video.SDL_GetDesktopDisplayMode(0, dm) = 0 then
 			Video.SyncRate := dm.refresh_rate
 		else
-			Log('GetDesktopDisplayMode failed: ' + SDL_GetError);
+			Log('GetDesktopDisplayMode failed: ' + SDL.Error.SDL_GetError);
 		if (Options.Display.VSyncMode = VSYNC_FORCE) or
 			(Video.SyncRate in [50..61]) then
 		begin
-			rendererFlags := rendererFlags or SDL_RENDERER_PRESENTVSYNC;
+			rendererFlags.Value := rendererFlags.Value or UInt32(SDL_RENDERER_PRESENTVSYNC);
 			Video.HaveVSync := True;
 		end;
 	end;
 
-	Video.Window := SDL_CreateWindow('Propulse Tracker',
-		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, sx, sy, windowFlags);
+	windowFlags.Value := UInt32(SDL_WINDOW_SHOWN);
+
+	Video.Window := SDL.Video.SDL_CreateWindow('Propulse Tracker',
+		SDL.Video.SDL_WINDOWPOS_CENTERED, SDL.Video.SDL_WINDOWPOS_CENTERED,
+		sx, sy, windowFlags);
 	if Video.Window = nil then
 	begin
-		LogFatal('Error setting up window: ' + SDL_GetError);
+		LogFatal('Error setting up window: ' + SDL.Error.SDL_GetError);
 		Exit;
 	end;
 
@@ -513,51 +530,54 @@ begin
 	begin
 		sy := screenH * sx;
 		sx := screenW * sx;
-		SDL_SetWindowSize(Video.Window, sx, sy);
-		SDL_SetWindowPosition(Video.Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		SDL.Video.SDL_SetWindowSize(Video.Window, sx, sy);
+		SDL.Video.SDL_SetWindowPosition(Video.Window,
+			SDL.Video.SDL_WINDOWPOS_CENTERED, SDL.Video.SDL_WINDOWPOS_CENTERED);
 	end;
 
-	Video.Renderer := SDL_CreateRenderer(Video.Window, -1, rendererFlags);
+	Video.Renderer := SDL.Render.SDL_CreateRenderer(Video.Window, -1, rendererFlags);
 	if (Video.Renderer = nil) and (Video.HaveVSync) then
 	begin
 		// try again without vsync flag
         Video.HaveVSync := False;
-		rendererFlags := rendererFlags and not SDL_RENDERER_PRESENTVSYNC;
-		Video.Renderer := SDL_CreateRenderer(Video.Window, -1, rendererFlags);
+		rendererFlags.Value := rendererFlags.Value and not UInt32(SDL_RENDERER_PRESENTVSYNC);
+		Video.Renderer := SDL.Render.SDL_CreateRenderer(Video.Window, -1, rendererFlags);
 		if Video.Renderer = nil then
 		begin
-			LogFatal('Error creating renderer: ' + SDL_GetError);
+			LogFatal('Error creating renderer: ' + SDL.Error.SDL_GetError);
 			Exit;
 		end;
 	end;
-	SDL_SetRenderDrawBlendMode(Video.Renderer, SDL_BLENDMODE_NONE);
+	SDL.Render.SDL_SetRenderDrawBlendMode(Video.Renderer, SDL_BLENDMODE_NONE);
 
-	SDL_GetRendererInfo(Video.Renderer, @rinfo);
+	SDL.Render.SDL_GetRendererInfo(Video.Renderer, @rinfo);
 	Video.RendererName := rinfo.name;
 
-	if SDL_RenderSetLogicalSize(Video.Renderer, screenW, screenH) <> 0 then
+	if SDL.Render.SDL_RenderSetLogicalSize(Video.Renderer, screenW, screenH) <> 0 then
 	begin
-		LogFatal('Error setting renderer size: ' + SDL_GetError);
+		LogFatal('Error setting renderer size: ' + SDL.Error.SDL_GetError);
 		Exit;
 	end;
+	{$IFNDEF DISABLE_SDL2_2_0_5}
     if Video.NewSDL then
-		SDL_RenderSetIntegerScale(Video.Renderer, SDL_TRUE);
+		SDL.Render.SDL_RenderSetIntegerScale(Video.Renderer, SDL_TRUE);
+	{$ENDIF}
 
-	Video.Texture := SDL_CreateTexture(Video.Renderer,
-		SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, screenW, screenH);
+	Video.Texture := SDL.Render.SDL_CreateTexture(Video.Renderer,
+		SDL_UInt32(SDL_PIXELFORMAT_ARGB8888), SDL_SInt32(SDL_TEXTUREACCESS_STREAMING), screenW, screenH);
 	if Video.Texture = nil then
 	begin
-		LogFatal('Error initializing streaming texture: ' + SDL_GetError);
+		LogFatal('Error initializing streaming texture: ' + SDL.Error.SDL_GetError);
 		Exit;
 	end;
-	SDL_SetTextureBlendMode(Video.Texture, SDL_BLENDMODE_NONE);
+	SDL.Render.SDL_SetTextureBlendMode(Video.Texture, SDL_BLENDMODE_NONE);
 
 	Fn := GetDataFile('icon.bmp');
 	if Fn <> '' then
 	begin
-		Icon := SDL_LoadBMP(PAnsiChar(Fn));
-		SDL_SetWindowIcon(Video.Window, Icon);
-		SDL_FreeSurface(Icon);
+		Icon := SDL.Surface.SDL_LoadBMP(PAnsiChar(Fn));
+		SDL.Video.SDL_SetWindowIcon(Video.Window, Icon);
+		SDL.Surface.SDL_FreeSurface(Icon);
 	end;
 
 	if Initialized then
@@ -570,8 +590,8 @@ begin
 		end;
 	end;
 
-	Video.NextFrameTime := Trunc(SDL_GetPerformanceCounter +
-		((SDL_GetPerformanceFrequency / 60.0) + 0.5));
+	Video.NextFrameTime := Trunc(SDL.Timer.SDL_GetPerformanceCounter +
+		((SDL.Timer.SDL_GetPerformanceFrequency / 60.0) + 0.5));
 
 	Result := True;
 	Locked := False;
@@ -586,10 +606,10 @@ begin
 
 	MouseCursor.Draw;
 
-	SDL_UpdateTexture(Video.Texture, nil, @Console.Bitmap.Bits[0], Console.Bitmap.Width*4);
-	SDL_RenderClear(Video.Renderer);
-	SDL_RenderCopy(Video.Renderer, Video.Texture, nil, nil);
-	SDL_RenderPresent(Video.Renderer);
+	SDL.Render.SDL_UpdateTexture(Video.Texture, nil, @Console.Bitmap.Bits[0], Console.Bitmap.Width*4);
+	SDL.Render.SDL_RenderClear(Video.Renderer);
+	SDL.Render.SDL_RenderCopy(Video.Renderer, Video.Texture, nil, nil);
+	SDL.Render.SDL_RenderPresent(Video.Renderer);
 
 	MouseCursor.Erase;
 end;
@@ -597,13 +617,18 @@ end;
 function TWindow.GetMaxScaling(MaxScale: Byte = 0): Byte;
 var
 	w, h: Integer;
-	R: TSDL_Rect;
+	R: SDL_Rect;
 begin
 	if MaxScale = 0 then MaxScale := Max(Options.Display.Scaling, 1);
-	if Video.NewSDL then
-		SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), @R)
-	else
-		SDL_GetDisplayBounds(SDL_GetWindowDisplayIndex(Video.Window), @R);
+	with SDL.Video do
+	begin
+		{$IFNDEF DISABLE_SDL2_2_0_5}
+		if Video.NewSDL then
+			SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), R)
+		else
+		{$ENDIF}
+			SDL_GetDisplayBounds(SDL_GetWindowDisplayIndex(Video.Window), R);
+	end;
 	repeat
 		w := Console.Bitmap.Width  * MaxScale;
 		h := Console.Bitmap.Height * MaxScale;
@@ -616,7 +641,7 @@ end;
 procedure TWindow.SetFullScreen(B: Boolean);
 var
 	w, h: Integer;
-	X, Y: Single;
+	X, Y: SDL_Float;
 	{$IFDEF DISABLE_FULLSCREEN}
 	R: TSDL_Rect;
     {$ENDIF}
@@ -627,8 +652,8 @@ begin
 	if B then
 	begin
     	{$IFNDEF DISABLE_FULLSCREEN}
-		SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-		SDL_SetWindowGrab(Video.Window, SDL_TRUE);
+		SDL.Video.SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		SDL.Video.SDL_SetWindowGrab(Video.Window, SDL_TRUE);
     	{$ELSE}
 		if Video.NewSDL then
 	        SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), @R)
@@ -644,17 +669,22 @@ begin
 		w := Console.Bitmap.Width  * h;
 		h := Console.Bitmap.Height * h;
 
-		SDL_SetWindowFullscreen(Video.Window, 0);
-		SDL_SetWindowSize(Video.Window, w, h);
-		SDL_SetWindowPosition(Video.Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-		SDL_SetWindowGrab(Video.Window, SDL_FALSE);
+		SDL.Video.SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_WINDOWED);
+		SDL.Video.SDL_SetWindowSize(Video.Window, w, h);
+		SDL.Video.SDL_SetWindowPosition(Video.Window,
+			SDL.Video.SDL_WINDOWPOS_CENTERED, SDL.Video.SDL_WINDOWPOS_CENTERED);
+		SDL.Video.SDL_SetWindowGrab(Video.Window, SDL_FALSE);
 	end;
 
-	SDL_RenderGetScale(Video.Renderer, SDL2.PFloat(@X), SDL2.PFloat(@Y));
+	SDL.Render.SDL_RenderGetScale(Video.Renderer, X, Y);
 	w := Max(Trunc(x), 1); h := Max(Trunc(y), 1);
 	MouseCursor.Scaling := Types.Point(w, h);
 
-	SDL_SetWindowInputFocus(Video.Window);
+	{$IFNDEF DISABLE_SDL2_2_0_5}
+	if Video.NewSDL then
+		SDL.Video.SDL_SetWindowInputFocus(Video.Window);
+	{$ENDIF}
+
     ClearMessageQueue;
     Locked := False;
 end;
@@ -662,7 +692,7 @@ end;
 procedure TWindow.SetTitle(const Title: AnsiString);
 begin
 	if Initialized then
-		SDL_SetWindowTitle(Video.Window, PAnsiChar(Title));
+		SDL.Video.SDL_SetWindowTitle(Video.Window, PAnsiChar(Title));
 end;
 
 procedure TWindow.OnKeyDown(var Key: Integer; Shift: TShiftState);
@@ -758,7 +788,7 @@ begin
 		keyPlaybackPlayFrom:
 			if not InModalDialog then
 			begin
-				Key := SDLK_F7; // dumb hack
+				Key := Integer(SDLK_F7); // dumb hack
 				CurrentScreen.KeyDown(Key, Shift);
 				PlayTimeCounter := 0;
 			end;
@@ -844,8 +874,8 @@ var
 	X, Y: Integer;
 begin
 	if Locked then Exit;
-	SDL_PumpEvents;
-	SDL_GetMouseState(@X, @Y);
+	SDL.Events.SDL_PumpEvents;
+	SDL.Mouse.SDL_GetMouseState(X, Y);
 
 	X := X div MouseCursor.Scaling.X;
 	Y := Y div MouseCursor.Scaling.Y;
@@ -860,26 +890,26 @@ begin
 	end;
 end;
 
-procedure GetModifierKey(keymod: Integer; var Shift: TShiftState;
-	keymodconst: Word; shiftconst: TShiftStateEnum);
+procedure GetModifierKey(keymod: SDL_Keymods; var Shift: TShiftState;
+	keymodconst: Integer; shiftconst: TShiftStateEnum);
 begin
-	if keymod and keymodconst <> 0 then
+	if (Integer(keymod.Value) and keymodconst) <> 0 then
 		Include(Shift, shiftconst);
 end;
 
 function GetShiftState: TShiftState;
 var
-	M: Word;
+	M: SDL_Keymods;
 begin
 	Result := [];
-	M := SDL_GetModState;
+	M := SDL.Keyboard.SDL_GetModState;
 	GetModifierKey(M, Result, KMOD_SHIFT,	ssShift);	// Shift
 	GetModifierKey(M, Result, KMOD_CTRL,	ssCtrl);	// Ctrl
 	GetModifierKey(M, Result, KMOD_ALT,		ssAlt);		// Alt
-	GetModifierKey(M, Result, KMOD_MODE,	ssAltGr);	// AltGr
+	GetModifierKey(M, Result, Integer(KMOD_MODE),	ssAltGr);	// AltGr
 	GetModifierKey(M, Result, KMOD_GUI,		ssMeta);	// Windows
 	//GetModifierKey(M, Result, KMOD_NUM,	ssNum);		// Num Lock
-	GetModifierKey(M, Result, KMOD_CAPS,	ssCaps);	// Caps Lock
+	GetModifierKey(M, Result, Integer(KMOD_CAPS),	ssCaps);	// Caps Lock
 end;
 
 function RemoveDiacritics(const S: String): String;
@@ -934,12 +964,13 @@ end;
 
 procedure TWindow.HandleInput;
 var
-	InputEvent: TSDL_Event;
-	c: SInt32;
+	InputEvent: SDL_Event;
+	c: SDL_SInt32;
 	X, Y: Integer;
 	B: Boolean;
 	Btn: TMouseButton;
-	Key: Integer;
+	Key: SDL_KeyCode;
+	km: SDL_KeyMods;
 	Shift: TShiftState;
 	AnsiInput: AnsiString;
 
@@ -956,10 +987,10 @@ begin
 	X := MouseCursor.Pos.X;
 	Y := MouseCursor.Pos.Y;
 
-	while SDL_PollEvent(@InputEvent) <> 0 do
-	case {%H-}InputEvent.type_ of
+	while SDL.Events.SDL_PollEvent(@InputEvent) = SDL_TRUE do
+	case {%H-}InputEvent._type of
 
-		SDL_USEREVENT:		// messages from playroutine
+		SDL_USEREVENT_EV:		// messages from playroutine
 		begin
 			c := InputEvent.user.code;
 			if c = MSG_VUMETER then
@@ -983,23 +1014,24 @@ begin
 			begin
 				Key := InputEvent.key.keysym.sym;
 				case Key of
+					SDLK_UNKNOWN,
 					SDLK_LSHIFT, SDLK_RSHIFT,
 					SDLK_LCTRL,  SDLK_RCTRL,
-					SDLK_LALT,   SDLK_RALT,
-					0: ;
+					SDLK_LALT,   SDLK_RALT:
+					;
 				else
 					Shift := [];
-					if InputEvent.key.keysym._mod <> 0 then
+					if InputEvent.key.keysym.amod <> KMOD_NONE then
 					begin
-						c := InputEvent.key.keysym._mod;
-						GetModifierKey(c, Shift, KMOD_SHIFT,ssShift);	// Shift
-						GetModifierKey(c, Shift, KMOD_CTRL,	ssCtrl);	// Ctrl
-						GetModifierKey(c, Shift, KMOD_ALT,	ssAlt);		// Alt
-						GetModifierKey(c, Shift, KMOD_GUI,	ssMeta);	// Windows
-						GetModifierKey(c, Shift, KMOD_CAPS,	ssCaps);	// Caps Lock
-						GetModifierKey(c, Shift, KMOD_MODE,	ssAltGr);	// AltGr
+						km := InputEvent.key.keysym.amod;
+						GetModifierKey(km, Shift, KMOD_SHIFT,ssShift);	// Shift
+						GetModifierKey(km, Shift, KMOD_CTRL,	ssCtrl);	// Ctrl
+						GetModifierKey(km, Shift, KMOD_ALT,	ssAlt);		// Alt
+						GetModifierKey(km, Shift, KMOD_GUI,	ssMeta);	// Windows
+						GetModifierKey(km, Shift, Integer(KMOD_CAPS),	ssCaps);	// Caps Lock
+						GetModifierKey(km, Shift, Integer(KMOD_MODE),	ssAltGr);	// AltGr
 					end;
-					OnKeyDown(Key, Shift);
+					OnKeyDown(Integer(Key), Shift);
 				end;
 			end;
 			{$IFDEF LIMIT_KEYBOARD_EVENTS}
@@ -1027,11 +1059,11 @@ begin
 					Btn := mbLeft;
 				end;
 
-				if InputEvent.type_ = SDL_MOUSEBUTTONDOWN then
+				if InputEvent._type = SDL_MOUSEBUTTONDOWN then
 				begin
 					if PtInRect(CurrentScreen.Rect, GetXY) then
 					begin
-						SDL_SetWindowGrab(Video.Window, SDL_TRUE);
+						SDL.Video.SDL_SetWindowGrab(Video.Window, SDL_TRUE);
 						B := CurrentScreen.MouseDown(Btn, X, Y, GetXY);
 						// right button for context menu if the button wasn't otherwise handled
 						if (Btn = mbRight) and (not B) and (ModalDialog.Dialog = nil) then
@@ -1044,9 +1076,9 @@ begin
 							ModalDialog.Close;
 				end
 				else
-				if InputEvent.type_ = SDL_MOUSEBUTTONUP then
+				if InputEvent._type = SDL_MOUSEBUTTONUP then
 				begin
-					SDL_SetWindowGrab(Video.Window, SDL_FALSE);
+					SDL.Video.SDL_SetWindowGrab(Video.Window, SDL_FALSE);
 					CurrentScreen.MouseUp(Btn, X, Y, GetXY);
 				end;
 			end;
@@ -1060,7 +1092,7 @@ begin
 			if CurrentScreen <> nil then
 				CurrentScreen.MouseWheel([], InputEvent.wheel.y, GetXY);
 
-		SDL_WINDOWEVENT:
+		SDL_WINDOWEVENT_EV:
 			case InputEvent.window.event of
 		        SDL_WINDOWEVENT_ENTER:	MouseCursor.InWindow := True;
 		        SDL_WINDOWEVENT_LEAVE:	MouseCursor.InWindow := False;
@@ -1081,28 +1113,28 @@ var
 begin
 	if (Video.HaveVSync) or (Locked) then Exit;
 
-	perfFreq := SDL_GetPerformanceFrequency; // should be safe for double
+	perfFreq := SDL.Timer.SDL_GetPerformanceFrequency; // should be safe for double
 	if perfFreq = 0 then Exit; // panic!
 
-	timeNow_64bit := SDL_GetPerformanceCounter;
+	timeNow_64bit := SDL.Timer.SDL_GetPerformanceCounter;
 	if Video.NextFrameTime > timeNow_64bit then
 	begin
 		delayMs := Trunc((Video.NextFrameTime - timeNow_64bit)
 			* (1000.0 / perfFreq) + 0.5);
-		SDL_Delay(delayMs);
+		SDL.Timer.SDL_Delay(delayMs);
 	end;
 	Inc(Video.NextFrameTime, Trunc(perfFreq / 60 + 0.5));
 end;
 
 function TimerTickCallback(interval: Uint32; param: Pointer): UInt32; cdecl;
 var
-	event: TSDL_Event;
+	event: SDL_Event;
 begin
 	if (Initialized) and (not Locked) then
 	begin
-		event.type_ := SDL_USEREVENT;
+		event._type := SDL_USEREVENT_EV;
 		event.user.code := MSG_TIMERTICK;
-	    SDL_PushEvent(@event);
+	    SDL.Events.SDL_PushEvent(@event);
 	end;
 	Result := interval;
 end;
@@ -1259,6 +1291,7 @@ constructor TWindow.Create;
 var
 	Dir: String;
 	i: Integer;
+	Warnings: Boolean = False;
 begin
 	Initialized := False;
 	QuitFlag := False;
@@ -1292,10 +1325,23 @@ begin
 	// Create fake text mode console and init SDL
 	//
 	LogIfDebug('Setting up video...');
+
+	SDL := TSDL2Library.Create('');
+	SDL.Init;
+	LogIfDebug('SDL loaded from ' + SDL.FileName);
+
+	if not SDL.Valid then
+	begin
+		LogFatal('Could not initialize SDL2!');
+		QuitFlag := True;
+		Exit;
+	end;
+
 	if not SetupVideo then
 	begin
 		LogFatal('Could not initialize video!');
-		HALT;
+		QuitFlag := True;
+		Exit;
 	end;
 
 	// Create screens
@@ -1328,7 +1374,7 @@ begin
 	if not Video.NewSDL then
 	begin
 		Log(TEXT_WARNING + 'Using an older version of SDL. (< 2.0.5)');
-		Log(TEXT_WARNING + 'Visuals may appear worse than intended!');
+		Warnings := True;
 		Log('');
 	end;
 
@@ -1354,7 +1400,8 @@ begin
 	if not AudioInit(i) then
 	begin
 	    LogFatal('Could not initialize audio; quitting!');
-		HALT;
+		QuitFlag := True;
+		Exit;
 	end;
 
 	Options.Features.SOXR := (soxr_version <> '');
@@ -1366,6 +1413,7 @@ begin
 	    Log(TEXT_WARNING + 'SOXR support not compiled in!');
 		{$ENDIF}
 	    Log(TEXT_WARNING + 'Resampling features disabled.');
+		Warnings := True;
 	end
 	else
 		Log(TEXT_INIT + 'Other: Using ' + soxr_version + ' for resampling');
@@ -1457,13 +1505,6 @@ begin
 
 	DoLoadModule('');
 
-	if Options.Display.ShowSplashScreen then
-		ChangeScreen(TCWEScreen(SplashScreen))
-	else
-		ChangeScreen(TCWEScreen(Editor));
-
-	Console.Paint;
-
 	{$IFDEF LIMIT_KEYBOARD_EVENTS}
 	PrevKeyTimeStamp := 0;
 	{$ENDIF}
@@ -1479,37 +1520,60 @@ begin
 	SetFullScreen(Video.IsFullScreen);
 
 	if not Video.HaveVSync then
-		SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
+		SDL.Timer.SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
 
 	LogIfDebug('OK.');
 	Log(TEXT_SUCCESS + 'Program started at ' + DateTimeToStr(Now) + '.');
 	Log('-');
+
+	if Warnings then
+		ChangeScreen(TCWEScreen(LogScreen))
+	else
+	if Options.Display.ShowSplashScreen then
+		ChangeScreen(TCWEScreen(SplashScreen))
+	else
+		ChangeScreen(TCWEScreen(Editor));
+
+	Console.Paint;
 end;
 
 destructor TWindow.Destroy;
 begin
 	LogIfDebug('Closing down...');
-	Initialized := False;
 
-	// Save configuration
-	Shortcuts.Save(ConfigPath + FILENAME_KEYBOARD);
-	ConfigScreen.SavePalette;
+	if Initialized then
+	begin
+		Initialized := False;
 
-	ConfigManager.Save;
-	ConfigManager.Free;
+		// Save configuration
+		if Shortcuts <> nil then
+			Shortcuts.Save(ConfigPath + FILENAME_KEYBOARD);
+		if ConfigScreen <> nil then
+			ConfigScreen.SavePalette;
 
-	ContextMenu.Free;
-	Console.Free;
-	Screens.Free;
-	MouseCursor.Free;
+		if ConfigManager <> nil then
+		begin
+			ConfigManager.Save;
+			ConfigManager.Free;
+		end;
 
-	Module.Free;
-	AudioClose;
+		ContextMenu.Free;
+		Console.Free;
+		Screens.Free;
+		MouseCursor.Free;
 
-	SDL_DestroyRenderer(Video.Renderer);
-	SDL_DestroyTexture(Video.Texture);
-	SDL_DestroyWindow(Video.Window);
-	SDL_Quit;
+		Module.Free;
+		AudioClose;
+
+		if Video.Renderer <> nil then
+			SDL.Render.SDL_DestroyRenderer(Video.Renderer);
+		if Video.Texture <> nil then
+			SDL.Render.SDL_DestroyTexture(Video.Texture);
+		if Video.Window <> nil then
+			SDL.Video.SDL_DestroyWindow(Video.Window);
+		SDL.SDL_Quit;
+	end;
+	SDL.Free;
 end;
 
 procedure TWindow.Close;

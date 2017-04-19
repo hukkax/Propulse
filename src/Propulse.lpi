@@ -34,7 +34,7 @@
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
             <Libraries Value=".."/>
-            <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\sdl2;include\bass"/>
+            <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\sdl2;include\bass"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -351,7 +351,7 @@
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
       <Libraries Value=".."/>
-      <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\sdl2;include\bass"/>
+      <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\bass"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
@@ -370,7 +370,6 @@
     <Linking>
       <Debugging>
         <DebugInfoType Value="dsDwarf2Set"/>
-        <UseHeaptrc Value="True"/>
         <UseExternalDbgSyms Value="True"/>
       </Debugging>
       <Options>
@@ -389,9 +388,14 @@
       </CompilerMessages>
       <CustomOptions Value="-al
 -gl
--dDEBUG"/>
-      <OtherDefines Count="1">
+-dDEBUG
+-dBASS_DYNAMIC"/>
+      <OtherDefines Count="5">
         <Define0 Value="DEBUG"/>
+        <Define1 Value="RELEASE"/>
+        <Define2 Value="BASS_DYNAMIC"/>
+        <Define3 Value="DISABLE_SDL2_2_0_5"/>
+        <Define4 Value="DISABLE_SDL2_2_0_4"/>
       </OtherDefines>
     </Other>
   </CompilerOptions>
