@@ -384,7 +384,8 @@ begin
 	if not FileExists(Result) then
 	begin
 		Result := '';
-		LogDebug('GetDataFile: file not found: "' + Filename + '"');
+		if ExtractFileExt(Filename) <> '.layout' then
+			LogDebug('GetDataFile: file not found: "' + Filename + '"');
 	end;
 end;
 

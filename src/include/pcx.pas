@@ -43,7 +43,7 @@ var
 	Bf: array of array of Byte;
 	fsize: Int64;
 	b: Byte;
-	tavu1, tavu2, x, y, linepadding,
+	tavu1, tavu2, x, y,
 	position, bytesperline: Integer;
 	PCXFile: TFileStreamEx;
 label
@@ -70,7 +70,7 @@ begin
 	PCXFile.SeekTo($42);
 	bytesperline := PCXFile.ReadWord;
 	//bytestoread := Height * bytesperline;
-	linepadding := ((bytesperline * (8 div BitsPerPixel)) - Width) div 8;
+	//linepadding := ((bytesperline * (8 div BitsPerPixel)) - Width) div 8;
 
 	PCXFile.SeekTo(128);
 	position := PCXFile.Position;

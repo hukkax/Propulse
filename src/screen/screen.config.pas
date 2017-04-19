@@ -482,6 +482,8 @@ end;
 
 procedure TConfigScreen.SavePalette(const Presetname: String = '');
 begin
+	if PaletteConfig = nil then Exit;
+
 	if Presetname = '' then
 		PaletteConfig.Filename := ConfigPath + FILENAME_PALETTE
 	else
