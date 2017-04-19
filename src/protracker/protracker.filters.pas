@@ -98,14 +98,14 @@ end;
 procedure CalcCoeffLossyIntegrator(sr, hz: Single; filter: PLossyIntegrator);
 begin
 	if (sr = 0) or (hz = 0) then Exit;
-	filter.coeff[0] := Tan(M_PI_F * hz / sr);
-	filter.coeff[1] := 1.0 / (1.0 + filter.coeff[0]);
+	filter^.coeff[0] := Tan(M_PI_F * hz / sr);
+	filter^.coeff[1] := 1.0 / (1.0 + filter^.coeff[0]);
 end;
 
 procedure ClearLossyIntegrator(filter: PLossyIntegrator);
 begin
-	filter.buffer[0] := 0.0;
-	filter.buffer[1] := 0.0;
+	filter^.buffer[0] := 0.0;
+	filter^.buffer[1] := 0.0;
 end;
 
 procedure LossyIntegrator(filter: PLossyIntegrator; _in, _out: PArrayOfSingle);
@@ -113,13 +113,13 @@ var
 	output: Single;
 begin
 	// left channel low-pass
-	output := (filter.coeff[0] * _in[0] + filter.buffer[0]) * filter.coeff[1];
-	filter.buffer[0] := filter.coeff[0] * (_in[0] - output) + output + 1e-10;
+	output := (filter^.coeff[0] * _in[0] + filter^.buffer[0]) * filter^.coeff[1];
+	filter^.buffer[0] := filter^.coeff[0] * (_in[0] - output) + output + 1e-10;
 	_out[0] := output;
 
 	// right channel low-pass
-	output := (filter.coeff[0] * _in[1] + filter.buffer[1]) * filter.coeff[1];
-	filter.buffer[1] := filter.coeff[0] * (_in[1] - output) + output + 1e-10;
+	output := (filter^.coeff[0] * _in[1] + filter^.buffer[1]) * filter^.coeff[1];
+	filter^.buffer[1] := filter^.coeff[0] * (_in[1] - output) + output + 1e-10;
 	_out[1] := output;
 end;
 
@@ -166,12 +166,12 @@ begin
 	_out[0] := filter^.led[1];
 
 	// right channel
-	filter.led[2] := filter.led[2] +
-		(filterC.led * (_in[1] - filter.led[2]) +
-		filterC.ledFb * (filter.led[2] - filter.led[3]) + 1e-10);
-	filter.led[3] := filter.led[3] +
-		(filterC.led  * (filter.led[2] - filter.led[3]) + 1e-10);
-	_out[1] := filter.led[3];
+	filter^.led[2] := filter^.led[2] +
+		(filterC^.led * (_in[1] - filter^.led[2]) +
+		filterC^.ledFb * (filter^.led[2] - filter^.led[3]) + 1e-10);
+	filter^.led[3] := filter^.led[3] +
+		(filterC^.led  * (filter^.led[2] - filter^.led[3]) + 1e-10);
+	_out[1] := filter^.led[3];
 end;
 
 // ==========================================================================
@@ -187,7 +187,7 @@ begin
 	blepSrc := i + BLEP_OS;
 	f := (offset * BLEP_SP) - i;
 
-	i := b.Index;
+	i := b^.Index;
 	n := BLEP_NS;
 
 	while n > 0 do
