@@ -606,7 +606,10 @@ var
 	R: TSDL_Rect;
 begin
 	if MaxScale = 0 then MaxScale := Max(Options.Display.Scaling, 1);
-	SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), @R);
+	if Video.NewSDL then
+		SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), @R)
+	else
+		SDL_GetDisplayBounds(SDL_GetWindowDisplayIndex(Video.Window), @R);
 	repeat
 		w := Console.Bitmap.Width  * MaxScale;
 		h := Console.Bitmap.Height * MaxScale;
@@ -633,7 +636,10 @@ begin
 		SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 		SDL_SetWindowGrab(Video.Window, SDL_TRUE);
     	{$ELSE}
-        SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), @R);
+		if Video.NewSDL then
+	        SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), @R)
+		else
+			SDL_GetDisplayBounds(SDL_GetWindowDisplayIndex(Video.Window), @R);
         SDL_SetWindowSize(Video.Window, R.w, R.h);
 		SDL_SetWindowPosition(Video.Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
         {$ENDIF}
