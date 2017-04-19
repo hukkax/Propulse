@@ -3,30 +3,29 @@ Propulse Tracker build instructions
 
 Requirements:
 
-- FreePascal 3.0+:
-  http://www.freepascal.org/
-- Lazarus (not strictly required, but I haven't tried building without):
-  http://www.lazarus-ide.org/
-- SDL2 (preferably v2.0.5 or newer):
-  http://libsdl.org/
-- BASS:
-  http://www.un4seen.com/
+- FreePascal 3.0+: http://www.freepascal.org/
+- Lazarus: http://www.lazarus-ide.org/
+
+The following required headers are contained in the src/include directory:
+
+- SDL2: http://libsdl.org/ - the Pascal headers I use in Propulse for loading
+  SDL2 dynamically: https://sourceforge.net/projects/lazsdl2/
+- BASS: http://www.un4seen.com/
 - Generics.Collections for FreePascal (may already be integrated to current
-  FPC trunk but I haven't verified):
-  https://github.com/dathox/generics.collections
-- libSOXR (if building on Windows):
+  FPC trunk):  https://github.com/dathox/generics.collections
+- libSOXR (if building on Windows and resampling functionality wanted):
   https://sourceforge.net/p/soxr/wiki/Home/
 
-Windows:
+Building on Windows:
 
 - Install FreePascal 3.x and Lazarus
 - Open Propulse.lps in Lazarus
 - Press Shift-F9 to build
 - Probably complain to me if it didn't work
 
-Linux:
+Building on Linux:
 
-- Install SDL2 development packages (2.0.5 or newer)
+- Install SDL2 development packages
 - Download the "stuff" Linux build of BASS (the official 2.4.12 Linux build
   has a crash bug on some systems, including mine):
   http://www.un4seen.com/stuff/bass-linux.zip
@@ -34,10 +33,10 @@ Linux:
   (not src!)
 - Follow the above instructions for building on Windows
 
-Mac:
+Building on Mac:
 
-  No idea for now, sorry; the source may need some additional work to
+- No idea for now, sorry; the source may need some additional work to
   build/run on a Mac.
 
 -- 
-hukka 2017-03-29 - hukkax@gmail.com - https://github.com/hukkax/Propulse
+hukka 2017-04-20 - hukkax@gmail.com - https://github.com/hukkax/Propulse
