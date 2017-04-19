@@ -19,50 +19,44 @@ program Propulse;
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *)
 
-{$MODE delphi}
 {$R propulse.res}
+
 {$IFDEF RELEASE}
 	{$APPTYPE GUI}
 {$ENDIF}
 
 uses
-	{$IFDEF FPC}
-		{$IFNDEF WINDOWS}
-		cthreads, //cmem,
-		Classes,
-		{$ENDIF}
-		{$IFDEF BASS_DYNAMIC}
-		lazdynamic_bass,
-		{$ENDIF}
+	{$IFDEF UNIX}
+	cthreads, //cmem,
+	Classes,
+	{$ENDIF}
+	{$IFDEF BASS_DYNAMIC}
+	lazdynamic_bass,
 	{$ENDIF}
 	MainWindow;
 
 
-	{$IFDEF FPC}
-		{$IFNDEF WINDOWS}
-		// on Unix we need to initialize the threading system before
-		// using custom callbacks with BASS or we crash!
-		type
-			TDummyThread = class(TThread)
-				procedure Execute; override;
-			end;
+	{$IFDEF UNIX}
+	// on Unix we need to initialize the threading system before
+	// using custom callbacks with BASS or we crash!
+	type
+		TDummyThread = class(TThread)
+			procedure Execute; override;
+		end;
 
-			procedure TDummyThread.Execute;
-			begin
-			end;
-		{$ENDIF}
+		procedure TDummyThread.Execute;
+		begin
+		end;
 	{$ENDIF}
 
 
 begin
-	{$IFDEF FPC}
-		{$IFNDEF WINDOWS}
-		with TDummyThread.Create(False) do
-		begin
-			WaitFor;
-			Free;
-		end;
-		{$ENDIF}
+	{$IFNDEF WINDOWS}
+	with TDummyThread.Create(False) do
+	begin
+		WaitFor;
+		Free;
+	end;
 	{$ENDIF}
 
 	{$IFDEF BASS_DYNAMIC}
