@@ -21,9 +21,9 @@ unit soxr;
 
 interface
 
-{$IFDEF WINDOWS}
+{.$IFDEF WINDOWS}
 {$DEFINE ENABLE_SOXR}
-{$ENDIF}
+{.$ENDIF}
 
 {$WARN SYMBOL_PLATFORM OFF}
 
