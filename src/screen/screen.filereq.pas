@@ -468,7 +468,7 @@ begin
 			begin
 				if MoveFile then
 				begin
-					FileUtil.DeleteFileUTF8(Filename);
+					DeleteToBin(Filename);
 					ModalDialog.ShowMessage('File Move', 'File moved to ' + DestDir + '.');
 					SetDirectory(Directory);
 				end
