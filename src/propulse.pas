@@ -22,7 +22,9 @@ program Propulse;
 {$R propulse.res}
 
 {$IFDEF RELEASE}
-	{$APPTYPE GUI}
+	{$IFDEF WINDOWS}
+		{$APPTYPE GUI}
+	{$ENDIF}
 {$ENDIF}
 
 uses
