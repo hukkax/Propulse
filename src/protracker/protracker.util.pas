@@ -6,7 +6,7 @@ uses
 	ConfigurationManager, Types;
 
 const
-	VERSION  =  '0.8.9.6';
+	VERSION  =  '0.8.9.7';
 
 	URL = 'http://hukka.yiff.fi/propulse/';
 
