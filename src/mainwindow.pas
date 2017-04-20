@@ -1,8 +1,8 @@
 unit MainWindow;
 
 {$IFDEF UNIX}
-	{$DEFINE DISABLE_FULLSCREEN}	// disable broken SDL fullscreen mode
-	{$DEFINE LIMIT_KEYBOARD_EVENTS}	// fix duplicate keyboard events on Linux with FCITX
+	{$DEFINE DISABLE_FULLSCREEN}		// disable broken SDL fullscreen mode
+	{.$DEFINE LIMIT_KEYBOARD_EVENTS}	// fix duplicate keyboard events on Linux with FCITX
 {$ENDIF}
 
 interface
@@ -415,7 +415,7 @@ var
 	sdlVersion: SDL_Version;
 	OK: Boolean;
 begin
-  	Result := False;
+    Result := False;
 	Locked := True;
 
 	Fn := GetDataFile(GetFontFile(Options.Display.Font));
@@ -1384,8 +1384,8 @@ begin
 		Dir := 'unknown'
 	else
 		Dir := IntToStr(Video.SyncRate);
-	Dir := Format('Video: SDL %s, %s renderer at %s Hz',
-		[Video.LibraryVersion, Video.RendererName, Dir]);
+	Dir := Format('Video: SDL %s (%s), %s renderer at %s Hz',
+		[Video.LibraryVersion, SDL.FileName, Video.RendererName, Dir]);
 	if Video.HaveVSync then	Dir := Dir + ' VSync';
 	Log(TEXT_INIT + Dir);
 
@@ -1410,8 +1410,6 @@ begin
 	if not Options.Features.SOXR then
 	begin
 		{$IFDEF UNIX}
-	    Log(TEXT_WARNING + 'SOXR support not implemented on non-Windows platforms.');
-		{$ELSE}
 	    Log(TEXT_WARNING + 'SOXR support not compiled in!');
 		{$ENDIF}
 	    Log(TEXT_WARNING + 'Resampling features disabled.');
@@ -1528,7 +1526,7 @@ begin
 	Log(TEXT_SUCCESS + 'Program started at ' + DateTimeToStr(Now) + '.');
 	Log('-');
 
-	if Warnings then
+    if Warnings then
 		ChangeScreen(TCWEScreen(LogScreen))
 	else
 	if Options.Display.ShowSplashScreen then
