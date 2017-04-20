@@ -80,12 +80,13 @@ begin
 	end;
 end;
 
+// TODO fix this (seems broken on fpc linux at least)
 // public domain, adapted from
 // http://www.musicdsp.org/showArchiveComment.php?ArchiveID=236
 procedure Equalize(var buffer: TFloatArray;
 	lowfreq, highfreq, mixfreq: Word;
 	BassGain, MidGain, HighGain: Single);
-const
+{const
 	vsa = 1.0 / 4294967295.0; // Very small amount (Denormal Fix)
 var
 	i: Integer;
@@ -94,9 +95,10 @@ var
 	hf, f2p0, f2p1, f2p2, f2p3,
 	sdm1, sdm2, sdm3,
 	lg, mg, hg: Single;
-	sample: Single;
+	sample: Single;}
 begin
-	{ (880, 5000, 44100, 1.5, 0.75, 1.0) ->
+(*
+    { (880, 5000, 44100, 1.5, 0.75, 1.0) ->
 	  eq.lg := 1.5; 	// Boost bass by 50%
 	  eq.mg := 0.75; 	// Cut mid by 25%
 	  eq.hg := 1.0; 	// Leave high band alone }
@@ -151,6 +153,7 @@ begin
 		// Return result
 		buffer[i] := LimitSample(l + m + h);
 	end;
+*)
 end;
 
 procedure Filter(var buffer: TFloatArray; Cutoff: Word; LP: Boolean);

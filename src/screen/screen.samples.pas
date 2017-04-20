@@ -626,7 +626,7 @@ begin
 		CreateConfigManager;
 
 		ConfigManager.AddByte(Sect, '',
-			@DialogBytes[CFG_FROM], 36)
+			@DialogBytes[CFG_FROM], 24)
 		.SetInfo('Resample from', 0, 36, NoteNames);
 
 		ConfigManager.AddInteger(Sect, '',
@@ -634,7 +634,7 @@ begin
 		.SetInfo('         Hz', 0, 44100, []);
 
 		ConfigManager.AddByte(Sect, '',
-		@DialogBytes[CFG_TO], 24)
+		@DialogBytes[CFG_TO], 12)
 		.SetInfo('Resample to', 0, 36, NoteNames);
 
 		ConfigManager.AddInteger(Sect, '',
@@ -651,7 +651,7 @@ begin
 		.SetInfo('Normalize levels', 0, 1, ['No', 'Yes']);
 
 		ConfigManager.AddBoolean(Sect, '',
-		@DialogBooleans[CFG_BOOSTHIGHS], True)
+		@DialogBooleans[CFG_BOOSTHIGHS], False)
 		.SetInfo('Boost highs', 0, 1, ['No', 'Yes']);
 
 		List.Init(ConfigManager);
