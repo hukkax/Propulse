@@ -3,7 +3,7 @@ unit Screen.Samples;
 interface
 
 uses
-	Classes, Types, SysUtils, SDL2,
+	Classes, Types, SysUtils,
 	ShortcutManager, SampleView,
 	TextMode, CWE.Core, CWE.Dialogs, CWE.Widgets.Text, CWE.Widgets.Numeric,
 	ProTracker.Util, ProTracker.Player, ProTracker.Editor, ProTracker.Sample;
@@ -148,9 +148,9 @@ var
 
 implementation
 
-
 uses
-	MainWindow, Math, Layout,
+	MainWindow, SDL.Api.Types,
+	Math, Layout,
     soxr, SampleEditor,
 	Screen.FileReqSample, Screen.Editor, Screen.Config,
 	CWE.MainMenu, Dialog.ValueQuery;

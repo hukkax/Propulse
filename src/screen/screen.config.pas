@@ -69,7 +69,7 @@ var
 implementation
 
 uses
-	SDL2, Graphics32,
+	SDL.Api.Types, Graphics32,
 	Layout,
 	ShortcutManager,
 	Screen.Editor,

@@ -76,7 +76,7 @@ var
 implementation
 
 uses
-	Math, SDL2;
+	Math, SDL.Api.Types;
 
 
 function TCWEDialog.TitlebarMouseDown(Sender: TCWEControl;

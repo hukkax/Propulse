@@ -246,7 +246,7 @@ var
 implementation
 
 uses
-	MainWindow, Math, SDL2,
+	MainWindow, Math, SDL.Api.Types,
 	CWE.Widgets.Text, CWE.Widgets.Scrollers, CWE.Dialogs,
 	Screen.Editor, ProTracker.Editor; // !!! so dumb
 

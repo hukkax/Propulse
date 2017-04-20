@@ -7,7 +7,7 @@ unit CWE.Widgets.Text;
 interface
 
 uses
-	Classes, Types, SysUtils, SDL2, ShortcutManager,
+	Classes, Types, SysUtils, ShortcutManager,
 	Generics.Collections,
 	CWE.Core, CWE.Widgets.Scrollers;
 
@@ -190,6 +190,7 @@ implementation
 uses
 	MainWindow, DateUtils,
 	{$IFDEF WINDOWS}Windows, ShellAPI,{$ENDIF}
+	SDL.Api.Types,
 	TextMode, Math,
 	ProTracker.Util;
 

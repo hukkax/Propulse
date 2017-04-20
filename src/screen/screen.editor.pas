@@ -3,7 +3,7 @@ unit Screen.Editor;
 interface
 
 uses
-	Classes, Types, SysUtils, Math, SDL2,
+	Classes, Types, SysUtils, Math,
 	TextMode, CWE.Core, CWE.Widgets.Text, CWE.Widgets.Numeric,
 	ProTracker.Player, ProTracker.Editor;
 
@@ -134,7 +134,7 @@ implementation
 
 uses
 	MainWindow, BuildInfo, ShortcutManager, Layout, CWE.MainMenu,
-	Graphics32,
+	SDL.Api.Types, Graphics32,
 	ProTracker.Sample,
 	ProTracker.Util;
 

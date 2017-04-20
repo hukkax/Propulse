@@ -17,6 +17,7 @@ uses
 	{$ENDIF}
 	SysUtils,
 	Generics.Collections,
+	SDL.Api.libSDL2, SDL.Api.Types, SDL.API.Events,
 	ProTracker.Util,
 	ProTracker.Sample,
 	ProTracker.Paula,
@@ -330,8 +331,7 @@ var
 	MSG_VUMETER,
 	MSG_ROWCHANGE,
 	MSG_ORDERCHANGE,
-	MSG_TIMERTICK:	UInt32;
-
+	MSG_TIMERTICK:	SDL_SInt32;
 
 implementation
 
@@ -340,17 +340,15 @@ uses
 	Windows,
 	{$ENDIF}
 	Classes, Math,
-	SDL2,
+	MainWindow,
 	FileStreamEx, fpwavwriter, fpwavformat,
 	ProTracker.Editor,
-	ProTracker.Format.IT,
-	ProTracker.Format.P61;
+	ProTracker.Format.IT, ProTracker.Format.P61;
 
 var
 	Mixing: Boolean;
 	samplesLeft: Cardinal;
 	outputFreq: Cardinal;
-
 
 // ==========================================================================
 // Orderlist
@@ -414,7 +412,7 @@ function AudioCallback(Handle: HSTREAM; Buffer: Pointer; Len: DWord; User: Point
 var
 	outStream: ^TArrayOfSmallInt absolute Buffer;
 	pos, sampleBlock, samplesTodo: Integer;
-	event: TSDL_Event;
+	event: SDL_Event;
 begin
 	Result := Len;
 	FillChar(Buffer^, Len, 0);
@@ -461,12 +459,11 @@ begin
 
 	if (not VUhandled) {and (not Module.DisableMixer)} then
 	begin
-		//VUhandled := False;
 		Move(Buffer^, VUbuffer[0], Len);
-		event.type_ := SDL_USEREVENT;
+		event._type := SDL_USEREVENT_EV;
 		event.user.code := MSG_VUMETER;
-		event.user.data1 := Pointer(Len);
-		SDL_PushEvent(@event);
+		event.user.data1 := SDL_Data(Len);
+		MainWindow.SDL.Events.SDL_PushEvent(@event);
 	end;
 
 	Mixing := False;
@@ -479,10 +476,9 @@ var
 	ver, flags: DWord;
 	Minbuf: Integer;
 	S: AnsiString;
-	MainWindow: Cardinal = 0;
+	WindowHandle: Cardinal = 0;
 begin
 	Result := False;
-	MainWindow := 0;
 	Stream := 0;
 
 	if Frequency < 11025 then Frequency := 44100;
@@ -498,9 +494,9 @@ begin
 	BASS_SetConfig(BASS_CONFIG_VISTA_TRUEPOS, 0); // Speeds up initialization
 	{$ENDIF}
 
-	if not BASS_Init(Options.Audio.Device, outputFreq, flags, MainWindow, nil) then
+	if not BASS_Init(Options.Audio.Device, outputFreq, flags, WindowHandle, nil) then
 	begin
-		if not BASS_Init(-1, outputFreq, flags, MainWindow, nil) then
+		if not BASS_Init(-1, outputFreq, flags, WindowHandle, nil) then
 		begin
 			Log(TEXT_ERROR + 'Error initializing audio device!');
 			Exit;
@@ -551,10 +547,13 @@ begin
 
 	Result := True;
 
-	MSG_VUMETER     := SDL_RegisterEvents(1);
-	MSG_ROWCHANGE   := SDL_RegisterEvents(1);
-	MSG_ORDERCHANGE := SDL_RegisterEvents(1);
-	MSG_TIMERTICK   := SDL_RegisterEvents(1);
+	with MainWindow.SDL.Events do
+	begin
+		MSG_VUMETER     := SDL_SInt32(SDL_RegisterEvents(1));
+		MSG_ROWCHANGE   := SDL_SInt32(SDL_RegisterEvents(1));
+		MSG_ORDERCHANGE := SDL_SInt32(SDL_RegisterEvents(1));
+		MSG_TIMERTICK   := SDL_SInt32(SDL_RegisterEvents(1));
+	end;
 end;
 
 procedure AudioClose;
@@ -581,14 +580,14 @@ begin
 	end;
 end;
 
-procedure PostMessage(EventType: UInt32);
+procedure PostMessage(EventType: SDL_SInt32);
 var
-	event: TSDL_Event;
+	event: SDL_Event;
 begin
-	event.type_ := SDL_USEREVENT;
+	event._type := SDL_USEREVENT_EV;
 	event.user.code := EventType;
-	event.user.data1 := @Module.PlayPos;
-	SDL_PushEvent(@event);
+	event.user.data1 := SDL_Data(@Module.PlayPos);
+	MainWindow.SDL.Events.SDL_PushEvent(@event);
 end;
 
 // ==========================================================================

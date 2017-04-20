@@ -6,7 +6,7 @@ interface
 {.$DEFINE DEBUG_SHORTCUTS}
 
 uses
-	Classes, Generics.Collections, SDL2;
+	Classes, Generics.Collections;
 
 type
 	TShortCut = record
@@ -77,6 +77,7 @@ var
 implementation
 
 uses
+	MainWindow,
 	StrUtils, SysUtils, IniFiles,
 	ProTracker.Util;
 
@@ -89,7 +90,7 @@ end;
 
 function ShortCutToText(ShortCut: TShortCut): String;
 begin
-	Result := SDL_GetKeyName(Shortcut.Key);
+	Result := SDL.Keyboard.SDL_GetKeyName(Shortcut.Key);
 	if Shortcut.Shift <> [] then
 	begin
 		if ssShift in Shortcut.Shift then
@@ -150,7 +151,7 @@ begin
 		//GetShift('NumLock',	ssNum);
 	end;
 
-	Result.Key := SDL_GetKeyFromName(PAnsiChar(S));
+	Result.Key := SDL.Keyboard.SDL_GetKeyFromName(PAnsiChar(S));
 
 	{$IFDEF DEBUG_KEYS}
 	Log('  Key: "%s" => %d', [S, Result.Key]);

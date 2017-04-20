@@ -171,7 +171,7 @@ var
 implementation
 
 uses
-	SDL2,
+	SDL.Api.Types,
     Generics.Defaults, FileUtils, FileUtil,
 	{$IFDEF WINDOWS}Windows,{$ENDIF}
 	Layout, CWE.MainMenu,

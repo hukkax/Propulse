@@ -113,7 +113,8 @@ type
 implementation
 
 uses
-	Math, TextMode, ShortcutManager, SDL2,
+	SDL.Api.Types,
+	Math, TextMode, ShortcutManager,
 	Dialog.ValueQuery, CWE.MouseCursor;
 
 

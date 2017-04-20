@@ -4,7 +4,7 @@ interface
 
 uses
 //	Windows,
-	Classes, Types, SysUtils, Math, SDL2,
+	Classes, Types, SysUtils, Math,
 	TextMode, CWE.Core, CWE.Widgets.Text, ShortcutManager,
 	ProTracker.Player;
 
@@ -183,6 +183,7 @@ uses
 	TimeMeasurer,
 	{$ENDIF}
 	//ClipBrd,
+	SDL.Api.Types,
 	ProTracker.Util,
 	Screen.Log,
 	Screen.FileReq,
