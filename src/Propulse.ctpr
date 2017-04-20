@@ -63,7 +63,7 @@
             </Verbosity>
             <WriteFPCLogo Value="False"/>
             <CompilerMessages>
-              <IgnoredMessages idx5057="True" idx5024="True" idx4080="True" idx4079="True" idx4035="True"/>
+              <IgnoredMessages idx5057="True" idx5024="True" idx4035="True"/>
             </CompilerMessages>
             <CustomOptions Value="-OoLOOPUNROLL
 -OoFASTMATH
