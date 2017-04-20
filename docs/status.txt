@@ -1,7 +1,6 @@
 Propulse Tracker current status
 ===============================
 
-- libSOXR support is not implemented yet on non-Windows platforms
 - Mac support needs someone to work on, I don't have access to one
 
 
@@ -30,6 +29,7 @@ Permanent changes:
 
 To be fixed:
 
+- "Boost highs" in resampling options is nonfunctional
 - Font and mouse pointer images must be in 1/4/8-bit PCX format
 - Palette preset loading/saving disabled for now due to lack of file requester
 
@@ -49,4 +49,4 @@ Bugs fixed from PoroTracker 0.8.9.3
 - Other stuff I forgot to write down
 
 -- 
-hukka 2017-04-14 - hukkax@gmail.com - https://github.com/hukkax/Propulse
+hukka 2017-04-20 - hukkax@gmail.com - https://github.com/hukkax/Propulse
