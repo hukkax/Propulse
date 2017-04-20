@@ -326,8 +326,10 @@ uses
 procedure LogDebug(const Msg: AnsiString);
 begin
 	DebugLn(Msg);
-	{$IFDEF DEBUG}
+	{$IFDEF UNIX}
 	writeln(Msg);
+    {$ELSE}
+    {$IFDEF DEBUG}writeln(Msg);{$ENDIF}
 	{$ENDIF}
 end;
 
