@@ -643,12 +643,13 @@ var
 	w, h: Integer;
 	X, Y: SDL_Float;
 	{$IFDEF DISABLE_FULLSCREEN}
-	R: TSDL_Rect;
+	R: SDL_Rect;
     {$ENDIF}
 begin
 	Locked := True;
     Video.IsFullScreen := B;
 
+	with SDL.Video do
 	if B then
 	begin
     	{$IFNDEF DISABLE_FULLSCREEN}
@@ -656,11 +657,12 @@ begin
 		SDL.Video.SDL_SetWindowGrab(Video.Window, SDL_TRUE);
     	{$ELSE}
 		if Video.NewSDL then
-	        SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), @R)
+	        SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), R)
 		else
-			SDL_GetDisplayBounds(SDL_GetWindowDisplayIndex(Video.Window), @R);
+			SDL_GetDisplayBounds(SDL_GetWindowDisplayIndex(Video.Window), R);
         SDL_SetWindowSize(Video.Window, R.w, R.h);
-		SDL_SetWindowPosition(Video.Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		SDL_SetWindowPosition(Video.Window,
+			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
         {$ENDIF}
 	end
 	else
@@ -669,11 +671,11 @@ begin
 		w := Console.Bitmap.Width  * h;
 		h := Console.Bitmap.Height * h;
 
-		SDL.Video.SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_WINDOWED);
-		SDL.Video.SDL_SetWindowSize(Video.Window, w, h);
-		SDL.Video.SDL_SetWindowPosition(Video.Window,
-			SDL.Video.SDL_WINDOWPOS_CENTERED, SDL.Video.SDL_WINDOWPOS_CENTERED);
-		SDL.Video.SDL_SetWindowGrab(Video.Window, SDL_FALSE);
+		SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_WINDOWED);
+		SDL_SetWindowSize(Video.Window, w, h);
+		SDL_SetWindowPosition(Video.Window,
+			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		SDL_SetWindowGrab(Video.Window, SDL_FALSE);
 	end;
 
 	SDL.Render.SDL_RenderGetScale(Video.Renderer, X, Y);
