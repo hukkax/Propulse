@@ -4,7 +4,7 @@ Propulse Tracker build instructions
 Requirements:
 
 - FreePascal 3.0+: http://www.freepascal.org/
-- Lazarus: http://www.lazarus-ide.org/
+- Lazarus: http://www.lazarus-ide.org/ (CodeTyphon works too)
 
 The following required headers are contained in the src/include directory:
 
@@ -13,13 +13,13 @@ The following required headers are contained in the src/include directory:
 - BASS: http://www.un4seen.com/
 - Generics.Collections for FreePascal (may already be integrated to current
   FPC trunk):  https://github.com/dathox/generics.collections
-- libSOXR (if building on Windows and resampling functionality wanted):
+- libSOXR (optional for resampling functionality):
   https://sourceforge.net/p/soxr/wiki/Home/
 
 Building on Windows:
 
 - Install FreePascal 3.x and Lazarus
-- Open Propulse.lps in Lazarus
+- Open Propulse.lps in Lazarus or Propulse.ctpr in CodeTyphon
 - Press Shift-F9 to build
 - Probably complain to me if it didn't work
 
