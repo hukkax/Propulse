@@ -25,7 +25,9 @@ uses
 
 
 const
-	OFFSET_SONGTITLE	= 0;
+    MINIMUM_AUDIOBUFFER_LENGTH = 45; // in milliseconds
+
+    OFFSET_SONGTITLE	= 0;
 	OFFSET_SAMPLEINFO	= 20;
 	OFFSET_ORDERLIST	= 952;
 	OFFSET_ID			= 1080;
@@ -511,7 +513,7 @@ begin
 	BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 10);
 
 	// Minimum recommended buffer size
-	Minbuf := info.minbuf + 10 + 1;
+	Minbuf := Max(info.minbuf + 10 + 1, MINIMUM_AUDIOBUFFER_LENGTH);
 
 	if Options.Audio.Buffer = 0 then
 		// Default buffer size = 'minbuf' + update period + 1ms extra margin
