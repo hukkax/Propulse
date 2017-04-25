@@ -10,6 +10,8 @@ uses
 const
 	BASSSupportedFormats = '[.mp3][.ogg][.aiff]';
 
+	MAX_IMPORTED_SAMPLESIZE = 6; // load max. 6 megabytes of 8-bit mono sample data
+
 	// Bit width (8 bits for simplicity)
 	ST_BIT_MASK	= $000000FF;
 	ST_8		= 8;		// 8-bit sample data
@@ -435,8 +437,8 @@ begin
 
 	if DoHighBoost then
 	begin
-		FloatSampleEffects.Normalize(ibuf, 0.9);
-		FloatSampleEffects.Equalize(ibuf, 880, 5000, OrigHz, 1.0, 1.0, 1.6);
+//		FloatSampleEffects.Normalize(ibuf, 0.9);
+//		FloatSampleEffects.Equalize(ibuf, 880, 5000, OrigHz, 1.0, 1.0, 1.6);
 	end;
 
 {	Log(TEXT_LIGHT+'[%s]', [Trim(Name)]);
@@ -624,8 +626,6 @@ begin
 end;
 
 function TSample.LoadWithBASS(const Filename: String): Boolean;
-const
-	MAX_MB = 6; // load max. 6 megabytes of 8-bit mono sample data
 var
 	DataLength: QWord;
 	Stream: HSTREAM;
@@ -665,10 +665,10 @@ begin
 	else
 		Channels := 1;
 
-	DataLength := Min(DataLength, 1024*1024*4*Channels*MAX_MB);
+	DataLength := Min(DataLength, 1024*1024*Channels*MAX_IMPORTED_SAMPLESIZE);
 
-	SetLength(Buf, DataLength);
-	DataLength := BASS_ChannelGetData(Stream, @Buf[0], DataLength or BASS_DATA_FLOAT);
+	SetLength(Buf, DataLength div 4);
+	DataLength := BASS_ChannelGetData(Stream, @Buf[0], DataLength or BASS_DATA_FLOAT) div 4;
 
 	if 	(SOXRLoaded) and (Options.Import.Resampling.Enable) and
 		(Info.freq >= Options.Import.Resampling.ResampleFrom) then
@@ -680,6 +680,8 @@ begin
 				Buf[i] := Buf[i * Channels];
 			SetLength(Buf, DataLength);
 		end;
+		if Options.Import.Resampling.Normalize then
+			FloatSampleEffects.Normalize(Buf);
 
 		// resample automatically
 		Freq := PeriodToHz(PeriodTable[Options.Import.Resampling.ResampleTo]);
@@ -764,18 +766,18 @@ begin
 			2:  LastSampleFormat.isStereo := True;
 		else
 			SupportedFormat := False;
-			{Log(TEXT_ERROR + 'WAV loader: %d-channel samples not supported!', [Wav.fmt.Channels]);
-			Exit;}
 		end;
 
         if SupportedFormat then
 		case Wav.fmt.BitsPerSample of
 			8:  LastSampleFormat.is16Bit := False;
-			16: LastSampleFormat.is16Bit := True;
+			16:
+			begin
+				LastSampleFormat.is16Bit := True;
+				SupportedFormat := False; // load 16-bit samples via BASS
+			end;
 		else
 			SupportedFormat := False;
-			{Log(TEXT_ERROR + 'WAV loader: %d-bit samples not supported!', [Wav.fmt.BitsPerSample]);
-			Exit;}
 		end;
 
 		if not SupportedFormat then
@@ -786,7 +788,7 @@ begin
 			Exit(LoadWithBASS(Filename));
 		end;
 
-		WavLen := Min(Wav.dataSize, 1024*1024*3); // 3 megabytes
+		WavLen := Min(Wav.dataSize, 1024*1024*MAX_IMPORTED_SAMPLESIZE);
 		Len := WavLen;
 
 		if LastSampleFormat.isStereo then Len := Len div 2;
