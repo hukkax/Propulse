@@ -631,6 +631,7 @@ var
 	Buf: TFloatArray;
 	S: AnsiString;
 	Channels, V, i: Int64;
+	Freq: Cardinal;
 begin
 	Result := False;
 
@@ -651,7 +652,11 @@ begin
 	end;
 
 	DataLength := BASS_ChannelGetLength(Stream, BASS_POS_BYTE);
-	if DataLength < 2 then Exit;
+	if DataLength < 2 then
+	begin
+		BASS_StreamFree(Stream);
+		Exit;
+	end;
 
 	DataLength := Min(DataLength, 1024*1024*3); // 3 megabytes
 
@@ -663,17 +668,39 @@ begin
 	SetLength(Buf, DataLength);
 	DataLength := BASS_ChannelGetData(Stream, @Buf[0], DataLength or BASS_DATA_FLOAT);
 
-	DataLength := DataLength div Channels div 4;
-	Self.Resize(DataLength);
-
-	for i := 0 to DataLength-1 do
+	if 	(SOXRLoaded) and (Options.Import.Resampling.Enable) and
+		(Info.freq >= Options.Import.Resampling.ResampleFrom) then
 	begin
-		V := Trunc(Buf[i * Channels] * 127);
-		if V < -128 then V := -128 else if V > 127 then V := 127;
-		ShortInt(Data[i]) := ShortInt(V);
+		if Channels > 1 then
+		begin
+			DataLength := DataLength div Channels;
+			for i := 0 to DataLength-1 do
+				Buf[i] := Buf[i * Channels];
+			SetLength(Buf, DataLength);
+		end;
+
+		// resample automatically
+		Freq := PeriodToHz(PeriodTable[Options.Import.Resampling.ResampleTo]);
+		Log('Resampling from %d to %d Hz', [Info.freq, Freq]);
+		ResampleFromBuffer(Buf, Info.freq, Freq,
+			SOXRQuality[Options.Import.Resampling.Quality],
+			Options.Import.Resampling.Normalize,
+			Options.Import.Resampling.HighBoost);
+	end
+	else
+	begin
+		DataLength := DataLength div Channels div 4;
+		Self.Resize(DataLength);
+
+		for i := 0 to DataLength-1 do
+		begin
+			V := Trunc(Buf[i * Channels] * 127);
+			if V < -128 then V := -128 else if V > 127 then V := 127;
+			ShortInt(Data[i]) := ShortInt(V);
+		end;
 	end;
 
-	Result := True;
+	BASS_StreamFree(Stream);
 
 	if (Self is TImportedSample) then
 	begin
@@ -681,6 +708,8 @@ begin
 		TImportedSample(Self).is16Bit  := True; // !!!
 	end;
 	LastSampleFormat.Length := Length;
+
+	Result := True;
 end;
 
 function TSample.LoadFromFile(const Filename: String): Boolean;
