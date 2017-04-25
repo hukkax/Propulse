@@ -8,7 +8,7 @@ uses
 	FileStreamEx;
 
 const
-	// Sample unpacking
+	BASSSupportedFormats = '[.mp3][.ogg][.aiff]';
 
 	// Bit width (8 bits for simplicity)
 	ST_BIT_MASK	= $000000FF;
@@ -100,7 +100,8 @@ type
 		procedure 		LoadDataFloat(var ModFile: TFileStreamEx;
 						NumSamples: Cardinal; Flags: Cardinal;
 						var Buffer: TFloatArray);
-		procedure		LoadFromFile(const Filename: String);
+		function 		LoadWithBASS(const Filename: String): Boolean;
+		function		LoadFromFile(const Filename: String): Boolean;
 		procedure 		SaveToFile(const Filename: String; FileFormat: TSampleFormat);
 
 		function 		GetName: AnsiString;
@@ -155,6 +156,11 @@ var
 implementation
 
 uses
+	{$IFDEF BASS_DYNAMIC}
+		lazdynamic_bass,
+	{$ELSE}
+		BASS,
+	{$ENDIF}
 	Math, Classes, SysUtils,
 	fpwavformat, fpwavreader, fpwavwriter,
 	FloatSampleEffects,
@@ -617,7 +623,67 @@ begin
 	ZeroFirstWord;
 end;
 
-procedure TSample.LoadFromFile(const Filename: String);
+function TSample.LoadWithBASS(const Filename: String): Boolean;
+var
+	DataLength: QWord;
+	Stream: HSTREAM;
+	Info: BASS_CHANNELINFO;
+	Buf: TFloatArray;
+	S: AnsiString;
+	Channels, V, i: Int64;
+begin
+	Result := False;
+
+	Stream := BASS_StreamCreateFile(False, PChar(Filename), 0, 0,
+		BASS_SAMPLE_FLOAT or BASS_STREAM_DECODE);
+	if Stream = 0 then
+	begin
+		case BASS_ErrorGetCode() of
+			BASS_ERROR_FILEOPEN:	S := 'The file could not be opened.';
+			BASS_ERROR_FILEFORM:	S := 'File format not recognised or supported.';
+			BASS_ERROR_CODEC:		S := 'Unavailable or unsupported codec.';
+			BASS_ERROR_MEM:			S := 'Insufficient memory.';
+		else
+			S := 'Unknown problem!';
+		end;
+		Log(TEXT_ERROR + S);
+		Exit;
+	end;
+
+	DataLength := BASS_ChannelGetLength(Stream, BASS_POS_BYTE);
+	if DataLength < 2 then Exit;
+
+	DataLength := Min(DataLength, 1024*1024*3); // 3 megabytes
+
+	if BASS_ChannelGetInfo(Stream, Info) then
+		Channels := Info.chans
+	else
+		Channels := 1;
+
+	SetLength(Buf, DataLength);
+	DataLength := BASS_ChannelGetData(Stream, @Buf[0], DataLength or BASS_DATA_FLOAT);
+
+	DataLength := DataLength div Channels div 4;
+	Self.Resize(DataLength);
+
+	for i := 0 to DataLength-1 do
+	begin
+		V := Trunc(Buf[i * Channels] * 127);
+		if V < -128 then V := -128 else if V > 127 then V := 127;
+		ShortInt(Data[i]) := ShortInt(V);
+	end;
+
+	Result := True;
+
+	if (Self is TImportedSample) then
+	begin
+		TImportedSample(Self).isStereo := (Channels > 1);
+		TImportedSample(Self).is16Bit  := True; // !!!
+	end;
+	LastSampleFormat.Length := Length;
+end;
+
+function TSample.LoadFromFile(const Filename: String): Boolean;
 var
 	Wav: TWavReader;
 	FileAcc: TFileStreamEx;
@@ -626,14 +692,31 @@ var
 	Len, WavLen: Cardinal;
 	ips: TImportedSample;
 	Buf: array of SmallInt;
+    SupportedFormat: Boolean;
 begin
-	FileAcc := TFileStreamEx.Create(Filename, fmOpenRead, fmShareDenyNone);
+	Result := False;
+
+	if not FileExists(Filename) then
+	begin
+		Log(TEXT_ERROR + 'File not found: %s', [Filename]);
+		Exit;
+	end;
 
 	Self.Volume := 64;
 	Self.Finetune := 0;
 	Self.LoopStart  := 0;
 	Self.LoopLength := 1;
 	Self.SetName(ExtractFileName(Filename));
+
+	// let BASS decode the file contents unless we have our own loader for it
+	ID := '[' + LowerCase(ExtractFileExt(Filename)) + ']';
+	if Pos(ID, BASSSupportedFormats) > 0 then
+	begin
+		Result := LoadWithBASS(Filename);
+		if Result then Exit;
+	end;
+
+	FileAcc := TFileStreamEx.Create(Filename, fmOpenRead, fmShareDenyNone);
 
 	ID := FileAcc.ReadString(False, 4);
 
@@ -643,20 +726,33 @@ begin
 		FileAcc.SeekTo(0);
 		Wav.LoadFromStream(FileAcc);
 
+        SupportedFormat := True;
+
 		case Wav.fmt.Channels of
 			1:  LastSampleFormat.isStereo := False;
 			2:  LastSampleFormat.isStereo := True;
 		else
-			Log(TEXT_ERROR + 'WAV loader: %d-channel samples not supported!', [Wav.fmt.Channels]);
-			Exit;
+			SupportedFormat := False;
+			{Log(TEXT_ERROR + 'WAV loader: %d-channel samples not supported!', [Wav.fmt.Channels]);
+			Exit;}
 		end;
 
+        if SupportedFormat then
 		case Wav.fmt.BitsPerSample of
 			8:  LastSampleFormat.is16Bit := False;
 			16: LastSampleFormat.is16Bit := True;
 		else
-			Log(TEXT_ERROR + 'WAV loader: %d-bit samples not supported!', [Wav.fmt.BitsPerSample]);
-			Exit;
+			SupportedFormat := False;
+			{Log(TEXT_ERROR + 'WAV loader: %d-bit samples not supported!', [Wav.fmt.BitsPerSample]);
+			Exit;}
+		end;
+
+		if not SupportedFormat then
+		begin
+			FileAcc.Free;
+			Wav.Free;
+			// use BASS to decode unsupported wav format
+			Exit(LoadWithBASS(Filename));
 		end;
 
 		WavLen := Min(Wav.dataSize, 1024*1024*3); // 3 megabytes
@@ -790,6 +886,8 @@ begin
 		TImportedSample(Self).is16Bit  := LastSampleFormat.is16Bit;
 	end;
 	LastSampleFormat.Length := Length;
+
+	Result := True;
 end;
 
 procedure TSample.LoadData(var ModFile: TFileStreamEx;
