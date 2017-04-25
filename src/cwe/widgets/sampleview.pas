@@ -284,7 +284,7 @@ begin
 		begin
 			if (Sample = FSample.Index-1) and (PlayPos >= 0) then
 			begin
-				x := x1 + SampleToPixelPos(PlayPos);
+				x := x1 + SampleToPixelPos(PlayPos); /// !!! FIXME 217
 				if x < x2 then
 					Console.Bitmap.VertLine(x, y1, y2, Console.Palette[COLOR_PLAYBACK]);
 			end;
