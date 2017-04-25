@@ -470,7 +470,7 @@ begin
 
 //	Log('Out: %d bytes', [odone]);
 
-	odone := Min(odone, $1FFFF+1); // limit sample length to 127KB
+//	odone := Min(odone, $1FFFF+1); // limit sample length to 128KB
 	Length := odone div 2;
 	SetLength(Data, Length*2 + 1);
 	LoopStart := 0;
@@ -624,6 +624,8 @@ begin
 end;
 
 function TSample.LoadWithBASS(const Filename: String): Boolean;
+const
+	MAX_MB = 6; // load max. 6 megabytes of 8-bit mono sample data
 var
 	DataLength: QWord;
 	Stream: HSTREAM;
@@ -658,12 +660,12 @@ begin
 		Exit;
 	end;
 
-	DataLength := Min(DataLength, 1024*1024*3); // 3 megabytes
-
 	if BASS_ChannelGetInfo(Stream, Info) then
 		Channels := Info.chans
 	else
 		Channels := 1;
+
+	DataLength := Min(DataLength, 1024*1024*4*Channels*MAX_MB);
 
 	SetLength(Buf, DataLength);
 	DataLength := BASS_ChannelGetData(Stream, @Buf[0], DataLength or BASS_DATA_FLOAT);
@@ -681,7 +683,7 @@ begin
 
 		// resample automatically
 		Freq := PeriodToHz(PeriodTable[Options.Import.Resampling.ResampleTo]);
-		Log('Resampling from %d to %d Hz', [Info.freq, Freq]);
+		//Log('Resampling from %d to %d Hz', [Info.freq, Freq]);
 		ResampleFromBuffer(Buf, Info.freq, Freq,
 			SOXRQuality[Options.Import.Resampling.Quality],
 			Options.Import.Resampling.Normalize,

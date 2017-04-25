@@ -9,7 +9,7 @@ uses
 	Screen.Samples,	Screen.FileReq;
 
 const
-	MAX_SAMPLEFILE_SIZE = 2048*1024;
+	MAX_SAMPLEFILE_SIZE = 1024*1024*50;
 
 	LI_LOADABLE  = 0;
 	LI_ENTERABLE = 1;
