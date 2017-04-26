@@ -632,8 +632,8 @@ var
 	Info: BASS_CHANNELINFO;
 	Buf: TFloatArray;
 	S: AnsiString;
-	Channels, V, i: Int64;
-	Freq: Cardinal;
+	Channels, V: Int64;
+	i, Freq: Cardinal;
 begin
 	Result := False;
 
