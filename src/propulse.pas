@@ -21,12 +21,6 @@ program Propulse;
 
 {$R propulse.res}
 
-{$IFDEF RELEASE}
-	{$IFDEF WINDOWS}
-		{$APPTYPE GUI}
-	{$ENDIF}
-{$ENDIF}
-
 uses
 	{$IFDEF UNIX}
 	cthreads, //cmem,
@@ -60,6 +54,11 @@ begin
 		Free;
 	end;
 	{$ENDIF}
+
+	{$if declared(UseHeapTrace)}
+	GlobalSkipIfNoLeaks := True;
+	//SetHeapTraceOutput('trace.log');
+	{$endif}
 
 	{$IFDEF BASS_DYNAMIC}
 		// load the BASS library dynamically at runtime
