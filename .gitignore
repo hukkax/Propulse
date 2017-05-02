@@ -49,6 +49,8 @@ Temporary Items
 # Custom
 backup
 lib
+Propulse
+debug\.txt
 *.lps
 *.bak
 *.dll
@@ -61,13 +63,14 @@ lib
 *.ppu
 *.pdf
 *.zip
+*.tar\.gz
+*.mod
+*.sh
+*.0
 data/palette/Image1\.png
-debug\.txt
-Propulse
 src/include/lazsdl2/bin/
 src/include/lazsdl2/tests/
 src/include/lazsdl2/java_templates/
-
-propulse-linux64\.tar\.gz
-
-*.0
+src/include/generics\.collections/
+src/include/_generics\.collections/
+Propulse\.app/
