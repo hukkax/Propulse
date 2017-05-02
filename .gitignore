@@ -71,3 +71,7 @@ src/include/lazsdl2/java_templates/
 propulse-linux64\.tar\.gz
 
 *.0
+
+*.mod
+
+*.sh
