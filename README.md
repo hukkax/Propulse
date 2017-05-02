@@ -1,5 +1,9 @@
-Propulse Tracker is a crossplatform application for making Amiga ProTracker compatible tracker modules.
-It uses an Impulse/Schism Tracker style user interface.
+# Propulse Tracker
+
+A crossplatform tracker for making Amiga ProTracker compatible
+tracker modules using an Impulse/Schism Tracker style user interface.
+
+Currently tested to build and run on Windows, Linux and macOS.
 
 Features:
 
@@ -15,4 +19,4 @@ Supported formats:
 - MOD - Loads and saves Amiga ProTracker modules (including load support for 15-sample Ultimate SoundTracker mods, NoiseTracker, and PowerPacked files)
 - P61A - Imports The Player 6.1a crunched modules
 - IT - Imports Impulse Tracker modules
-- Samples: IFF 8SVX (8-bit), WAV, raw 
+- Samples: IFF 8SVX, WAV, MP3, Ogg Vorbis, raw
