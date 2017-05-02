@@ -111,7 +111,12 @@ implementation
 
 uses
 	{$IFDEF WINDOWS}Windows,{$ENDIF}
-	BASS, BuildInfo, Math, soxr,
+	{$IFDEF BASS_DYNAMIC}
+	lazdynamic_bass,
+	{$ELSE}
+	BASS,
+	{$ENDIF}
+    BuildInfo, Math, soxr,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
 	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio,
@@ -1385,7 +1390,7 @@ begin
 	else
 		Dir := IntToStr(Video.SyncRate);
 	Dir := Format('Video: SDL %s (%s), %s renderer at %s Hz',
-		[Video.LibraryVersion, SDL.FileName, Video.RendererName, Dir]);
+		[Video.LibraryVersion, ExtractFilename(SDL.FileName), Video.RendererName, Dir]);
 	if Video.HaveVSync then	Dir := Dir + ' VSync';
 	Log(TEXT_INIT + Dir);
 
