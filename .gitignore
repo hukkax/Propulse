@@ -75,3 +75,5 @@ propulse-linux64\.tar\.gz
 *.mod
 
 *.sh
+
+Propulse\.app/Contents/
