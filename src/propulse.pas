@@ -24,7 +24,7 @@ program Propulse;
 uses
 	{$IFDEF UNIX}
 	cthreads, //cmem,
-	Classes,
+	Classes, SysUtils,
 	{$ENDIF}
 	{$IFDEF BASS_DYNAMIC}
 	lazdynamic_bass,
@@ -45,7 +45,6 @@ uses
 		end;
 	{$ENDIF}
 
-
 begin
 	{$IFNDEF WINDOWS}
 	with TDummyThread.Create(False) do
@@ -64,10 +63,14 @@ begin
 		// load the BASS library dynamically at runtime
 		{$IFDEF WINDOWS}
 		if not Load_BASSDLL('bass.dll') then
-		{$ELSE}
-		if not Load_BASSDLL('./libbass.so') then
 		{$ENDIF}
-		begin
+		{$IFDEF LINUX}
+        if not Load_BASSDLL(ExtractFilePath(ParamStr(0)) + 'libbass.so') then
+		{$ENDIF}
+		{$IFDEF DARWIN}
+        if not Load_BASSDLL(ExtractFilePath(ParamStr(0)) + 'libbass.dylib') then
+		{$ENDIF}
+        begin
 			writeln('Could not init BASS library!');
 			HALT;
 		end;

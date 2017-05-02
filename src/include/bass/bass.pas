@@ -777,6 +777,9 @@ const
 {$IFDEF MACOS}
   bassdll = 'libbass.dylib';
 {$ENDIF}
+{$IFDEF DARWIN}
+  bassdll = 'libbass.dylib';
+{$ENDIF}
 
 function BASS_SetConfig(option, value: DWORD): BOOL; {$IFDEF MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF}; external bassdll;
 function BASS_GetConfig(option: DWORD): DWORD; {$IFDEF MSWINDOWS}stdcall{$ELSE}cdecl{$ENDIF}; external bassdll;

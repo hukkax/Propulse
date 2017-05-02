@@ -21,16 +21,18 @@ unit soxr;
 
 interface
 
-{.$IFDEF WINDOWS}
+{$IFDEF DARWIN}
+{$ELSE}
 {$DEFINE ENABLE_SOXR}
-{.$ENDIF}
+{$ENDIF}
 
 {$WARN SYMBOL_PLATFORM OFF}
 
 const
 	{$IFDEF WINDOWS}
 	SOXR_DLL = 'libsoxr.dll';
-	{$ELSE}
+	{$ENDIF}
+	{$IFDEF LINUX}
 	SOXR_DLL = 'libsoxr.so';
 	{$ENDIF}
 

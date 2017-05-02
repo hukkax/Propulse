@@ -297,7 +297,7 @@ begin
       {$ENDIF}
     {$ENDIF}
 
-    LibDir := AppendPathDelim(ExtractFilePath(ParamStr(0))) + 'lib' + PathDelim + SDLConsts.CPU + '-' + SDLConsts.OS;
+    LibDir := AppendPathDelim(ExtractFilePath(ParamStr(0))); // + 'lib' + PathDelim + SDLConsts.CPU + '-' + SDLConsts.OS;
     if DirectoryExists(LibDir) then
       RezFileName := AppendPathDelim(LibDir) + RezFileName;
   end
