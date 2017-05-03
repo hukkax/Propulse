@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="\"/>
     <Version Value="10"/>
     <General>
       <Flags>
@@ -20,9 +19,6 @@
     <i18n>
       <EnableI18N LFM="False"/>
     </i18n>
-    <VersionInfo>
-      <StringTable ProductVersion=""/>
-    </VersionInfo>
     <BuildModes Count="3">
       <Item1 Name="Debug" Default="True"/>
       <Item2 Name="Release">
@@ -73,14 +69,16 @@
             <CompilerMessages>
               <IgnoredMessages idx5057="True" idx5024="True" idx4080="True" idx4079="True" idx4035="True"/>
             </CompilerMessages>
-            <CustomOptions Value="-dRELEASE
+            <CustomOptions Value="-OoFASTMATH
+-OoLOOPUNROLL
+-OoREMOVEEMPTYPROCS
+-dRELEASE
 -dBASS_DYNAMIC"/>
-            <OtherDefines Count="5">
-              <Define0 Value="DEBUG"/>
-              <Define1 Value="RELEASE"/>
-              <Define2 Value="BASS_DYNAMIC"/>
-              <Define3 Value="DISABLE_SDL2_2_0_5"/>
-              <Define4 Value="DISABLE_SDL2_2_0_4"/>
+            <OtherDefines Count="4">
+              <Define0 Value="RELEASE"/>
+              <Define1 Value="BASS_DYNAMIC"/>
+              <Define2 Value="DISABLE_SDL2_2_0_5"/>
+              <Define3 Value="DISABLE_SDL2_2_0_4"/>
             </OtherDefines>
           </Other>
         </CompilerOptions>
@@ -132,6 +130,12 @@
             </CompilerMessages>
             <CustomOptions Value="-dRELEASE
 -dBASS_DYNAMIC"/>
+            <OtherDefines Count="4">
+              <Define0 Value="RELEASE"/>
+              <Define1 Value="BASS_DYNAMIC"/>
+              <Define2 Value="DISABLE_SDL2_2_0_5"/>
+              <Define3 Value="DISABLE_SDL2_2_0_4"/>
+            </OtherDefines>
           </Other>
         </CompilerOptions>
       </Item3>
@@ -393,7 +397,7 @@
         <UnitName Value="CWE.MainMenu"/>
       </Unit48>
       <Unit49>
-        <Filename Value="include\bass\lazdynamic_bass.pas"/>
+        <Filename Value="include/bass/lazdynamic_bass.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit49>
     </Units>
@@ -448,6 +452,12 @@
 -gl
 -dDEBUG
 -dBASS_DYNAMIC"/>
+      <OtherDefines Count="4">
+        <Define0 Value="DEBUG"/>
+        <Define1 Value="BASS_DYNAMIC"/>
+        <Define2 Value="DISABLE_SDL2_2_0_5"/>
+        <Define3 Value="DISABLE_SDL2_2_0_4"/>
+      </OtherDefines>
     </Other>
   </CompilerOptions>
   <Debugging>
