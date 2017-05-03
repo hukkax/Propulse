@@ -881,6 +881,7 @@ var
 	X, Y: Integer;
 begin
 	if Locked then Exit;
+
 	SDL.Events.SDL_PumpEvents;
 	SDL.Mouse.SDL_GetMouseState(X, Y);
 
@@ -892,6 +893,7 @@ begin
 	if (CurrentScreen <> nil) and
 		((X <> MouseCursor.OldPos.X) or (Y <> MouseCursor.OldPos.Y)) then
 	begin
+		MouseCursor.InWindow := True;
 		MouseCursor.OldPos := MouseCursor.Pos;
 		CurrentScreen.MouseMove(X, Y, P);
 	end;
