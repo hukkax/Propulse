@@ -386,6 +386,10 @@ begin
 		@TSampleView.COLOR_WAVEFORM, 6).
 		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
 
+	PaletteConfig.AddByte(S, 'Waveform peaks',
+		@TSampleView.COLOR_WAVEFORM_PEAKS, 15).
+		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
+
 	PaletteConfig.AddByte(S, 'Overrun',
 		@TSampleView.COLOR_OVERRUN, 4).
 		SetInfo('Waveform >64K', 0, 15, [], ColorChanged, '%.2d');

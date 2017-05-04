@@ -28,6 +28,7 @@ type
 	class var
 		COLOR_BACKGROUND,
 		COLOR_WAVEFORM,
+		COLOR_WAVEFORM_PEAKS,
 		COLOR_OVERRUN,
 		COLOR_CENTERLINE,
 		COLOR_LOOP,
@@ -52,6 +53,7 @@ type
 		function 	PixelToSamplePos(x, mx: Integer): Integer; inline;
 		function 	PixelToSampleValue(Y: Integer): SmallInt; inline;
 		function 	GetSampleY(X: Integer): Integer; inline;
+		function 	GetSamplePeakY(X: Integer): Integer;
 	public
 		ReadOnly:	Boolean;
 
@@ -176,6 +178,34 @@ begin
 	Result := Trunc( ((127 - ShortInt(FSample.Data[PixelToSamplePos(X,-1)])) / 127) * HalfHeight);
 end;
 
+function TSampleView.GetSamplePeakY(X: Integer): Integer;
+var
+	i, ay, y, v, p1, p2: Integer;
+begin
+	if X = 0 then
+		y := ShortInt(FSample.Data[0])
+	else
+	begin
+		p1 := PixelToSamplePos(X-1, -1);
+		p2 := PixelToSamplePos(X,   -1);
+		y := 0; ay := 0;
+		for i := p1 to p2 do // find max. peak from range
+		begin
+			v := ShortInt(FSample.Data[i]);
+			if Abs(v) > ay then
+			begin
+				y := v;
+				ay := Abs(v);
+			end;
+		end;
+	end;
+	Result := Trunc( ((127 - y) / 127) * HalfHeight);
+end;
+
+{begin
+	Result := Trunc( ((127 - ShortInt(FSample.Data[PixelToSamplePos(X,-1)])) / 127) * HalfHeight);
+end;}
+
 // sample pos -> pixel x pos
 function TSampleView.SampleToPixelPos(pos: Integer): Integer;
 var
@@ -220,7 +250,7 @@ var
 	x1, y1, x2, y2, x, y: Cardinal;
 	Col: TColor32;
 
-	function GetLoopBoxColor(Hovered: Boolean): TColor32;
+	function GetLoopBoxColor(Hovered: Boolean): TColor32; inline;
 	begin
 		if Hovered then
 			Result := Console.Palette[COLOR_LOOP_HOVER]
@@ -300,7 +330,8 @@ end;
 procedure TSampleView.DrawWaveform;
 var
 	w, h, x, y, x1, x2: Integer;
-	C: TColor32;
+	C, CP: TColor32;
+	PC: PColor32;
 	PaintSelection: Boolean;
 
 	procedure DrawCenterLine;
@@ -340,18 +371,27 @@ begin
 			x1 := 0; x2 := 0;
 		end;
 
-		BmCache.MoveTo(0, GetSampleY(0));
-
 		if PaintSelection then
 			BmCache.FillRectS(x1, 0, x2+1, h, Console.Palette[COLOR_SEL_BACK]);
-
-		C := Console.Palette[COLOR_WAVEFORM];
-//		bmCache.PenColor := C; !!!
 
 		// Draw stippled center line
 		DrawCenterLine;
 
+		BmCache.MoveTo(0, GetSampleY(0));
+
+		// Paint waveform peaks
+		CP := Console.Palette[COLOR_WAVEFORM_PEAKS];
+		if CP <> Console.Palette[COLOR_BACKGROUND] then
+		for x := 1 to w do
+		begin
+			y := GetSamplePeakY(x);
+			if y > HalfHeight then y := h - y;
+			BmCache.VertLine(x, y, h - y, CP);
+		end;
+
 		// Paint waveform data
+		C := Console.Palette[COLOR_WAVEFORM];
+		if C <> Console.Palette[COLOR_BACKGROUND] then
 		for x := 1 to w do
 			BmCache.LineTo(x, GetSampleY(x), C);
 
@@ -359,8 +399,15 @@ begin
 		begin
 			for y := 0 to h do
 			for x := x1 to x2 do
-				if (x >= 0) and (x < w) and (BmCache.Pixel[x,y] = C) then
-					BmCache.Pixel[x,y] := Console.Palette[COLOR_SEL_FORE];
+				if (x >= 0) and (x < w) then
+				begin
+					PC := BmCache.PixelPtr[x,y];
+					if PC^ = C then
+						PC^ := Console.Palette[COLOR_SEL_FORE]
+					else
+					if PC^ = CP then
+						PC^ := Console.Palette[COLOR_SEL_BACK];
+				end;
 		end;
 
 		{if Sample.ByteLength > $1FFFF then
