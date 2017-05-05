@@ -379,14 +379,19 @@ begin
 
 		BmCache.MoveTo(0, GetSampleY(0));
 
-		// Paint waveform peaks
-		CP := Console.Palette[COLOR_WAVEFORM_PEAKS];
-		if CP <> Console.Palette[COLOR_BACKGROUND] then
-		for x := 1 to w do
+		// Paint waveform peaks if not all samples in the view range would be
+		// otherwise visible
+		//
+		if Step > 1.0 then
 		begin
-			y := GetSamplePeakY(x);
-			if y > HalfHeight then y := h - y;
-			BmCache.VertLine(x, y, h - y, CP);
+			CP := Console.Palette[COLOR_WAVEFORM_PEAKS];
+			if CP <> Console.Palette[COLOR_BACKGROUND] then
+			for x := 1 to w do
+			begin
+				y := GetSamplePeakY(x);
+				if y > HalfHeight then y := h - y;
+				BmCache.VertLine(x, y, h - y, CP);
+			end;
 		end;
 
 		// Paint waveform data
