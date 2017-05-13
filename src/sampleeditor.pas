@@ -23,6 +23,7 @@ const
 	actCut				= 31;
 	actPaste			= 32;
 	actMixPaste			= 33;
+	actCrop				= 34;
 
 	actAmplify			= 40;
 	actFadeIn			= 41;
@@ -65,6 +66,8 @@ type
 		procedure 	Copy;
 		procedure 	Paste;
 		procedure 	MixPaste;
+
+		procedure	Crop;
 
 		procedure 	Amplify;
 		procedure 	FadeIn;
@@ -186,6 +189,12 @@ begin
 
 	with Waveform do
 	case Cmd of
+
+
+		// -----------------------------------------------
+		// Cut
+
+		actCrop:	Crop;
 
 		// -----------------------------------------------
 		// Select
@@ -472,6 +481,33 @@ begin
 				ShortInt(Sample.Data[X]) := ShortInt(Trunc(
 					(ShortInt(Sample.Data[X]) / 2) +
 					(ShortInt(Clipbrd[X-X1]) / 2) ));
+		end;
+
+		Sample.Validate;
+		Module.SetModified;
+	end;
+end;
+
+procedure TSampleEditor.Crop;
+var
+	X1, X2: Integer;
+begin
+	if HasSelection then
+	with Waveform do
+	begin
+		GetSelection(X1, X2);
+		Module.Stop;
+
+		if X1 > 0 then
+		begin
+			Selection.SetRange(0, X1, Sample);
+			Delete;
+		end;
+
+		if X2 < Sample.ByteLength then
+		begin
+			Selection.SetRange(X2, Sample.ByteLength, Sample);
+			Delete;
 		end;
 
 		Sample.Validate;
