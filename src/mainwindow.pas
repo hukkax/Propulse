@@ -611,10 +611,13 @@ begin
 
 	MouseCursor.Draw;
 
-	SDL.Render.SDL_UpdateTexture(Video.Texture, nil, @Console.Bitmap.Bits[0], Console.Bitmap.Width*4);
-	SDL.Render.SDL_RenderClear(Video.Renderer);
-	SDL.Render.SDL_RenderCopy(Video.Renderer, Video.Texture, nil, nil);
-	SDL.Render.SDL_RenderPresent(Video.Renderer);
+	with SDL.Render do
+	begin
+		SDL_UpdateTexture(Video.Texture, nil, @Console.Bitmap.Bits[0], Console.Bitmap.Width*4);
+		SDL_RenderClear(Video.Renderer);
+		SDL_RenderCopy(Video.Renderer, Video.Texture, nil, nil);
+		SDL_RenderPresent(Video.Renderer);
+	end;
 
 	MouseCursor.Erase;
 end;
@@ -893,7 +896,6 @@ begin
 	if (CurrentScreen <> nil) and
 		((X <> MouseCursor.OldPos.X) or (Y <> MouseCursor.OldPos.Y)) then
 	begin
-		MouseCursor.InWindow := True;
 		MouseCursor.OldPos := MouseCursor.Pos;
 		CurrentScreen.MouseMove(X, Y, P);
 	end;
@@ -1541,6 +1543,8 @@ begin
 		ChangeScreen(TCWEScreen(Editor));
 
 	Console.Paint;
+
+	MouseCursor.InWindow := True;
 end;
 
 destructor TWindow.Destroy;
