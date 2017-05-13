@@ -485,7 +485,7 @@ begin
 
 	if not Initialized then
 	begin
-		if SDL.SDL_Init(SDL_INIT_VIDEO {or SDL_INIT_TIMER}) <> 0 then
+		if SDL.SDL_Init(SDL_INIT_VIDEO or SDL_INIT_TIMER) <> 0 then
 		begin
 			LogFatal('Error initializing SDL: ' + SDL.Error.SDL_GetError);
 			Exit;
@@ -1526,8 +1526,7 @@ begin
 
 	SetFullScreen(Video.IsFullScreen);
 
-	if not Video.HaveVSync then
-		SDL.Timer.SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
+	SDL.Timer.SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
 
 	LogIfDebug('OK.');
 	Log(TEXT_SUCCESS + 'Program started at ' + DateTimeToStr(Now) + '.');
