@@ -1704,7 +1704,7 @@ begin
 			COL_VOLUME_1:	// volume 1st digit
 			begin
 				o := Pos(chrKey, KeyboardNumbers) - 1;
-				if o in [0..6] then
+				if o >= 0 then
 				begin
 					Cursor.Note.Command := $C;
 					Cursor.Note.Parameter := Min( (o * 10) + (Cursor.Note.Parameter mod 10), 64);
