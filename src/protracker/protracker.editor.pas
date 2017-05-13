@@ -518,7 +518,7 @@ begin
 			if np >= 0 then
 			begin
 				np := np + Semitones;
-				if InRange(np, 0, 36) then
+				if InRange(np, 0, 35) then
 				begin
 					Note.Period := PeriodTable[np];
 					Note.Text   := GetNoteText(Note.Period);
