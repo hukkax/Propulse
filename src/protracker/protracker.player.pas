@@ -871,7 +871,7 @@ begin
 		Result := FORMAT_MK;
 	end
 	else
-	if (buf = 'FEST') then
+	if (buf = 'FEST') or (buf = 'M&K!') then
 	begin
 		// Special NoiseTracker format (used in music disks?)
 		Result := FORMAT_FEST;
