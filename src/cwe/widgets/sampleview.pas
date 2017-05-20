@@ -193,20 +193,16 @@ begin
 	begin
 		p1 := PixelToSamplePos(X-1, -1);
 		p2 := PixelToSamplePos(X,   -1);
-		for i := p1 to p2 do // find max. peak from range
+		for i := p1 to p2 do // find peaks from range
 		begin
 			v := ShortInt(FSample.Data[i]);
 			if v < Ymin then Ymin := v;
 			if v > Ymax then Ymax := v;
 		end;
 	end;
-	Ymin := Trunc( ((127 - Ymin) / 127) * HalfHeight);
-	Ymax := Trunc( ((127 - Ymax) / 127) * HalfHeight);
+	Ymin := Trunc( ((Ymin+128) / 256) * HalfHeight*2);
+	Ymax := Trunc( ((Ymax+128) / 256) * HalfHeight*2);
 end;
-
-{begin
-	Result := Trunc( ((127 - ShortInt(FSample.Data[PixelToSamplePos(X,-1)])) / 127) * HalfHeight);
-end;}
 
 // sample pos -> pixel x pos
 function TSampleView.SampleToPixelPos(pos: Integer): Integer;
@@ -284,14 +280,14 @@ begin
 		//
 		if (FSample.LoopLength > 1) or (FSample.LoopStart > 0) then
 		begin
-			x := x1 + SampleToPixelPos(FSample.LoopStart * 2);
+			x := Cardinal(x1 + SampleToPixelPos(FSample.LoopStart * 2));
 
 			if (x - PixelRect.Left) >= BOXSIZE then
 				BoxL := Bounds(x-BOXSIZE, y1, BOXSIZE, BOXSIZE)
 			else
 				BoxL := Bounds(x, y1, BOXSIZE, BOXSIZE);
 
-			y := x1 + SampleToPixelPos((FSample.LoopStart + FSample.LoopLength) * 2);
+			y := Cardinal(x1 + SampleToPixelPos((FSample.LoopStart + FSample.LoopLength) * 2));
 			if y < (PixelRect.Right - BOXSIZE) then
 				BoxR := Bounds(y+1, y1, BOXSIZE, BOXSIZE)
 			else
@@ -316,7 +312,7 @@ begin
 		begin
 			if (Sample = FSample.Index-1) and (PlayPos >= 0) then
 			begin
-				x := x1 + SampleToPixelPos(PlayPos); /// !!! FIXME 217
+				x := Cardinal(x1 + SampleToPixelPos(PlayPos)); /// !!! FIXME 217
 				if x < x2 then
 					Console.Bitmap.VertLine(x, y1, y2, Console.Palette[COLOR_PLAYBACK]);
 			end;
@@ -393,9 +389,7 @@ begin
 			for x := 1 to w do
 			begin
 				GetSamplePeakY(x, y, y2);
-				if y  > HalfHeight then y  := h - y;
-				if y2 > HalfHeight then y2 := h - y2;
-				BmCache.VertLine(x, y2, h-y-1, CP);
+				BmCache.VertLine(x, h-y2-1, h-y-1, CP);
 			end;
 		end;
 
