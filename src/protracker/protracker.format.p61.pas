@@ -439,10 +439,10 @@ begin
 		begin
 			//Log('Sample %2d is 8-bit delta packed.', [i+1]);
 			s.Name := '8-bit delta packed';
-			delta := ModFile.Read8;
+			delta := ShortInt(ModFile.Read8);
 			for j := 0 to s.Length*2-1 do
 			begin
-				delta := delta - ShortInt(ModFile.Read8);
+				delta := ShortInt(delta - ShortInt(ModFile.Read8));
 				s.Data[os] := Byte(delta);
 				Inc(os);
 			end;

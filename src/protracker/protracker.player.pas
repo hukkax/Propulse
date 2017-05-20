@@ -826,7 +826,7 @@ var
 begin
 	Info.Title := '';
 	if Length(S) > 0 then
-		for i := 0 to Min(19, Length(S)) do
+		for i := 0 to Min(19, Length(S)-1) do
 			Info.Title[i] := S[i+1];
 end;
 
