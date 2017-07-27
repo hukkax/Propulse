@@ -1,7 +1,22 @@
 Propulse Tracker current status
 ===============================
 
-- Mac support needs someone to work on, I don't have access to one
+- Basically operational on Win/Linux/Mac
+- Would prefer someone else to do the Linux and Mac binary builds because
+  it's inconvenient for me
+
+To be fixed:
+
+- "Boost highs" in resampling options is nonfunctional
+- Font and mouse pointer images must be in 1/4/8-bit PCX format
+- Palette preset loading/saving disabled for now due to lack of file requester
+
+Platform specific:
+
+- Setting "task priority" only available on Windows
+- Exploring to a file's location or launching URLs only functional on Windows
+- File operations (move/copy/delete file/folder in file requesters) untested
+  on non-Windows platforms
 
 
 Regressions/changes from PoroTracker 0.8.9.3
@@ -9,12 +24,13 @@ Regressions/changes from PoroTracker 0.8.9.3
 
 New features:
 
-- Common file/directory operations can now be done in the file requesters:
-  Use the context menu (Esc) on file/directory listings or:
+- Common file/directory operations can now be performed in the file requesters:
+  Use the context menu (Esc) on file/directory listings or use keyboard:
   Shift-F2 to rename file, Shift-F5 to copy file, Shift-F6 to move file,
   Shift-F7 to create directory, Shift-F8 to delete file (or dir in Windows)
 - Bookmarks can now be renamed
 - Support for loading/editing samples larger than 128K
+- Improved waveform display
 
 Permanent changes:
 
@@ -27,17 +43,6 @@ Permanent changes:
   dialog.
 - Changed visual effect in splash screen
 
-To be fixed:
-
-- "Boost highs" in resampling options is nonfunctional
-- Font and mouse pointer images must be in 1/4/8-bit PCX format
-- Palette preset loading/saving disabled for now due to lack of file requester
-
-Platform specific:
-
-- Setting "task priority" only available on Windows
-- Exploring to a file's location or launching URLs only functional on Windows
-
 
 Bugs fixed from PoroTracker 0.8.9.3
 ===================================
@@ -49,4 +54,5 @@ Bugs fixed from PoroTracker 0.8.9.3
 - Other stuff I forgot to write down
 
 -- 
-hukka 2017-04-20 - hukkax@gmail.com - https://github.com/hukkax/Propulse
+hukka 2017-07-27 - hukkax@gmail.com 
+http://hukka.yiff.fi/propulse/ - https://github.com/hukkax/Propulse
