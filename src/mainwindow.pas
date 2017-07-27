@@ -95,8 +95,8 @@ type
 	end;
 
 
-	procedure	GetModifierKey(keymod: SDL_Keymods; var Shift: TShiftState;
-				keymodconst: Integer; shiftconst: TShiftStateEnum); inline;
+	function	GetModifierKey(keymod: SDL_Keymods; var Shift: TShiftState;
+				keymodconst: Integer; shiftconst: TShiftStateEnum): Boolean; inline;
 	function 	GetShiftState: TShiftState;
 	function 	TimerTickCallback(interval: Uint32; param: Pointer): UInt32; cdecl;
 
@@ -901,11 +901,16 @@ begin
 	end;
 end;
 
-procedure GetModifierKey(keymod: SDL_Keymods; var Shift: TShiftState;
-	keymodconst: Integer; shiftconst: TShiftStateEnum);
+function GetModifierKey(keymod: SDL_Keymods; var Shift: TShiftState;
+	keymodconst: Integer; shiftconst: TShiftStateEnum): Boolean;
 begin
 	if (Integer(keymod.Value) and keymodconst) <> 0 then
+	begin
 		Include(Shift, shiftconst);
+		Result := True;
+	end
+	else
+		Result := False;
 end;
 
 function GetShiftState: TShiftState;
@@ -914,12 +919,12 @@ var
 begin
 	Result := [];
 	M := SDL.Keyboard.SDL_GetModState;
-	GetModifierKey(M, Result, KMOD_SHIFT,	ssShift);	// Shift
-	GetModifierKey(M, Result, KMOD_CTRL,	ssCtrl);	// Ctrl
-	GetModifierKey(M, Result, KMOD_ALT,		ssAlt);		// Alt
+	GetModifierKey(M, Result, KMOD_SHIFT,			ssShift);	// Shift
+	GetModifierKey(M, Result, KMOD_CTRL,			ssCtrl);	// Ctrl
+	GetModifierKey(M, Result, KMOD_ALT,				ssAlt);		// Alt
 	GetModifierKey(M, Result, Integer(KMOD_MODE),	ssAltGr);	// AltGr
-	GetModifierKey(M, Result, KMOD_GUI,		ssMeta);	// Windows
-	//GetModifierKey(M, Result, KMOD_NUM,	ssNum);		// Num Lock
+	GetModifierKey(M, Result, KMOD_GUI,				ssMeta);	// Windows
+	//GetModifierKey(M, Result, KMOD_NUM,			ssNum);		// Num Lock
 	GetModifierKey(M, Result, Integer(KMOD_CAPS),	ssCaps);	// Caps Lock
 end;
 
@@ -983,7 +988,7 @@ var
 	Key: SDL_KeyCode;
 	km: SDL_KeyMods;
 	Shift: TShiftState;
-	AnsiInput: AnsiString;
+sk,	AnsiInput: AnsiString;
 
 	function GetXY: TPoint;
 	begin
@@ -1025,23 +1030,36 @@ begin
 			begin
 				Key := InputEvent.key.keysym.sym;
 				case Key of
-					SDLK_UNKNOWN,
-					SDLK_LSHIFT, SDLK_RSHIFT,
+					SDLK_UNKNOWN:
+					{SDLK_LSHIFT, SDLK_RSHIFT,
 					SDLK_LCTRL,  SDLK_RCTRL,
-					SDLK_LALT,   SDLK_RALT:
+					SDLK_LALT,   SDLK_RALT,
+					SDLK_LGUI,   SDLK_RGUI:}
 					;
 				else
 					Shift := [];
 					if InputEvent.key.keysym.amod <> KMOD_NONE then
 					begin
-						km := InputEvent.key.keysym.amod;
-						GetModifierKey(km, Shift, KMOD_SHIFT,ssShift);	// Shift
-						GetModifierKey(km, Shift, KMOD_CTRL,	ssCtrl);	// Ctrl
-						GetModifierKey(km, Shift, KMOD_ALT,	ssAlt);		// Alt
-						GetModifierKey(km, Shift, KMOD_GUI,	ssMeta);	// Windows
-						GetModifierKey(km, Shift, Integer(KMOD_CAPS),	ssCaps);	// Caps Lock
-						GetModifierKey(km, Shift, Integer(KMOD_MODE),	ssAltGr);	// AltGr
+						km := {SDL.Keyboard.SDL_GetModState;} InputEvent.key.keysym.amod;
+						GetModifierKey(km, Shift, KMOD_SHIFT,	ssShift);		// Shift
+						GetModifierKey(km, Shift, KMOD_CTRL,	ssCtrl);		// Ctrl
+						GetModifierKey(km, Shift, KMOD_ALT,		ssAlt);			// Alt
+						GetModifierKey(km, Shift, KMOD_GUI,		ssMeta);		// Windows
+						GetModifierKey(km, Shift, Integer(KMOD_CAPS), ssCaps);	// Caps Lock
+						GetModifierKey(km, Shift, Integer(KMOD_MODE), ssAltGr);	// AltGr
 					end;
+(*
+					{$IFDEF DEBUG}
+					sk := '';
+					if ssShift in Shift then sk := sk + 'Shift ';
+					if ssCtrl in Shift then sk := sk + 'Ctrl ';
+					if ssAlt in Shift then sk := sk + 'Alt ';
+					if ssAltGr in Shift then sk := sk + 'AltGr ';
+					if ssMeta in Shift then sk := sk + 'Meta ';
+					if ssCaps in Shift then sk := sk + 'Caps ';
+					writeln('Key=', Key, '   Shift=', sk);
+					{$ENDIF}
+*)
 					OnKeyDown(Integer(Key), Shift);
 				end;
 			end;

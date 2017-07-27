@@ -516,10 +516,17 @@ begin
 	if WaitingForKeyBinding then
 	begin
 		// ignore Shift/Ctrl/Alt without other keys
-		if Key in [0, 91..92, 16..18] then Exit;
-
-		GetNewKeyBinding(KeyList, Key, Shift, Result); // finalize
-		Result := True;
+		case Key of
+			0,
+			SDLK_LSHIFT, SDLK_RSHIFT,
+			SDLK_LCTRL, SDLK_RCTRL,
+			SDLK_LALT, SDLK_RALT,
+			SDLK_LGUI, SDLK_RGUI:
+				Exit;
+		else
+			GetNewKeyBinding(KeyList, Key, Shift, Result); // finalize
+			Result := True;
+		end;
 	end
 	else
 		inherited;
