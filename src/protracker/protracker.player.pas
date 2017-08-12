@@ -95,8 +95,9 @@ type
 	end;
 
 	TPTChannel = class
+	private
+		FEnabled: Boolean;
 	public
-		Enabled: 		Boolean;
 		Paula: 			TPaulaVoice;
 		Note:			PNote;
 		n_start,
@@ -126,8 +127,12 @@ type
 		n_repend: 		Cardinal;
 
 		procedure 	Reset;
+		procedure	SetEnabled(E: Boolean);
+
 		constructor Create(i: Byte);
 		destructor  Destroy; override;
+	property
+		Enabled:	Boolean read FEnabled write SetEnabled;
 	end;
 
 	TPTModule = class
@@ -738,8 +743,8 @@ begin
 
 	n_index := i;
 	Paula := TPaulaVoice.Create(outputFreq);
+	SetEnabled(True);
 	Reset;
-	Enabled := True;
 end;
 
 procedure TPTChannel.Reset;
@@ -775,6 +780,12 @@ begin
 	Paula.QueuedSample := 31;
 	Paula.PlayPos := -1;
 	Paula.f_OutputFreq := outputFreq;
+end;
+
+procedure TPTChannel.SetEnabled(E: Boolean);
+begin
+	FEnabled := E;
+	Paula.Enabled := E;
 end;
 
 destructor TPTChannel.Destroy;
@@ -2568,7 +2579,8 @@ begin
 		srepeat       := Samples[sample].LoopStart;
 
 		ch.Paula.Sample := sample;
-		Samples[sample].Age := 3;
+		if ch.Paula.Enabled then
+			Samples[sample].Age := 3;
 
 		if (srepeat > 0) then
 		begin
