@@ -16,7 +16,7 @@
 
 [Propulse Tracker Help
 §
-=Last modified: 2017-04-13
+=Last modified: 2017-08-12
 §
 * Global Keys:
 §
@@ -40,6 +40,7 @@
 §
 §   Ctrl-N            New song
 §   Ctrl-P            Calculate approximate song length
+§   Ctrl-Shift-P      Jump to a time in song (by minutes and seconds)
 §   Ctrl-S            Save current module
 §   Ctrl-Shift-C      Cleanup module
 §   Shift-F10         Render selection/pattern to sample
