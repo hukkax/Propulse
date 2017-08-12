@@ -109,6 +109,7 @@ type
 		procedure 	SetSample(i: Integer = -1);
 		procedure 	SelectPrevPattern;
 		procedure 	SelectNextPattern;
+		procedure 	SeekTo(Order, Row: Byte);
 
 		function	OnContextMenu: Boolean; override;
 		procedure 	HandleCommand(const Cmd: Cardinal); override;
@@ -541,6 +542,23 @@ begin
 		UpdateInfoLabels;
 	end;
 	PatternEditor.ValidateCursor;
+	if Active then
+		PatternEditor.Paint;
+end;
+
+procedure TEditorScreen.SeekTo(Order, Row: Byte);
+begin
+	Module.PlayPos.Order := Order;
+	CurrentPattern := Module.OrderList[Order];
+	PatternEditor.Cursor.Row := Row;
+
+	UpdateInfoLabels;
+	PatternEditor.ValidateCursor;
+
+	FollowPlayback := False;
+	Editor.ActiveControl := PatternEditor;
+	ChangeScreen(TCWEScreen(Editor));
+
 	if Active then
 		PatternEditor.Paint;
 end;

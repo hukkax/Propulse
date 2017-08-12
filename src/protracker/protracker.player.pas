@@ -294,6 +294,7 @@ type
 					Normalize, BoostHighs: Boolean): Cardinal;
 		function 	RenderToWAV(const Filename: String; Loops: Byte = 1; Tail: Byte = 0): Cardinal;
 		function	GetLength(Loops: Byte = 0; InSamples: Boolean = False): Cardinal;
+		procedure	JumpToTime(Minutes, Seconds: Byte);
 
 		function 	IsPatternEmpty(i: Byte): Boolean;
 		function 	CountUsedPatterns: Byte;
@@ -3508,6 +3509,39 @@ begin
 	{Log('OrderChanges=%d  Order=%d  Pattern=%d', [renderinfo.OrderChanges, playpos.Order, playpos.Pattern]);
 	Log('SamplesRendered=%d  Result=%d', [renderinfo.SamplesRendered, Result]);
 	Log('');}
+end;
+
+procedure TPTModule.JumpToTime(Minutes, Seconds: Byte);
+var
+	Secs, DestSeconds: Word;
+begin
+	DestSeconds := Minutes * 60 + Seconds;
+
+	Stop;
+	Mixing := False;
+	DisableMixer := True;
+
+	RenderMode := RENDER_LENGTH;
+	RenderInfo.SamplesRendered := 0;
+
+	PlayPos.Pattern := OrderList[0];
+	PlayPos.Row := 0;
+	PlayPos.Order := 0;
+	PlayMode := PLAY_SONG;
+	InitPlay(OrderList[0]);
+
+	RenderInfo.LoopsWanted := 255;
+	Secs := 0;
+
+	while (Secs < DestSeconds) and (PlayMode = PLAY_SONG) do
+	begin
+		IntMusic;
+		Inc(RenderInfo.SamplesRendered, samplesPerFrame);
+		Secs := RenderInfo.SamplesRendered div outputFreq;
+	end;
+
+	RenderMode := RENDER_NONE;
+	Stop;
 end;
 
 

@@ -27,7 +27,8 @@ type
 		keyPlaybackPlayFrom,	keyPlaybackStop,
 		keyPlaybackPrevPattern, keyPlaybackNextPattern,
 		keyControlsPrevious,	keyControlsNext,
-		keySongLength,			keySongNew,
+		keySongLength,			keyJumpToTime,
+		keySongNew,
 		keyMouseCursor,			keySaveCurrent,
 		keyRenderToSample,		keyCleanup,
 		keyToggleChannel1,		keyToggleChannel2,
@@ -119,7 +120,7 @@ uses
     BuildInfo, Math, soxr,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
-	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio,
+	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio, Dialog.JumpToTime,
 	CWE.MainMenu;
 
 procedure ClearMessageQueue;
@@ -365,7 +366,7 @@ begin
 	else
 		OK := True;
 
-	CurrentOrder := 0;
+	Module.PlayPos.Order := 0;
 	CurrentPattern := Module.OrderList[0];
 	CurrentSample := 1;
 	Editor.Reset;
@@ -847,6 +848,10 @@ begin
 		keySongLength:
 			if not InModalDialog then
 				Dialog_ModuleInfo;
+
+		keyJumpToTime:
+			if not InModalDialog then
+				Dialog_JumpToTime;
 
 		keyRenderToSample:
 			if not InModalDialog then
@@ -1474,6 +1479,7 @@ begin
 		Bind(keyPlaybackPrevPattern, 	'Playback.PrevPattern', 	'Ctrl+Left');
 		Bind(keyPlaybackNextPattern, 	'Playback.NextPattern', 	'Ctrl+Right');
 		Bind(keySongLength, 			'Song.Length', 				'Ctrl+P');
+		Bind(keyJumpToTime, 			'Song.JumpToTime', 			'Ctrl+Shift+P');
 		Bind(keySongNew, 				'Song.New', 				'Ctrl+N');
 		Bind(keyRenderToSample, 		'Song.RenderToSample',		'Shift+F10');
 		Bind(keySaveCurrent, 			'Song.SaveCurrent', 		'Ctrl+S');

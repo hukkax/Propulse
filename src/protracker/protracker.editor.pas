@@ -167,7 +167,6 @@ type
 var
 	CmdChars: AnsiString;
 	CurrentSample,
-	CurrentOrder,
 	CurrentPattern: Byte;
 	EditorKeys: TKeyBindings;
 
