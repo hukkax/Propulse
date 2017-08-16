@@ -143,6 +143,7 @@ type
 		FilterLED: 			TLedFilter;
 		LEDStatus: 			Boolean;
 		Blep, BlepVol: 		array [0..AMOUNT_CHANNELS-1] of TBlep;
+		SetBPMFlag:			Byte;
 
 		DisableMixer: 		Boolean;
 		samplesPerFrame: 	Cardinal;
@@ -248,7 +249,7 @@ type
 		PosJumpAssert,
 		PBreakFlag: 		Boolean;
 
-		TempoMode: 			ShortInt;	// 0 = CIA, 1 = VBlank
+		VBlankMode: 		Boolean;	// False = CIA, True = VBlank
 		PBreakPosition: 	ShortInt;
 		PattDelTime,
 		PattDelTime2: 		ShortInt;
@@ -1725,6 +1726,7 @@ begin
 	Info.PatternCount := 0;
 	Info.Tempo := 6;
 	Info.Filename := '';
+	SetBPMFlag := 0;
 
 	DisableMixer := True;
 
@@ -2103,33 +2105,29 @@ begin
 end;
 
 procedure TPTModule.SetSpeed(var ch: TPTChannel);
-var
-	bufsize: Cardinal;
 begin
 	if (ch.Note.Parameter) = 0 then Exit;
 
 	Counter := 0;
 
-	if (TempoMode <> 0) or ((ch.Note.Parameter) < 32) then
+	if (VBlankMode) or ((ch.Note.Parameter) < 32) then
 	begin
 		CurrentSpeed := ch.Note.Parameter;
+
 		if CurrentSpeed = 0 then
 			RenderInfo.HasBeenPlayed := True;
+
+		if RenderMode = RENDER_NONE then
+			if Assigned(OnSpeedChange) then
+				OnSpeedChange;
 	end
 	else
 	begin
-		CurrentBPM := ch.Note.Parameter;
-		SetReplayerBPM(CurrentBPM);
-		bufsize := samplesPerFrame * 2 + 2;
-		if Length(MixBuffer) < bufsize then
-			SetLength(MixBuffer, bufsize);
+		// CIA doesn't refresh its registers until the next interrupt, so change it later
+		SetBPMFlag := ch.Note.Parameter;
 	end;
 
 	//Log('SetSpeed (%d) samplesPerFrame=%d', [ch.Note.Parameter, samplesPerFrame]);
-
-	if RenderMode = RENDER_NONE then
-		if Assigned(OnSpeedChange) then
-			OnSpeedChange;
 end;
 
 procedure TPTModule.Arpeggio(var ch: TPTChannel);
@@ -2419,7 +2417,7 @@ begin
 		ch.n_sampleoffset := ch.Note.Parameter;
 
 	newOffset := ch.n_sampleoffset * 128;
-	if (newOffset < ch.n_length) then
+	if (ch.n_length <= 32767) and (newOffset < ch.n_length) then
 	begin
 		Dec(ch.n_length, newOffset);
 		Inc(ch.n_start, (newOffset * 2));
@@ -2656,12 +2654,26 @@ end;
 procedure TPTModule.IntMusic;
 var
 	i: Integer;
+	bufsize: Cardinal;
 begin
 	if (RenderMode <> RENDER_NONE) and (RenderMode <> RENDER_SAMPLE) then
 	begin
 		RenderInfo.HasBeenPlayed := False;
 		if Counter = 0 then
 			RenderInfo.RowVisitTable[PlayPos.Order, PlayPos.Row] := True;
+	end;
+
+	// PT quirk: CIA refreshes its timer values on the next interrupt, so do the real tempo change here
+	if SetBPMFlag > 0 then
+	begin
+		CurrentBPM := SetBPMFlag;
+		SetReplayerBPM(CurrentBPM);
+    	SetBPMFlag := 0;
+
+		bufsize := samplesPerFrame * 2 + 2;
+		if Length(MixBuffer) < bufsize then
+			SetLength(MixBuffer, bufsize);
+		//Log('SetSpeed (%d) samplesPerFrame=%d', [CurrentBPM, samplesPerFrame]);
 	end;
 
 	Inc(Counter);
@@ -2794,6 +2806,7 @@ begin
 
 	ApplyAudioSettings;
 
+	SetBPMFlag     := 0;
 	PattDelTime    := 0;
 	PattDelTime2   := 0;
 	PBreakPosition := 0;
@@ -2801,10 +2814,7 @@ begin
 	PBreakFlag     := False;
 	LowMask        := $FF;
 
-	if Options.Audio.CIAmode then
-		TempoMode := 1
-	else
-		TempoMode := 0;
+	VBlankMode := Options.Audio.CIAmode;
 
 	LEDStatus := False;
 	Counter := CurrentSpeed;
@@ -2813,9 +2823,7 @@ begin
 		ClearRowVisitTable;
 
 	for i := 0 to 30 do
-	begin
 		Samples[i].Age := -1;
-	end;
 
 	for i := 0 to AMOUNT_CHANNELS-1 do
 	begin

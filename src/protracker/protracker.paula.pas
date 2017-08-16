@@ -116,6 +116,8 @@ begin
 			period := 113;
 		DELTA := (PAULA_PAL_CLK / period) / f_outputFreq;
 	end;
+	if LASTDELTA = 0.0 then
+		LASTDELTA := DELTA;
 end;
 
 procedure TPaulaVoice.SetVolume(vol: Word);
