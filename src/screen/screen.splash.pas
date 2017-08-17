@@ -91,12 +91,12 @@ const
 	SCRSEP = '%R'#3'%%';
 
 	Scroll_Text: AnsiString = '                  ' +
-	'%Ghukka%% presents %WPropulse ' + ProTracker.Util.VERSION + '%% § ' +
+	'%Ghukka%% presents %WPropulse Tracker ' + ProTracker.Util.VERSION + '%% § ' +
 	'%WPT2PLAY%% playroutine and coding help by %G8bitbubsy%% § ' +
-	'Thanks to %Gmuzzy%% § %Gwuffe%% § %GTempest%% § ' +
-	'For full credits press F1 now § ' +
+	'Thanks to %Gmuzzy%% § %Gwuffe%% § %GTempest%% § %GMark Knopper%% § ' +
+	'For full credits press F1 § ' +
 	'Greets to %WVoid § %Wexec § %Wsvenonacid § %Y#kukkakoodi § %Y#protracker § '+
-	'%GHaikz § %GArchyx § %GHofnarr § %GKaarlo § %GCrank § %Gamaneog § ' +
+	'%GHaikz § %GArchyx § %GHofnarr § %GKaarlo § %GCrank § %GLarkku § %Gamaneog § ' +
 	'%%' + '                   ';
 
 
