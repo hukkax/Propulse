@@ -78,6 +78,7 @@ type
 		Video:				TVideoInfo;
 		MessageTextTimer,
 		PlayTimeCounter:	Integer;
+		Visible: 			Boolean;
 
 		constructor Create;
 		destructor 	Destroy; override;
@@ -423,6 +424,7 @@ var
 begin
     Result := False;
 	Locked := True;
+	Visible := True;
 
 	Fn := GetDataFile(GetFontFile(Options.Display.Font));
 	if Fn = '' then
@@ -656,6 +658,7 @@ var
     {$ENDIF}
 begin
 	Locked := True;
+	Visible := True;
     Video.IsFullScreen := B;
 
 	with SDL.Video do
@@ -1128,8 +1131,12 @@ begin
 
 		SDL_WINDOWEVENT_EV:
 			case InputEvent.window.event of
-		        SDL_WINDOWEVENT_ENTER:	MouseCursor.InWindow := True;
-		        SDL_WINDOWEVENT_LEAVE:	MouseCursor.InWindow := False;
+		        SDL_WINDOWEVENT_ENTER:		MouseCursor.InWindow := True;
+		        SDL_WINDOWEVENT_LEAVE:		MouseCursor.InWindow := False;
+				SDL_WINDOWEVENT_SHOWN,
+				SDL_WINDOWEVENT_RESTORED:	Window.Visible := True;
+				SDL_WINDOWEVENT_HIDDEN,
+				SDL_WINDOWEVENT_MINIMIZED:	Window.Visible := False;
 			end;
 
 		SDL_DROPFILE:
@@ -1145,7 +1152,7 @@ procedure TWindow.SyncTo60Hz; 				// from PT clone
 var
 	delayMs, perfFreq, timeNow_64bit: UInt64;
 begin
-	if (Video.HaveVSync) or (Locked) then Exit;
+	if (Window.Visible) and (Video.HaveVSync or Locked) then Exit;
 
 	perfFreq := SDL.Timer.SDL_GetPerformanceFrequency; // should be safe for double
 	if perfFreq = 0 then Exit; // panic!
