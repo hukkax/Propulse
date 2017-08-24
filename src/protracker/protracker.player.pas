@@ -2483,6 +2483,7 @@ begin
 			$07: begin
 					ch.Paula.SetPeriod(ch.n_period);
 					Tremolo(ch);
+					Exit; // don't call Paula.SetVolume with tremolo
 				 end;
 			$0A: begin
 					ch.Paula.SetPeriod(ch.n_period);
