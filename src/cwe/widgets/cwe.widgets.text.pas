@@ -137,6 +137,7 @@ type
 		destructor  Destroy; override;
 
 		procedure 	Clear;
+		function	IsValidItemIndex(i: Integer): Boolean;
 		function 	GetCaption(index: Byte = 0): String; virtual;
 		function 	Select(Index: Integer;
 					Center: Boolean = True): Integer; overload;
@@ -409,7 +410,8 @@ end;
 { TCWEList }
 // ==========================================================================
 
-constructor TCWEList.Create;
+constructor TCWEList.Create(Owner: TCWEControl; const sCaption,
+	sID: AnsiString; const Bounds: TRect; IsProtected: Boolean);
 var
 	i: Integer;
 begin
@@ -474,9 +476,14 @@ begin
 	AdjustScrollbar;
 end;
 
+function TCWEList.IsValidItemIndex(i: Integer): Boolean;
+begin
+	Result := (Assigned(Items)) and (i >= 0) and (i < Items.Count);
+end;
+
 function TCWEList.GetCaption(index: Byte = 0): String;
 begin
-	if (Assigned(Items)) and (ItemIndex >= 0) and (ItemIndex < Items.Count) then
+	if (Assigned(Items)) and (Items.Count > 0) and (ItemIndex >= 0) and (ItemIndex < Items.Count) then
 		Result := Items[ItemIndex].Captions[index]
 	else
 		Result := '';

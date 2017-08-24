@@ -149,8 +149,9 @@ begin
 	if not SaveMode then
 		FilenameEdit.SetCaption(S);
 
+	if not FileList.IsValidItemIndex(FileList.ItemIndex) then Exit;
+
 	Module.Stop;
-	if FileList.ItemIndex >= FileList.Items.Count then Exit;
 
 	Item := FileList.Items[FileList.ItemIndex];
 	if Item = nil then Exit;
@@ -213,7 +214,8 @@ end;
 
 procedure TSampleFileScreen.LoadFile(const Filename: String);
 begin
-	SampleScreen.LoadSample(Filename);
+	if Filename <> '' then
+		SampleScreen.LoadSample(Filename);
 end;
 
 procedure TSampleFileScreen.SaveFile(DoDialog: Boolean);

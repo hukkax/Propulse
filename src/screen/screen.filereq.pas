@@ -1272,6 +1272,7 @@ begin
 			if not InSampleReq then			// Load/save module
 				FileRequester.DirOrFilenameEntered(Self)
 			else
+			if IsValidItemIndex(ItemIndex) then
 			case Items[ItemIndex].Data of	// load/save sample
 
 				LI_LOADABLE:
