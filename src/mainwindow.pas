@@ -1,9 +1,6 @@
 unit MainWindow;
 
-{$IFDEF UNIX}
-	{$DEFINE DISABLE_FULLSCREEN}		// disable broken SDL fullscreen mode
-	{.$DEFINE LIMIT_KEYBOARD_EVENTS}	// fix duplicate keyboard events on Linux with FCITX
-{$ENDIF}
+{$I propulse.inc}
 
 interface
 
@@ -12,6 +9,7 @@ uses
 	SDL.Api.libSDL2, SDL.Api.Types, SDL.Api.Events, SDL.Api.Render, SDL.Api.Keyboard, SDL.Api.Hints,
 	ConfigurationManager, ShortcutManager, TextMode,
 	CWE.Core, CWE.MouseCursor, CWE.Dialogs, CWE.Widgets.Text,
+	{$IFDEF MIDI}ProTracker.MIDI,{$ENDIF}
 	ProTracker.Util, ProTracker.Player, ProTracker.Editor;
 
 type
@@ -103,11 +101,17 @@ type
 	function 	TimerTickCallback(interval: Uint32; param: Pointer): UInt32; cdecl;
 
 var
+	SDLLogFuncData: Integer;
+
 	SDL:			TSDL2Library;
 	Window: 		TWindow;
 	GlobalKeys: 	TKeyBindings;
 	QuitFlag:		Boolean;
 	Initialized:	Boolean;
+	{$IFDEF MIDI}
+	MIDI:           TMIDIHandler;
+	{$ENDIF}
+
 
 implementation
 
@@ -123,6 +127,13 @@ uses
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
 	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio, Dialog.JumpToTime,
 	CWE.MainMenu;
+
+
+procedure SDLLogFunc
+(userdata: SDL_Data; category: SDL_LogCategory; priority: SDL_LogPriority; const msg: SDL_String);
+begin
+	Log(msg);
+end;
 
 procedure ClearMessageQueue;
 var
@@ -193,6 +204,14 @@ begin
 	Module.ApplyAudioSettings;
 end;
 
+{$IFDEF MIDI}
+procedure ApplyMIDISettings;
+begin
+	if MIDI <> nil then
+		MIDI.SettingsChanged;
+end;
+{$ENDIF}
+
 procedure PixelScalingChanged;
 begin
 	ClearMessageQueue;
@@ -250,7 +269,8 @@ end;
 procedure TWindow.UpdateVUMeter(Len: DWord);
 var
 	InModal: Boolean;
-//	VUDrawn: Boolean;
+	i: Integer;
+	Vol: Single;
 begin
 	// this hack will update the background screen (vumeters etc.) if a module
 	// is currently playing underneath a modal dialog
@@ -277,6 +297,21 @@ begin
 			Console.Palette[TConsole.COLOR_PANEL]);
 		CurrentScreen.Paint;
 	end;
+
+	{$IFDEF MIDI}
+	if (MIDI <> nil) and (Options.Midi.UseDisplay) then
+		for i := 0 to AMOUNT_CHANNELS-1 do
+		with Module.Channel[i].Paula do
+		begin
+			if Enabled then
+				Vol := Volume
+			else
+				Vol := 0;
+			if (CurrentScreen <> Editor) and (Volume >= 0.025) then
+				Volume := Volume - 0.025;
+			MIDI.UpdateVUMeter(i, Vol);
+		end;
+	{$ENDIF}
 end;
 
 procedure TWindow.UpdatePatternView;
@@ -834,11 +869,11 @@ begin
 
 		keyPlaybackPrevPattern:
 			if not InModalDialog then
-				Editor.SelectPrevPattern;
+				Editor.SelectPattern(SELECT_PREV);
 
 		keyPlaybackNextPattern:
 			if not InModalDialog then
-				Editor.SelectNextPattern;
+				Editor.SelectPattern(SELECT_NEXT);
 
 		keySongNew:
 			if not InModalDialog then
@@ -996,7 +1031,7 @@ var
 	Key: SDL_KeyCode;
 	km: SDL_KeyMods;
 	Shift: TShiftState;
-sk,	AnsiInput: AnsiString;
+	AnsiInput: AnsiString;
 
 	function GetXY: TPoint;
 	begin
@@ -1282,8 +1317,8 @@ begin
 		Sect := 'Audio';
 		Cfg.AddByte(Sect, 'Device', @Audio.Device, 1)
 		.SetInfo('Audio device', 1, 10, AudioDeviceList);
-		Cfg.AddByte(Sect, 'Frequency', @Audio.Frequency, 2)
-		.SetInfo('Sampling rate (Hz)', 0, 3, ['11025', '22050', '44100', '48000'], nil);
+		Cfg.AddByte(Sect, 'Frequency', @Audio.Frequency, 1)
+		.SetInfo('Sampling rate (Hz)', 0, 2, ['32000', '44100', '48000'], nil);
 		Cfg.AddInteger(Sect, 'Buffer', @Audio.Buffer, 0)
 		.SetInfo('Audio buffer (ms)', 0, 500, ['Automatic']);
 		Cfg.AddFloat(Sect, 'Amplification', @Audio.Amplification, 4.00)
@@ -1300,6 +1335,17 @@ begin
 		.SetInfo('Timing mode', 0, 1, ['CIA', 'VBlank'], ApplyAudioSettings);
 		Cfg.AddBoolean(Sect, 'EditorInvertLoop', @Audio.EditorInvertLoop, True)
 		.SetInfo('Play EFx (Invert Loop) like', 0, 1, ['PT playroutine', 'PT editor']);
+
+		{$IFDEF MIDI}
+		Sect := 'MIDI';
+		Cfg.AddBoolean(Sect, 'Enabled', @Midi.Enabled, False)
+		.SetInfo('Enable MIDI input', 0, 1, ['No', 'Yes'], ApplyMIDISettings);
+		Cfg.AddBoolean(Sect, 'Display.Enabled', @Midi.UseDisplay, False)
+		.SetInfo('Enable LED matrix display', 0, 1, ['No', 'Yes'], ApplyMIDISettings);
+		Cfg.AddByte(Sect, 'Display.Effect', @Midi.DisplayEffect, 0)
+		.SetInfo('Display effect', MIDI_FX_VU_VERTICAL, MIDI_FX_VU_HORIZONTAL,
+		['VU (vertical)', 'VU (horizontal)'], ApplyMIDISettings);
+		{$ENDIF}
 
 		Sect := 'Directory';
 		Cfg.AddString	(Sect, 'Modules', 		@Dirs.Modules, 			AppPath);
@@ -1369,6 +1415,7 @@ begin
 
 	SDL := TSDL2Library.Create('');
 	SDL.Init;
+
 	LogIfDebug('SDL loaded from ' + SDL.FileName);
 
 	if not SDL.Valid then
@@ -1384,6 +1431,11 @@ begin
 		QuitFlag := True;
 		Exit;
 	end;
+
+	if Assigned(SDL.Log) then
+		SDL.Log.SDL_LogSetOutputFunction(SDLLogFunc, nil)
+	else
+		Log('Couldn''t set up SDL logging!');
 
 	// Create screens
 	//
@@ -1429,10 +1481,9 @@ begin
 	Log(TEXT_INIT + Dir);
 
 	case Options.Audio.Frequency of
-		0: i := 11025;
-		1: i := 22050;
-		2: i := 44100;
-		3: i := 48000;
+		0: i := 32000;
+		1: i := 44100;
+		2: i := 48000;
 	else
 		i := 44100;
 	end;
@@ -1505,6 +1556,17 @@ begin
 		Bind(filekeyCreate,				'File.CreateDir',			'Shift+F7');
 	end;
 
+	{$IFDEF MIDI}
+	if Options.Midi.Enabled then
+	begin
+		LogIfDebug('Initializing MIDI...');
+		MIDI := TMIDIHandler.Create;
+		Log('MIDI:  %d controllers enabled.', [MIDI.Controllers.Count]);
+	end
+	else
+		MIDI := nil;
+	{$ENDIF}
+
 	LogIfDebug('Initializing GUI...');
 	InitCWE;
 
@@ -1559,6 +1621,10 @@ begin
 
 	SetFullScreen(Video.IsFullScreen);
 
+	{$IFDEF MIDI}
+	if MIDI <> nil then MIDI.InitShortcuts;
+	{$ENDIF}
+
 	SDL.Timer.SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
 
 	LogIfDebug('OK.');
@@ -1605,6 +1671,8 @@ begin
 
 		Module.Free;
 		AudioClose;
+
+		{$IFDEF MIDI}if MIDI <> nil then MIDI.Free;{$ENDIF}
 
 		if Video.Renderer <> nil then
 			SDL.Render.SDL_DestroyRenderer(Video.Renderer);
