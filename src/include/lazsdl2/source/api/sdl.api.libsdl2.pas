@@ -410,7 +410,7 @@ begin
 	InitApi(TSDLKeyboardApi, FKeyboard);
 //	InitApi(TSDLLoadSOApi, FLoadSO);
 //	InitApi(TSDLMessageBoxApi, FMessageBox);
-//	InitApi(TSDLLogApi, FLog);
+	InitApi(TSDLLogApi, FLog);
 	InitApi(TSDLMainApi, FMain);
 	InitApi(TSDLMouseApi, FMouse);
 	InitApi(TSDLMutexApi, FMutex);
