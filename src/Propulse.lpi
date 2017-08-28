@@ -155,7 +155,7 @@
         <PackageName Value="LazUtils"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="53">
+    <Units Count="54">
       <Unit0>
         <Filename Value="propulse.pas"/>
         <IsPartOfProject Value="True"/>
@@ -415,6 +415,11 @@
         <Filename Value="propulse.inc"/>
         <IsPartOfProject Value="True"/>
       </Unit52>
+      <Unit53>
+        <Filename Value="protracker/protracker.messaging.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ProTracker.Messaging"/>
+      </Unit53>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
