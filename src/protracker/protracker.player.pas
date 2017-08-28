@@ -17,6 +17,7 @@ uses
 	{$ENDIF}
 	SysUtils,
 	Generics.Collections,
+	ProTracker.Messaging,
 	SDL.Api.libSDL2, SDL.Api.Types, SDL.API.Events,
 	ProTracker.Util,
 	ProTracker.Sample,
@@ -45,6 +46,12 @@ const
 
 	PAULA_PAL_CLK 		= 3546895;
 	CIA_PAL_CLK   		= 709379;
+
+	// messages
+	MSG_TIMERTICK	= 10;
+	MSG_VUMETER		= 11;
+	MSG_ROWCHANGE	= 20;
+	MSG_ORDERCHANGE	= 21;
 
 type
 	TModuleEvent   		= procedure of Object;
@@ -337,10 +344,6 @@ var
 	VUbuffer: 		array of SmallInt;
 	VUhandled: 		Boolean;
 	EmptyNote: 		TNote;
-	MSG_VUMETER,
-	MSG_ROWCHANGE,
-	MSG_ORDERCHANGE,
-	MSG_TIMERTICK:	SDL_SInt32;
 
 implementation
 
@@ -556,13 +559,7 @@ begin
 
 	Result := True;
 
-	with MainWindow.SDL.Events do
-	begin
-		MSG_VUMETER     := SDL_SInt32(SDL_RegisterEvents(1));
-		MSG_ROWCHANGE   := SDL_SInt32(SDL_RegisterEvents(1));
-		MSG_ORDERCHANGE := SDL_SInt32(SDL_RegisterEvents(1));
-		MSG_TIMERTICK   := SDL_SInt32(SDL_RegisterEvents(1));
-	end;
+	RegisterMessages(MSG_TIMERTICK, 4);
 end;
 
 procedure AudioClose;
@@ -587,16 +584,6 @@ begin
 		if Buf[i] = #0 then Exit;
 		Result := Result + Buf[i];
 	end;
-end;
-
-procedure PostMessage(EventType: SDL_SInt32);
-var
-	event: SDL_Event;
-begin
-	event._type := SDL_USEREVENT_EV;
-	event.user.code := EventType;
-	event.user.data1 := SDL_Data(@Module.PlayPos);
-	MainWindow.SDL.Events.SDL_PushEvent(@event);
 end;
 
 // ==========================================================================
@@ -1678,8 +1665,8 @@ procedure TPTModule.RepostChanges;
 begin
 	if RenderMode = RENDER_NONE then
 	begin
-		PostMessage(MSG_ORDERCHANGE);
-		PostMessage(MSG_ROWCHANGE);
+		PostMessagePtr(MSG_ORDERCHANGE, @PlayPos);
+		PostMessagePtr(MSG_ROWCHANGE, @PlayPos);
 	end;
 end;
 
@@ -2067,7 +2054,7 @@ begin
 	PosJumpAssert  := True;
 
 	if RenderMode = RENDER_NONE then
-		PostMessage(MSG_ORDERCHANGE);
+		PostMessagePtr(MSG_ORDERCHANGE, @PlayPos);
 end;
 
 procedure TPTModule.VolumeChange(var ch: TPTChannel);
@@ -2646,7 +2633,7 @@ begin
 		PlayPos.Pattern := OrderList[NewOrder];
 
 		if RenderMode = RENDER_NONE then
-			PostMessage(MSG_ORDERCHANGE);
+			PostMessagePtr(MSG_ORDERCHANGE, @PlayPos);
 	end;
 end;
 
@@ -2743,7 +2730,7 @@ begin
 	else
 	if RenderMode = RENDER_NONE then
 	begin
-        PostMessage(MSG_ROWCHANGE);
+        PostMessagePtr(MSG_ROWCHANGE, @PlayPos);
 	end
 	else
 	if PattDelTime2 = 0 then
@@ -2867,7 +2854,7 @@ begin
 	PlayPos.Row     := row;
 
 	if RenderMode = RENDER_NONE then
-		PostMessage(MSG_ROWCHANGE);
+		PostMessagePtr(MSG_ROWCHANGE, @PlayPos);
 
 	PlayMode := PLAY_PATTERN;
 	InitPlay(pattern);
@@ -2885,7 +2872,7 @@ begin
 	InitPlay(OrderList[0]);
 
 	if RenderMode = RENDER_NONE then
-		PostMessage(MSG_ROWCHANGE);
+		PostMessagePtr(MSG_ROWCHANGE, @PlayPos);
 end;
 
 procedure TPTModule.Stop;

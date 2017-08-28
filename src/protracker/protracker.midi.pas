@@ -3,7 +3,8 @@ unit ProTracker.MIDI;
 // Wrapper for Midi.pas for handling MIDI controllers
 // hukka 2017
 
-{$mode Delphi}{$H+}
+//{$mode Delphi}{$H+}
+{$mode objfpc}
 {.$DEFINE LOGGING}
 
 interface
@@ -11,9 +12,15 @@ interface
 uses
 	Classes, SysUtils, Generics.Collections,
 	ShortcutManager, MIDI,
-	ProTracker.Player;
+	ProTracker.Messaging, ProTracker.Player;
 
 const
+	MSG_SHORTCUT        = 200;
+	MSG_MIDI_SELPATTERN	= 205;
+	MSG_MIDI_SELSAMPLE	= 206;
+		MSG_MIDI_FIRST = 200;
+		MSG_MIDI_LAST  = 210;
+
 	CTRLTYPE_NONE       = 0;
 	CTRLTYPE_BUTTON     = 1;
 	CTRLTYPE_ABSOLUTE   = 2;
@@ -75,8 +82,9 @@ type
 		Color,
 		Index:      Byte;
 	end;
+	PMIDIScreenPixel = ^TMIDIScreenPixel;
 
-	TMIDIScreen = record
+	TMIDIScreen = class
 		Controller: TMIDIController;
 		Enabled:    Boolean;
 		Width,
@@ -88,7 +96,6 @@ type
 		procedure  Update;
 		procedure  SetPixel(X, Y, Col: Byte);
 	end;
-	PMIDIScreenPixel = ^TMIDIScreenPixel;
 
 	TMIDIController = class
 	private
@@ -126,9 +133,11 @@ type
 		destructor  Destroy; override;
 	end;
 
+	TMIDIControllerList = specialize TObjectList<TMIDIController>;
+
 	TMIDIHandler = class
 	public
-		Controllers:      TObjectList<TMIDIController>;
+		Controllers:      TMIDIControllerList;
 		InputControllers: array [0..255] of TMIDIController;
 		Devices:          TMidiDevices;
 		Input:            TMidiInput;
@@ -182,8 +191,6 @@ end;
 { TInputControl }
 
 procedure TInputControl.DoAction(NoteOn: Boolean);
-var
-	D: Integer;
 begin
 	with Actions[GetActionIndex] do
 	begin
@@ -195,8 +202,6 @@ begin
 			Exit;
 		end;
 
-		D := Data;
-
 		if StringData = MIDIACTION_SHIFT then
 		begin
 			Controller.ShiftDown := NoteOn;
@@ -205,41 +210,38 @@ begin
 		else
 			if not NoteOn then Exit;
 
-		if StringData = MIDIACTION_SEL_SAMPLE then
-		begin
-			Editor.SetSample(D);
-		end
-		else
-		if StringData = MIDIACTION_SEL_PATTERN then
-		begin
-			Editor.SelectPattern(D);
-		end
-		else
-		if StringData = MIDIACTION_PLAY_PATTERN then
-		begin
-			if Module.PlayMode <> PLAY_PATTERN then
-				Module.PlayPattern(CurrentPattern)
-			else
-				Module.Stop;
-		end
-		else
-		if StringData = MIDIACTION_PLAY_SONG then
-		begin
-			if Module.PlayMode in [PLAY_STOPPED, PLAY_PATTERN] then
-				Module.Play
-			else
-				Module.Stop;
-		end;
-{		else
-		if StringData = MIDIACTION_EDITMODE then
-		begin
-		end;}
-	end;
+		case StringData of
+
+			MIDIACTION_SEL_SAMPLE:
+				PostMessageValue(MSG_MIDI_SELSAMPLE, Data);
+
+			MIDIACTION_SEL_PATTERN:
+				PostMessageValue(MSG_MIDI_SELPATTERN, Data);
+
+			MIDIACTION_PLAY_PATTERN:
+				if Module.PlayMode <> PLAY_PATTERN then
+					Module.PlayPattern(CurrentPattern)
+				else
+					Module.Stop;
+
+			MIDIACTION_PLAY_SONG:
+				if Module.PlayMode in [PLAY_STOPPED, PLAY_PATTERN] then
+					Module.Play
+				else
+					Module.Stop;
+
+			MIDIACTION_EDITMODE:
+			;
+
+		end; // case
+
+	end; // Actions[]
 end;
 
 function TInputControl.GetActionIndex: Byte; inline;
 begin
-	if (Controller.ShiftDown) and (Actions[0].StringData <> 'shift') then
+	if (Controller.ShiftDown) and
+		((Actions[0].StringData <> 'shift') and (Actions[1].ActionType <> ACT_NONE)) then
 		Result := 1
 	else
 		Result := 0;
@@ -257,6 +259,8 @@ begin
 		InputControls[i] := nil;
 
 	MIDINotes.First := 255; // disable
+
+	Screen := TMIDIScreen.Create;
 	Screen.Enabled := False;
 end;
 
@@ -265,6 +269,7 @@ var
 	i: Integer;
 begin
 	Screen.Clear;
+	Screen.Free;
 
 	for i := 0 to High(InputControls) do
 		if InputControls[i] <> nil then
@@ -288,52 +293,42 @@ begin
 
 	Stat := Status and $F0;
 
-	if Stat = MIDICMD_KEY_ON then
-	begin
-		if Ctrl.HasLED then
-		begin
-			Ctrl.LEDState := not Ctrl.LEDState;
-			if Ctrl.LEDState then i := 127 else i := 0;
-			MIDIHandler.Output.Send(Ctrl.Controller.OutputIndex, MIDICMD_KEY_ON, Data1, i);
-		end;
-	end
-	else
-	if Stat = MIDICMD_KEY_OFF then
-	else
-	if Stat = $B0 then
-	begin
-		if Data2 = 0 then Exit;
-	end
-	else
-	begin
-		{$IFDEF LOGGING}
-		Log(Format('MIDI: ButtonHandler: Unhandled "%s" %x %x %x', [Ctrl.Name, Status, Data1, Data2]));
-		{$ENDIF}
-		Exit;
+	case Stat of
+
+		MIDICMD_KEY_ON:
+			if Ctrl.HasLED then
+			begin
+				Ctrl.LEDState := not Ctrl.LEDState;
+				if Ctrl.LEDState then i := 127 else i := 0;
+				MIDIHandler.Output.Send(OutputIndex, MIDICMD_KEY_ON, Data1, i);
+			end;
+
+		MIDICMD_KEY_OFF:
+			;
+
+		$B0:
+			if Data2 = 0 then Exit;
+
+		else
+			{$IFDEF LOGGING}
+			Log(Format('MIDI: ButtonHandler: Unhandled "%s" %x %x %x', [Ctrl.Name, Status, Data1, Data2]));
+			{$ENDIF}
+			Exit;
 	end;
 
 	i := Ctrl.GetActionIndex;
-	//log('acttype='+inttostr(integer(Ctrl.Actions[i].ActionType)));
 	if (Stat <> MIDICMD_KEY_OFF) and (Ctrl.Actions[i].ActionType = ACT_SHORTCUT) then
-	begin
-		Key := Ctrl.Actions[i].Shortcut;
-		if Key <> nil then
-		begin
-			i := Key.Shortcut.Key;
-			//Log(Format('MIDI: "%s" %x %x %x => Key:%d', [Ctrl.Name, Status, Data1, Data2, i]));
-			Window.OnKeyDown(i, Key.Shortcut.Shift);
-		end;
-	end
+		PostMessagePtr(MSG_SHORTCUT, @Ctrl.Actions[i].Shortcut)
 	else
 		Ctrl.DoAction(Stat = MIDICMD_KEY_ON);
 end;
 
 procedure TMIDIController.MidiCallback_Slider(var Ctrl: TInputControl; const Status, Data1, Data2: Byte);
-var
+{var
 	S: AnsiString;
-	i: Integer;
+	i: Integer;}
 begin
-	if Ctrl = nil then Exit;
+{	if Ctrl = nil then Exit;
 
 	S := '[Slider/pot callback] ' + Ctrl.Name;
 
@@ -350,8 +345,8 @@ begin
 
 		CTRLTYPE_ABSOLUTE:
 			S := S + Format(' (Absolute) Value: %d', [Data2]);
-
 	end;
+}
 end;
 
 procedure TMIDIController.UpdateVUMeter(Channel: Byte; Volume: Single);
@@ -530,7 +525,7 @@ begin
 	Devices := TMidiDevices.Create;
 	Input  := MidiInput;
 	Output := MidiOutput;
-	Controllers := TObjectList<TMIDIController>.Create(True);
+	Controllers := TMIDIControllerList.Create(True);
 
 	ReadControllerDefs(DataPath + 'midi');
 
@@ -541,15 +536,18 @@ begin
 		if Ctrl.InitIO >= 0 then
 			with Ctrl do
 			begin
-				SetCallbacks(CTRLTYPE_BUTTON,   MidiCallback_Button);
-				SetCallbacks(CTRLTYPE_ABSOLUTE, MidiCallback_Slider);
-				SetCallbacks(CTRLTYPE_RELATIVE, MidiCallback_Slider);
+				SetCallbacks(CTRLTYPE_BUTTON,   @MidiCallback_Button);
+				SetCallbacks(CTRLTYPE_ABSOLUTE, @MidiCallback_Slider);
+				SetCallbacks(CTRLTYPE_RELATIVE, @MidiCallback_Slider);
 			end
 		else
 			Controllers.Delete(i);
 	end;
 
-	Input.OnMidiData := OnMidiInput;
+	Input.OnMidiData := @OnMidiInput;
+
+	// register MIDI event messages
+	RegisterMessages(MSG_MIDI_FIRST, MSG_MIDI_LAST-MSG_MIDI_FIRST);
 end;
 
 destructor TMIDIHandler.Destroy;
@@ -912,11 +910,11 @@ begin
 	if (not Enabled) or (X >= Width) or (Y >= Height) then Exit;
 
 	Pixel := @Pixels[X, Y];
-	if Col <> Pixel.Color then
+	if Col <> Pixel^.Color then
 	begin
-		Pixel.Color := Col;
+		Pixel^.Color := Col;
 		Controller.MIDIHandler.Output.Send(
-			Controller.OutputIndex, MIDICMD_KEY_ON, Pixel.Index, Col);
+			Controller.OutputIndex, MIDICMD_KEY_ON, Pixel^.Index, Col);
 	end;
 end;
 

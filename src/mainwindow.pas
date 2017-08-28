@@ -123,6 +123,7 @@ uses
 	BASS,
 	{$ENDIF}
     BuildInfo, Math, soxr,
+	ProTracker.Messaging,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
 	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio, Dialog.JumpToTime,
@@ -1025,13 +1026,14 @@ procedure TWindow.HandleInput;
 var
 	InputEvent: SDL_Event;
 	c: SDL_SInt32;
-	X, Y: Integer;
+	X, Y, i: Integer;
 	B: Boolean;
 	Btn: TMouseButton;
 	Key: SDL_KeyCode;
 	km: SDL_KeyMods;
 	Shift: TShiftState;
 	AnsiInput: AnsiString;
+	KeyBind: TKeyBinding;
 
 	function GetXY: TPoint;
 	begin
@@ -1049,20 +1051,25 @@ begin
 	while SDL.Events.SDL_PollEvent(@InputEvent) = SDL_TRUE do
 	case {%H-}InputEvent._type of
 
-		SDL_USEREVENT_EV:		// messages from playroutine
-		begin
-			c := InputEvent.user.code;
-			if c = MSG_VUMETER then
-				UpdateVUMeter(PtrInt(InputEvent.user.data1))
-			else
-			if c = MSG_ROWCHANGE then
-				UpdatePatternView
-			else
-			if c = MSG_ORDERCHANGE then
-				ModuleOrderChanged
-			else
-			if c = MSG_TIMERTICK then
-				TimerTick;
+		SDL_USEREVENT_EV:		// messages from playroutine/midi handler
+		case InputEvent.user.code of
+			MSG_VUMETER:			UpdateVUMeter(GetMessageValue(InputEvent));
+			MSG_ROWCHANGE:			UpdatePatternView;
+			MSG_ORDERCHANGE:		ModuleOrderChanged;
+			MSG_TIMERTICK:			TimerTick;
+
+			MSG_MIDI_SELPATTERN:	Editor.SelectPattern(GetMessageValue(InputEvent));
+			MSG_MIDI_SELSAMPLE:		Editor.SetSample(GetMessageValue(InputEvent));
+
+			MSG_SHORTCUT:
+			begin
+				KeyBind := TKeyBinding(InputEvent.user.data1^);
+				if Assigned(KeyBind) then
+				begin
+					i := KeyBind.Shortcut.Key;
+					OnKeyDown(i, KeyBind.Shortcut.Shift);
+				end;
+			end;
 		end;
 
 		SDL_KEYDOWN:
