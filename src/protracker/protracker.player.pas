@@ -312,7 +312,7 @@ type
 		procedure 	Pause(Pause: Boolean = True);
 		procedure 	Close;
 
-		procedure 	PlayNote(Note: PNote; Chan: Byte);
+		procedure 	PlayNote(Note: PNote; Chan: Byte; Vol: Byte = 255);
 		procedure 	PlaySample(_note, _sample, _channel: Byte;
 					_volume: ShortInt = -1; _start: Integer = 0; _length: Integer = 0);
 		procedure 	PlayVoice(var ch: TPTChannel);
@@ -2921,7 +2921,7 @@ begin
 		while Mixing do;
 end;
 
-procedure TPTModule.PlayNote(Note: PNote; Chan: Byte);
+procedure TPTModule.PlayNote(Note: PNote; Chan: Byte; Vol: Byte = 255);
 var
 	sample: TSample;
 	srepeat: Word;
@@ -2949,7 +2949,10 @@ begin
 	ch.n_start    := 0; // Data[0]
 	ch.n_period   := PeriodTable[(37 * sample.Finetune) + GetPeriodTableOffset(Note.Period)];
 	ch.n_finetune := sample.Finetune;
-	ch.n_volume   := sample.Volume;
+	if Vol > 64 then
+		ch.n_volume   := sample.Volume
+	else
+		ch.n_volume   := Min(Vol, 64);
 	ch.n_length   := sample.Length;
 	ch.n_replen   := sample.LoopLength;
 	srepeat       := sample.LoopStart;

@@ -64,8 +64,6 @@ end;
 procedure TCWEMainMenu.Show;
 var
 	Dlg: TCWEScreen;
-	Section: TKeyBindings;
-var
 	i, W, H: Integer;
 begin
 	W := 34+6;
