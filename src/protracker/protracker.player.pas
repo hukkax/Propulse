@@ -1935,9 +1935,25 @@ begin
 end;
 
 procedure TPTModule.KarplusStrong(var ch: TPTChannel);
+var
+	len: Word;
+	i, p: Integer;
+	Sam: TSample;
 begin
-	// not implemented
-	//Debug('Effect: KarplusStrong');
+	if not Options.Audio.EnableKarplusStrong then Exit;
+
+	Sam := Samples[ch.n_sample];
+    len := ((ch.n_replen * 2) and $FFFF) - 1;
+	p := ch.n_loopstart;
+
+	for i := 0 to len-1 do
+	begin
+		Sam.Data[p] := SarSmallint(ShortInt(Sam.Data[p]) + ShortInt(Sam.Data[p+1]));
+		Inc(p);
+	end;
+
+	Sam.Data[p] := SarSmallint(ShortInt(Sam.Data[ch.n_loopstart]) + ShortInt(Sam.Data[p]));
+	SampleChanged[ch.n_sample] := True;
 end;
 
 procedure TPTModule.DoRetrg(var ch: TPTChannel);

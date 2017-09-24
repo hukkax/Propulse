@@ -1266,6 +1266,19 @@ begin
 		.SetInfo('Timing mode', 0, 1, ['CIA', 'VBlank'], ApplyAudioSettings);
 		Cfg.AddBoolean(Sect, 'EditorInvertLoop', @Audio.EditorInvertLoop, True)
 		.SetInfo('Play EFx (Invert Loop) like', 0, 1, ['PT playroutine', 'PT editor']);
+		Cfg.AddBoolean(Sect, 'EnableKarplusStrong', @Audio.EnableKarplusStrong, False)
+		.SetInfo('Enable E8x (Karplus-Strong) effect', 0, 1, ['No', 'Yes']);
+
+		{$IFDEF MIDI}
+		Sect := 'MIDI';
+		Cfg.AddBoolean(Sect, 'Enabled', @Midi.Enabled, False)
+		.SetInfo('Enable MIDI input', 0, 1, ['No', 'Yes'], ApplyMIDISettings);
+		Cfg.AddBoolean(Sect, 'Display.Enabled', @Midi.UseDisplay, False)
+		.SetInfo('Enable LED matrix display', 0, 1, ['No', 'Yes'], ApplyMIDISettings);
+		Cfg.AddByte(Sect, 'Display.Effect', @Midi.DisplayEffect, 0)
+		.SetInfo('Display effect', MIDI_FX_SCROLLTEXT, MIDI_FX_VU_HORIZONTAL,
+		['Scrolltext', 'VU (vertical)', 'VU (horizontal)'], ApplyMIDISettings);
+		{$ENDIF}
 
 		Sect := 'Directory';
 		Cfg.AddString	(Sect, 'Modules', 		@Dirs.Modules, 			AppPath);

@@ -117,6 +117,7 @@ type
 			FilterLed: 				Boolean;
 			CIAmode: 				Boolean;	// tempo mode, False=VBlank, True=CIA
 			EditorInvertLoop: 		Boolean;	// play EFx command like in PT editor?
+			EnableKarplusStrong:	Boolean;	// enable E8x Karplus-Strong effect?
 		end;
 
 		Dirs: packed record
