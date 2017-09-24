@@ -11,7 +11,7 @@ interface
 
 uses
 	Classes, SysUtils, Generics.Collections,
-	ShortcutManager, MIDI,
+	ShortcutManager, Graphics32, MIDIIO,
 	ProTracker.Messaging, ProTracker.Player;
 
 const
@@ -37,8 +37,9 @@ const
 	MIDIACTION_PLAY_SONG    = 'toggleplay.song';
 	MIDIACTION_EDITMODE     = 'editmode';
 
-	MIDI_FX_VU_VERTICAL     = 0;
-	MIDI_FX_VU_HORIZONTAL   = 1;
+	MIDI_FX_SCROLLTEXT		= 0;
+	MIDI_FX_VU_VERTICAL     = 1;
+	MIDI_FX_VU_HORIZONTAL   = 2;
 
 type
 	TMIDIHandler    = class;
@@ -97,6 +98,28 @@ type
 		procedure  SetPixel(X, Y, Col: Byte);
 	end;
 
+	TMIDIScreenEffect = class
+	public
+		Controller: TMIDIController;
+	end;
+
+	TScrollText = class(TMIDIScreenEffect)
+	public
+		Text:       AnsiString;
+		Interval:   Byte;
+		ScrollPix:  Byte;
+		FontWidth:  Byte;
+		ScrollChar: Cardinal;
+		Pixels:     array of array of Boolean;
+		Font:		TBitmap32;
+
+		procedure	Update;
+		function	LoadFont(const Filename: String): Boolean;
+
+		constructor	Create;
+		destructor  Destroy; override;
+	end;
+
 	TMIDIController = class
 	private
 		MIDIHandler:   TMIDIHandler;
@@ -113,6 +136,8 @@ type
 			Note: TNote;
 		end;
 
+		ScrollText: TScrollText;
+
 		InputControls: array [0..$FFFF] of TInputControl;
 
 		Screen:        TMIDIScreen;
@@ -120,6 +145,7 @@ type
 		procedure 	MidiCallback_Button(var Ctrl: TInputControl; const Status, Data1, Data2: Byte);
 		procedure 	MidiCallback_Slider(var Ctrl: TInputControl; const Status, Data1, Data2: Byte);
 
+		procedure	UpdateScrollText;
 		procedure 	UpdateVUMeter(Channel: Byte; Volume: Single);
 
 		function    InitIO: Integer;
@@ -157,6 +183,9 @@ type
 		destructor  Destroy; override;
 	end;
 
+var
+	MIDI: TMIDIHandler;
+
 
 implementation
 
@@ -185,6 +214,86 @@ begin
 		end;
 	finally
 		Sl.EndUpdate;
+	end;
+end;
+
+{ TScrollText }
+
+constructor TScrollText.Create;
+begin
+	Font := TBitmap32.Create;
+	Text := ' apua APUA What '; //!!!
+end;
+
+destructor TScrollText.Destroy;
+begin
+	Font.Free;
+	inherited Destroy;
+end;
+
+procedure TScrollText.Update;
+var
+	C: AnsiChar;
+	i, X, Y: Integer;
+begin
+	Inc(Interval);
+	if Interval < 30 then Exit;
+
+	Interval := 0;
+	Inc(ScrollPix);
+
+	if ScrollPix >= FontWidth then
+	begin
+		// scroll buffer left by one char
+		for Y := 0 to Controller.Screen.Height-1 do
+		for X := 0 to Controller.Screen.Width-1 do
+			Pixels[X, Y] := Pixels[X + FontWidth, Y];
+
+		Inc(ScrollChar);
+		if ScrollChar > Length(Text) then
+			ScrollChar := 1;
+
+		i := (Ord(Text[ScrollChar]) - 32) * FontWidth;
+
+		for Y := 0 to Controller.Screen.Height-1 do
+		for X := 0 to FontWidth-1 do
+			Pixels[X + FontWidth, Y] := (Font.Pixel[X+i, Y] <> $FF000000);
+
+		ScrollPix := 0;
+	end;
+
+	for Y := 0 to Controller.Screen.Height-1 do
+	for X := 0 to Controller.Screen.Width-1 do
+	begin
+		if Pixels[X + ScrollPix, Y] then
+			i := Controller.Screen.Colors[1]
+		else
+			i := 0;
+		Controller.Screen.SetPixel(X, Y, i);
+	end;
+end;
+
+function TScrollText.LoadFont(const Filename: String): Boolean;
+var
+	Fn: String;
+begin
+	Fn := IncludeTrailingPathDelimiter(DataPath + 'midi') +  Filename + '.pcx';
+	log('LoadFont='+Fn);
+	if not FileExists(Fn) then
+	begin
+		Log('File not found');
+		Exit(False);
+	end;
+
+	Font.LoadFromFile(Fn);
+	Result := (Font <> nil);
+	if Result then
+	begin
+		FontWidth := Font.Width div 96;
+		ScrollChar := 1;
+		SetLength(Pixels, Controller.Screen.Width + FontWidth, Controller.Screen.Height);
+
+		Result := (Font.Height >= Controller.Screen.Height);
 	end;
 end;
 
@@ -262,12 +371,14 @@ begin
 
 	Screen := TMIDIScreen.Create;
 	Screen.Enabled := False;
+	ScrollText := nil;
 end;
 
 destructor TMIDIController.Destroy;
 var
 	i: Integer;
 begin
+	if Assigned(ScrollText) then ScrollText.Free;
 	Screen.Clear;
 	Screen.Free;
 
@@ -349,6 +460,12 @@ begin
 }
 end;
 
+procedure TMIDIController.UpdateScrollText; inline;
+begin
+	if ScrollText <> nil then
+		ScrollText.Update;
+end;
+
 procedure TMIDIController.UpdateVUMeter(Channel: Byte; Volume: Single);
 var
 	X, Y, j: Integer;
@@ -357,6 +474,9 @@ begin
 	if not Screen.Enabled then Exit;
 
 	case Options.Midi.DisplayEffect of
+
+		MIDI_FX_SCROLLTEXT:
+			UpdateScrollText;
 
 		MIDI_FX_VU_HORIZONTAL:
 		begin
@@ -720,6 +840,16 @@ begin
 
 					SetLength(Screen.Colors, Screen.Height);
 					SetLength(Screen.Pixels, Screen.Width, Screen.Height);
+
+					S := Ini.ReadString(Section, 'Font', '');
+					if S <> '' then
+					begin
+						ScrollText := TScrollText.Create;
+						ScrollText.Controller := Cont;
+						//ScrollText.Interval := ;
+						if not ScrollText.LoadFont(S) then
+							FreeAndNil(ScrollText);
+					end;
 
 					ParseDelimited(Sl, Ini.ReadString(Section, 'Colors', '1'), ',');
 					M := Min(Sl.Count, Screen.Height);

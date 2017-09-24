@@ -155,7 +155,7 @@
         <PackageName Value="LazUtils"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="54">
+    <Units Count="55">
       <Unit0>
         <Filename Value="propulse.pas"/>
         <IsPartOfProject Value="True"/>
@@ -420,6 +420,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Messaging"/>
       </Unit53>
+      <Unit54>
+        <Filename Value="include/midiio.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="MIDIIO"/>
+      </Unit54>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

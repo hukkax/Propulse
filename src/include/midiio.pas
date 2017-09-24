@@ -1,4 +1,4 @@
-unit MIDI;
+unit MIDIIO;
 
 {$mode objfpc}{$H+}
 
@@ -185,7 +185,7 @@ begin
 		FDevices.Objects[DeviceIndex] := nil;
 	end;
 end;
-                         
+
 procedure TMidiDevices.CloseAll;
 var
 	i: integer;
@@ -309,3 +309,4 @@ finalization
   FreeAndNil(gMidiOutput);
 
 end.
+
