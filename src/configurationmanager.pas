@@ -34,6 +34,7 @@ type
 						const aCallback: TSettingChangeCallback = nil);
 		procedure		ModifyValue(Amount: Integer); virtual;
 		function		ValueToString: AnsiString; virtual;
+		function 		GetValueName(i: Integer): AnsiString;
 
 		procedure		Load(const Ini: TIniFile); virtual;
 		procedure		Save(const Ini: TIniFile); virtual;
@@ -45,6 +46,7 @@ type
 	TConfigItemBoolean = class(TConfigItem)
 	public
 		Value:			PBoolean;
+		DefaultValue:	Boolean;
 		procedure		ModifyValue(Amount: Integer); override;
 		function		GetValue: Boolean;
 		function		ValueToString: AnsiString; override;
@@ -55,6 +57,7 @@ type
 	TConfigItemByte = class(TConfigItem)
 	public
 		Value:			PByte;
+		DefaultValue:	Byte;
 		procedure		ModifyValue(Amount: Integer); override;
 		function		GetValue: Byte;
 		function		ValueToString: AnsiString; override;
@@ -65,6 +68,7 @@ type
 	TConfigItemInteger = class(TConfigItem)
 	public
 		Value:			PInteger;
+		DefaultValue:	Integer;
 		procedure		ModifyValue(Amount: Integer); override;
 		function		GetValue: Integer;
 		function		ValueToString: AnsiString; override;
@@ -75,6 +79,7 @@ type
 	TConfigItemCardinal = class(TConfigItem)
 	public
 		Value:			PCardinal;
+		DefaultValue:	Cardinal;
 		procedure		ModifyValue(Amount: Integer); override;
 		function		GetValue: Cardinal;
 		function		ValueToString: AnsiString; override;
@@ -85,6 +90,7 @@ type
 	TConfigItemFloat = class(TConfigItem)
 	public
 		Value:			PSingle;
+		DefaultValue:	Single;
 		procedure		ModifyValue(Amount: Integer); override;
 		function		GetValue: Single;
 		function		ValueToString: AnsiString; override;
@@ -97,6 +103,7 @@ type
 		CurrentIndex:	Integer;
 	public
 		Value:			PString;
+		DefaultValue:	String;
 		AllowEmpty:		Boolean;
 		procedure		ModifyValue(Amount: Integer); override;
 		function		GetValue: String;
@@ -140,8 +147,7 @@ implementation
 {$R-}
 
 uses
-	SysUtils,
-	FileUtils;
+	Math, SysUtils, FileUtils;
 
 { TConfigurationManager }
 
@@ -197,6 +203,7 @@ begin
 	Result := TConfigItemBoolean.Create(Section, Name);
 	Result.Value := Value;
 	PBoolean(Result.Value)^ := DefaultValue;
+	Result.DefaultValue := DefaultValue;
 	Items.Add(Result);
 end;
 
@@ -205,6 +212,7 @@ begin
 	Result := TConfigItemByte.Create(Section, Name);
 	Result.Value := Value;
 	PByte(Result.Value)^ := DefaultValue;
+	Result.DefaultValue := DefaultValue;
 	Items.Add(Result);
 end;
 
@@ -213,6 +221,7 @@ begin
 	Result := TConfigItemInteger.Create(Section, Name);
 	Result.Value := Value;
 	PInteger(Result.Value)^ := DefaultValue;
+	Result.DefaultValue := DefaultValue;
 	Items.Add(Result);
 end;
 
@@ -221,6 +230,7 @@ begin
 	Result := TConfigItemCardinal.Create(Section, Name);
 	Result.Value := Value;
 	PCardinal(Result.Value)^ := DefaultValue;
+	Result.DefaultValue := DefaultValue;
 	Items.Add(Result);
 end;
 
@@ -229,6 +239,7 @@ begin
 	Result := TConfigItemFloat.Create(Section, Name);
 	Result.Value := Value;
 	PSingle(Result.Value)^ := DefaultValue;
+	Result.DefaultValue := DefaultValue;
 	Items.Add(Result);
 end;
 
@@ -237,6 +248,7 @@ begin
 	Result := TConfigItemString.Create(Section, Name);
 	Result.Value := Value;
 	PString(Result.Value)^ := DefaultValue;
+	Result.DefaultValue := DefaultValue;
 	Result.AllowEmpty := AllowEmpty;
 	Items.Add(Result);
 end;
@@ -323,6 +335,12 @@ begin
 	Result := '';
 end;
 
+function TConfigItem.GetValueName(i: Integer): AnsiString; inline;
+begin
+	if i < Min then i := Min else if i > Max then i := Max;
+	Result := ValueNames[i];
+end;
+
 procedure TConfigItem.ModifyValue(Amount: Integer);
 begin
 {	if Assigned(Callback) then
@@ -379,8 +397,12 @@ end;
 { TConfigItemFloat }
 
 procedure TConfigItemFloat.Load(const Ini: TIniFile);
+var
+	Val: Double;
 begin
-	PSingle(Value)^ := Ini.ReadFloat(Section, Name, PSingle(Value)^);
+	Val := Ini.ReadFloat(Section, Name, PSingle(Value)^);
+	if (Val < Min) or (Val > Max) then Val := DefaultValue;
+	PSingle(Value)^ := Val;
 end;
 
 procedure TConfigItemFloat.Save(const Ini: TIniFile);
@@ -426,10 +448,18 @@ end;
 procedure TConfigItemCardinal.Load(const Ini: TIniFile);
 var
 	S: String;
+	Val: Cardinal;
 begin
 	S := Ini.ReadString(Section, Name, '');
 	if S <> '' then
-		PCardinal(Value)^ := Cardinal(StrToInt(S));
+	begin
+		Val := Cardinal(StrToInt(S));
+		if (Val < Min) or (Val > Max) then
+			Val := DefaultValue;
+	end
+	else
+		Val := DefaultValue;
+	PCardinal(Value)^ := Val;
 end;
 
 procedure TConfigItemCardinal.Save(const Ini: TIniFile);
@@ -475,8 +505,13 @@ end;
 { TConfigItemInteger }
 
 procedure TConfigItemInteger.Load(const Ini: TIniFile);
+var
+	i: Integer;
 begin
-	PInteger(Value)^ := Ini.ReadInteger(Section, Name, PInteger(Value)^);
+	i := Ini.ReadInteger(Section, Name, PInteger(Value)^);
+	if (i < Min) or (i > Max) then
+		i := DefaultValue;
+	PInteger(Value)^ := i;
 end;
 
 procedure TConfigItemInteger.Save(const Ini: TIniFile);
@@ -526,6 +561,8 @@ var
 	i: Integer;
 begin
 	i := Ini.ReadInteger(Section, Name, PByte(Value)^);
+	if (i < Min) or (i > Max) then
+		i := DefaultValue;
 	if (i >= 0) and (i <= 255) then
 		PByte(Value)^ := i;
 end;
@@ -559,13 +596,13 @@ begin
 	if Value = nil then Exit('NIL');
 
 	if (Max - Min) <= Length(ValueNames) then
-		Result := ValueNames[Value^-Min]
+		Result := GetValueName(Value^-Min)
 	else
 	if (Value^ = Min) and (Length(ValueNames) > 0) then
-		Result := ValueNames[Min]
+		Result := GetValueName(Min)
 	else
 	if (Value^ = Max) and (High(ValueNames) >= 1) then
-		Result := ValueNames[1]
+		Result := GetValueName(1)
 	else
 	if FormatString <> '' then
 		Result := Format(FormatString, [Value^])

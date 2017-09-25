@@ -8,6 +8,8 @@ uses
 type
 	TPaulaVoice = class
 	public
+		Enabled: Boolean;
+
 		SRC_DAT: PArrayOfShortInt;
 		SRC_LEN: uint32;
 		SRC_VOL: Single;
@@ -17,7 +19,7 @@ type
 		DMA_POS: uint32;
 
 		f_OutputFreq: Single;
-		PANL, PANR: Single;
+		PANL, PANR:   Single;
 
 		DELTA, LASTDELTA: Single;
 		FRAC, LASTFRAC:   Single;
@@ -27,7 +29,7 @@ type
 		Sample,
 		QueuedSample: Byte;
 		QueuedOffset: Cardinal;
-		PlayPos:		Integer;
+		PlayPos:      Integer;
 
 		constructor Create(OutputFreq: Word);
 
@@ -75,6 +77,7 @@ begin
 	PlayPos := -1;
 	Sample := QueuedSample;
 
+	if Enabled then
 	with Module.Samples[Sample] do
 	begin
 		PlayPos := QueuedOffset;
@@ -93,18 +96,18 @@ begin
 	DMA_LEN := 0;
 	DMA_POS := 0;
 	SRC_VOL := 0;
-	DELTA := 0;
-	FRAC := 0;
+	DELTA   := 0;
+	FRAC    := 0;
 	LASTDELTA := 0;
-	LASTFRAC := 0;
-	Volume := 0;
+	LASTFRAC  := 0;
+	Volume  := 0;
 	PlayPos := -1;
 end;
 
 procedure TPaulaVoice.SetPeriod(period: Word);
 begin
 	// This is what really happens on Paula on a real Amiga
-	// on normal video modes. Tested and confirmed!
+	// on normal video modes. Tested and confirmed by 8bitbubsy!
 	if period = 0 then
 		DELTA := 0.0
 	else
@@ -113,6 +116,8 @@ begin
 			period := 113;
 		DELTA := (PAULA_PAL_CLK / period) / f_outputFreq;
 	end;
+	if LASTDELTA = 0.0 then
+		LASTDELTA := DELTA;
 end;
 
 procedure TPaulaVoice.SetVolume(vol: Word);

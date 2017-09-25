@@ -386,6 +386,10 @@ begin
 		@TSampleView.COLOR_WAVEFORM, 6).
 		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
 
+	PaletteConfig.AddByte(S, 'Waveform peaks',
+		@TSampleView.COLOR_WAVEFORM_PEAKS, 15).
+		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
+
 	PaletteConfig.AddByte(S, 'Overrun',
 		@TSampleView.COLOR_OVERRUN, 4).
 		SetInfo('Waveform >64K', 0, 15, [], ColorChanged, '%.2d');
@@ -512,10 +516,17 @@ begin
 	if WaitingForKeyBinding then
 	begin
 		// ignore Shift/Ctrl/Alt without other keys
-		if Key in [0, 91..92, 16..18] then Exit;
-
-		GetNewKeyBinding(KeyList, Key, Shift, Result); // finalize
-		Result := True;
+		case Key of
+			0,
+			SDLK_LSHIFT, SDLK_RSHIFT,
+			SDLK_LCTRL, SDLK_RCTRL,
+			SDLK_LALT, SDLK_RALT,
+			SDLK_LGUI, SDLK_RGUI:
+				Exit;
+		else
+			GetNewKeyBinding(KeyList, Key, Shift, Result); // finalize
+			Result := True;
+		end;
 	end
 	else
 		inherited;

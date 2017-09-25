@@ -27,7 +27,8 @@ type
 		keyPlaybackPlayFrom,	keyPlaybackStop,
 		keyPlaybackPrevPattern, keyPlaybackNextPattern,
 		keyControlsPrevious,	keyControlsNext,
-		keySongLength,			keySongNew,
+		keySongLength,			keyJumpToTime,
+		keySongNew,
 		keyMouseCursor,			keySaveCurrent,
 		keyRenderToSample,		keyCleanup,
 		keyToggleChannel1,		keyToggleChannel2,
@@ -77,6 +78,7 @@ type
 		Video:				TVideoInfo;
 		MessageTextTimer,
 		PlayTimeCounter:	Integer;
+		Visible: 			Boolean;
 
 		constructor Create;
 		destructor 	Destroy; override;
@@ -95,8 +97,8 @@ type
 	end;
 
 
-	procedure	GetModifierKey(keymod: SDL_Keymods; var Shift: TShiftState;
-				keymodconst: Integer; shiftconst: TShiftStateEnum); inline;
+	function	GetModifierKey(keymod: SDL_Keymods; var Shift: TShiftState;
+				keymodconst: Integer; shiftconst: TShiftStateEnum): Boolean; inline;
 	function 	GetShiftState: TShiftState;
 	function 	TimerTickCallback(interval: Uint32; param: Pointer): UInt32; cdecl;
 
@@ -119,7 +121,7 @@ uses
     BuildInfo, Math, soxr,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
-	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio,
+	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio, Dialog.JumpToTime,
 	CWE.MainMenu;
 
 procedure ClearMessageQueue;
@@ -365,7 +367,7 @@ begin
 	else
 		OK := True;
 
-	CurrentOrder := 0;
+	Module.PlayPos.Order := 0;
 	CurrentPattern := Module.OrderList[0];
 	CurrentSample := 1;
 	Editor.Reset;
@@ -422,6 +424,7 @@ var
 begin
     Result := False;
 	Locked := True;
+	Visible := True;
 
 	Fn := GetDataFile(GetFontFile(Options.Display.Font));
 	if Fn = '' then
@@ -485,7 +488,7 @@ begin
 
 	if not Initialized then
 	begin
-		if SDL.SDL_Init(SDL_INIT_VIDEO {or SDL_INIT_TIMER}) <> 0 then
+		if SDL.SDL_Init(SDL_INIT_VIDEO or SDL_INIT_TIMER) <> 0 then
 		begin
 			LogFatal('Error initializing SDL: ' + SDL.Error.SDL_GetError);
 			Exit;
@@ -611,10 +614,13 @@ begin
 
 	MouseCursor.Draw;
 
-	SDL.Render.SDL_UpdateTexture(Video.Texture, nil, @Console.Bitmap.Bits[0], Console.Bitmap.Width*4);
-	SDL.Render.SDL_RenderClear(Video.Renderer);
-	SDL.Render.SDL_RenderCopy(Video.Renderer, Video.Texture, nil, nil);
-	SDL.Render.SDL_RenderPresent(Video.Renderer);
+	with SDL.Render do
+	begin
+		SDL_UpdateTexture(Video.Texture, nil, @Console.Bitmap.Bits[0], Console.Bitmap.Width*4);
+		SDL_RenderClear(Video.Renderer);
+		SDL_RenderCopy(Video.Renderer, Video.Texture, nil, nil);
+		SDL_RenderPresent(Video.Renderer);
+	end;
 
 	MouseCursor.Erase;
 end;
@@ -652,6 +658,7 @@ var
     {$ENDIF}
 begin
 	Locked := True;
+	Visible := True;
     Video.IsFullScreen := B;
 
 	with SDL.Video do
@@ -845,6 +852,10 @@ begin
 			if not InModalDialog then
 				Dialog_ModuleInfo;
 
+		keyJumpToTime:
+			if not InModalDialog then
+				Dialog_JumpToTime;
+
 		keyRenderToSample:
 			if not InModalDialog then
 				Dialog_Render(True);
@@ -881,6 +892,7 @@ var
 	X, Y: Integer;
 begin
 	if Locked then Exit;
+
 	SDL.Events.SDL_PumpEvents;
 	SDL.Mouse.SDL_GetMouseState(X, Y);
 
@@ -897,11 +909,16 @@ begin
 	end;
 end;
 
-procedure GetModifierKey(keymod: SDL_Keymods; var Shift: TShiftState;
-	keymodconst: Integer; shiftconst: TShiftStateEnum);
+function GetModifierKey(keymod: SDL_Keymods; var Shift: TShiftState;
+	keymodconst: Integer; shiftconst: TShiftStateEnum): Boolean;
 begin
 	if (Integer(keymod.Value) and keymodconst) <> 0 then
+	begin
 		Include(Shift, shiftconst);
+		Result := True;
+	end
+	else
+		Result := False;
 end;
 
 function GetShiftState: TShiftState;
@@ -910,12 +927,12 @@ var
 begin
 	Result := [];
 	M := SDL.Keyboard.SDL_GetModState;
-	GetModifierKey(M, Result, KMOD_SHIFT,	ssShift);	// Shift
-	GetModifierKey(M, Result, KMOD_CTRL,	ssCtrl);	// Ctrl
-	GetModifierKey(M, Result, KMOD_ALT,		ssAlt);		// Alt
+	GetModifierKey(M, Result, KMOD_SHIFT,			ssShift);	// Shift
+	GetModifierKey(M, Result, KMOD_CTRL,			ssCtrl);	// Ctrl
+	GetModifierKey(M, Result, KMOD_ALT,				ssAlt);		// Alt
 	GetModifierKey(M, Result, Integer(KMOD_MODE),	ssAltGr);	// AltGr
-	GetModifierKey(M, Result, KMOD_GUI,		ssMeta);	// Windows
-	//GetModifierKey(M, Result, KMOD_NUM,	ssNum);		// Num Lock
+	GetModifierKey(M, Result, KMOD_GUI,				ssMeta);	// Windows
+	//GetModifierKey(M, Result, KMOD_NUM,			ssNum);		// Num Lock
 	GetModifierKey(M, Result, Integer(KMOD_CAPS),	ssCaps);	// Caps Lock
 end;
 
@@ -979,7 +996,7 @@ var
 	Key: SDL_KeyCode;
 	km: SDL_KeyMods;
 	Shift: TShiftState;
-	AnsiInput: AnsiString;
+sk,	AnsiInput: AnsiString;
 
 	function GetXY: TPoint;
 	begin
@@ -1021,23 +1038,36 @@ begin
 			begin
 				Key := InputEvent.key.keysym.sym;
 				case Key of
-					SDLK_UNKNOWN,
-					SDLK_LSHIFT, SDLK_RSHIFT,
+					SDLK_UNKNOWN:
+					{SDLK_LSHIFT, SDLK_RSHIFT,
 					SDLK_LCTRL,  SDLK_RCTRL,
-					SDLK_LALT,   SDLK_RALT:
+					SDLK_LALT,   SDLK_RALT,
+					SDLK_LGUI,   SDLK_RGUI:}
 					;
 				else
 					Shift := [];
 					if InputEvent.key.keysym.amod <> KMOD_NONE then
 					begin
-						km := InputEvent.key.keysym.amod;
-						GetModifierKey(km, Shift, KMOD_SHIFT,ssShift);	// Shift
-						GetModifierKey(km, Shift, KMOD_CTRL,	ssCtrl);	// Ctrl
-						GetModifierKey(km, Shift, KMOD_ALT,	ssAlt);		// Alt
-						GetModifierKey(km, Shift, KMOD_GUI,	ssMeta);	// Windows
-						GetModifierKey(km, Shift, Integer(KMOD_CAPS),	ssCaps);	// Caps Lock
-						GetModifierKey(km, Shift, Integer(KMOD_MODE),	ssAltGr);	// AltGr
+						km := {SDL.Keyboard.SDL_GetModState;} InputEvent.key.keysym.amod;
+						GetModifierKey(km, Shift, KMOD_SHIFT,	ssShift);		// Shift
+						GetModifierKey(km, Shift, KMOD_CTRL,	ssCtrl);		// Ctrl
+						GetModifierKey(km, Shift, KMOD_ALT,		ssAlt);			// Alt
+						GetModifierKey(km, Shift, KMOD_GUI,		ssMeta);		// Windows
+						GetModifierKey(km, Shift, Integer(KMOD_CAPS), ssCaps);	// Caps Lock
+						GetModifierKey(km, Shift, Integer(KMOD_MODE), ssAltGr);	// AltGr
 					end;
+(*
+					{$IFDEF DEBUG}
+					sk := '';
+					if ssShift in Shift then sk := sk + 'Shift ';
+					if ssCtrl in Shift then sk := sk + 'Ctrl ';
+					if ssAlt in Shift then sk := sk + 'Alt ';
+					if ssAltGr in Shift then sk := sk + 'AltGr ';
+					if ssMeta in Shift then sk := sk + 'Meta ';
+					if ssCaps in Shift then sk := sk + 'Caps ';
+					writeln('Key=', Key, '   Shift=', sk);
+					{$ENDIF}
+*)
 					OnKeyDown(Integer(Key), Shift);
 				end;
 			end;
@@ -1101,8 +1131,12 @@ begin
 
 		SDL_WINDOWEVENT_EV:
 			case InputEvent.window.event of
-		        SDL_WINDOWEVENT_ENTER:	MouseCursor.InWindow := True;
-		        SDL_WINDOWEVENT_LEAVE:	MouseCursor.InWindow := False;
+		        SDL_WINDOWEVENT_ENTER:		MouseCursor.InWindow := True;
+		        SDL_WINDOWEVENT_LEAVE:		MouseCursor.InWindow := False;
+				SDL_WINDOWEVENT_SHOWN,
+				SDL_WINDOWEVENT_RESTORED:	Window.Visible := True;
+				SDL_WINDOWEVENT_HIDDEN,
+				SDL_WINDOWEVENT_MINIMIZED:	Window.Visible := False;
 			end;
 
 		SDL_DROPFILE:
@@ -1118,7 +1152,7 @@ procedure TWindow.SyncTo60Hz; 				// from PT clone
 var
 	delayMs, perfFreq, timeNow_64bit: UInt64;
 begin
-	if (Video.HaveVSync) or (Locked) then Exit;
+	if (Window.Visible) and (Video.HaveVSync or Locked) then Exit;
 
 	perfFreq := SDL.Timer.SDL_GetPerformanceFrequency; // should be safe for double
 	if perfFreq = 0 then Exit; // panic!
@@ -1465,6 +1499,7 @@ begin
 		Bind(keyPlaybackPrevPattern, 	'Playback.PrevPattern', 	'Ctrl+Left');
 		Bind(keyPlaybackNextPattern, 	'Playback.NextPattern', 	'Ctrl+Right');
 		Bind(keySongLength, 			'Song.Length', 				'Ctrl+P');
+		Bind(keyJumpToTime, 			'Song.JumpToTime', 			'Ctrl+Shift+P');
 		Bind(keySongNew, 				'Song.New', 				'Ctrl+N');
 		Bind(keyRenderToSample, 		'Song.RenderToSample',		'Shift+F10');
 		Bind(keySaveCurrent, 			'Song.SaveCurrent', 		'Ctrl+S');
@@ -1537,8 +1572,7 @@ begin
 
 	SetFullScreen(Video.IsFullScreen);
 
-	if not Video.HaveVSync then
-		SDL.Timer.SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
+	SDL.Timer.SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
 
 	LogIfDebug('OK.');
 	Log(TEXT_SUCCESS + 'Program started at ' + DateTimeToStr(Now) + '.');
@@ -1553,6 +1587,8 @@ begin
 		ChangeScreen(TCWEScreen(Editor));
 
 	Console.Paint;
+
+	MouseCursor.InWindow := True;
 end;
 
 destructor TWindow.Destroy;

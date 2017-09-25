@@ -1,5 +1,7 @@
 unit Screen.Editor;
 
+{$I propulse.inc}
+
 interface
 
 uses
@@ -107,8 +109,8 @@ type
 		procedure 	ToggleChannel(Channel: Byte);
 		procedure 	SetOctave(Hi: Boolean);
 		procedure 	SetSample(i: Integer = -1);
-		procedure 	SelectPrevPattern;
-		procedure 	SelectNextPattern;
+		procedure 	SelectPattern(i: Integer);
+		procedure 	SeekTo(Order, Row: Byte);
 
 		function	OnContextMenu: Boolean; override;
 		procedure 	HandleCommand(const Cmd: Cardinal); override;
@@ -135,18 +137,18 @@ implementation
 uses
 	MainWindow, BuildInfo, ShortcutManager, Layout, CWE.MainMenu,
 	SDL.Api.Types, Graphics32,
-	ProTracker.Sample,
-	ProTracker.Util;
+	ProTracker.Sample, ProTracker.Util,
+	Screen.Samples;
 
 type
-	OrderListKeyNames = {%H-}(
+	OrderListKeyNames = (
 		keyNONE,
 		keySetLength,
 		keyEditPattern
 	);
 
 var
-	{%H-}OrderlistKeys: TKeyBindings;
+	OrderlistKeys: TKeyBindings;
 
 
 // ==========================================================================
@@ -372,7 +374,7 @@ begin
 
 	// Scope
 	//
-	Editor.Scope.GetPixelRect(R{%H-});
+	Editor.Scope.GetPixelRect(R);
 
 	if Module.ClippedSamples > 0 then
 		VUClippedCounter := 3;
@@ -468,9 +470,9 @@ begin
 	if lbl = lblPattern then
 	begin
 		if Delta < 0 then
-			SelectPrevPattern
+			SelectPattern(SELECT_PREV)
 		else
-			SelectNextPattern;
+			SelectPattern(SELECT_NEXT);
 	end
 	else
 	if lbl = lblOrder then
@@ -504,25 +506,49 @@ begin
 	UpdateInfoLabels(True);
 end;
 
-procedure TEditorScreen.SelectPrevPattern;
+procedure TEditorScreen.SelectPattern(i: Integer);
 begin
-	if {(Module.PlayMode = PLAY_SONG)} FollowPlayback then
-		with Module do
+	case i of
+
+		SELECT_PREV:
 		begin
-			PlayPos.Order := Max(PlayPos.Order - 1, 0);
-			PlayPos.Pattern := OrderList[Module.PlayPos.Order];
-			PlayPos.Row := 0;
-			RepostChanges;
-		end
+			if FollowPlayback then
+				with Module do
+				begin
+					PlayPos.Order := Max(PlayPos.Order - 1, 0);
+					PlayPos.Pattern := OrderList[Module.PlayPos.Order];
+					PlayPos.Row := 0;
+					RepostChanges;
+				end
+			else
+			if CurrentPattern > 0 then
+			begin
+				if 	(Module.Info.PatternCount = CurrentPattern) and
+					(Module.IsPatternEmpty(CurrentPattern)) then
+						Module.CountUsedPatterns;
+				Dec(CurrentPattern);
+				UpdateInfoLabels;
+			end;
+		end;
+
+		SELECT_NEXT:
+		begin
+			if FollowPlayback then
+				Module.NextPosition
+			else
+			if CurrentPattern < MAX_PATTERNS-1 then
+			begin
+				Inc(CurrentPattern);
+				UpdateInfoLabels;
+			end;
+		end;
+
 	else
-	if CurrentPattern > 0 then
-	begin
-		if 	(Module.Info.PatternCount = CurrentPattern) and
-			(Module.IsPatternEmpty(CurrentPattern)) then
-				Module.CountUsedPatterns;
-				//Module.Info.PatternCount := CurrentPattern;
-		Dec(CurrentPattern);
-		UpdateInfoLabels;
+		if (i >= 0) and (i < 100) then
+		begin
+			CurrentPattern := i;
+			UpdateInfoLabels;
+		end;
 	end;
 
 	PatternEditor.ValidateCursor;
@@ -530,17 +556,19 @@ begin
 		PatternEditor.Paint;
 end;
 
-procedure TEditorScreen.SelectNextPattern;
+procedure TEditorScreen.SeekTo(Order, Row: Byte);
 begin
-	if FollowPlayback then
-		Module.NextPosition
-	else
-	if CurrentPattern < MAX_PATTERNS-1 then
-	begin
-		Inc(CurrentPattern);
-		UpdateInfoLabels;
-	end;
+	Module.PlayPos.Order := Order;
+	CurrentPattern := Module.OrderList[Order];
+	PatternEditor.Cursor.Row := Row;
+
+	UpdateInfoLabels;
 	PatternEditor.ValidateCursor;
+
+	FollowPlayback := False;
+	Editor.ActiveControl := PatternEditor;
+	ChangeScreen(TCWEScreen(Editor));
+
 	if Active then
 		PatternEditor.Paint;
 end;
@@ -582,14 +610,14 @@ begin
 		// previous pattern
 		keySelectPatternPrev:
 		begin
-			SelectPrevPattern;
+			SelectPattern(SELECT_PREV);
 			Result := True;
 		end;
 
 		// next pattern
 		keySelectPatternNext:
 		begin
-			SelectNextPattern;
+			SelectPattern(SELECT_NEXT);
 			Result := True;
 		end;
 
@@ -769,13 +797,26 @@ end;
 procedure TEditorScreen.SetSample(i: Integer = -1);
 begin
 	if i in [1..31] then
-		CurrentSample := i;
+		CurrentSample := i
+	else
+	case i of
+		SELECT_PREV: if CurrentSample > 1  then Dec(CurrentSample);
+		SELECT_NEXT: if CurrentSample < 31 then Inc(CurrentSample);
+	end;
+
 	if IsEmptySample(Module.Samples[CurrentSample-1]) then
 		lblSample.ColorFore := 2
 	else
 		lblSample.ColorFore := 5;
 	lblSample.SetCaption(
 		Format('%.2d:%s', [CurrentSample, Module.Samples[CurrentSample-1].Name]));
+
+	if SampleScreen.Active then
+	with SampleScreen do
+	begin
+		SampleList.Paint;
+		UpdateSampleInfo;
+	end
 end;
 
 procedure TEditorScreen.Show;
@@ -894,7 +935,7 @@ begin
 			Cursor.Y := Min(127, Cursor.Y + Height);
 
 	else
-		i := Pos(Chr(Key), KeyboardNumbers) - 1;
+		i := Pos(Chr(Min(Key, 255)), KeyboardNumbers) - 1;
 		if i >= 0 then
 		begin
 			p := Module.OrderList[Cursor.Y];

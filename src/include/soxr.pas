@@ -21,9 +21,10 @@ unit soxr;
 
 interface
 
-{$IFDEF DARWIN}
-{$ELSE}
 {$DEFINE ENABLE_SOXR}
+
+{$IFDEF DARWIN}
+	{$UNDEF ENABLE_SOXR}
 {$ENDIF}
 
 {$WARN SYMBOL_PLATFORM OFF}
@@ -35,44 +36,47 @@ const
 	{$IFDEF LINUX}
 	SOXR_DLL = 'libsoxr.so';
 	{$ENDIF}
+	{$IFDEF DARWIN}
+	SOXR_DLL = 'libsoxr.dylib';
+	{$ENDIF}
 
-	SOXR_TPDF             = 0;	// Applicable only if otype is INT16.
-	SOXR_NO_DITHER        = 8;	// Disable the above.
-
-	{ soxr_quality_spec }
-	SOXR_ROLLOFF_SMALL    = 0;	// <= 0.01 dB
-	SOXR_ROLLOFF_MEDIUM   = 1;	// <= 0.35 dB
-	SOXR_ROLLOFF_NONE     = 2;	// For Chebyshev bandwidth.
-
-	SOXR_MAINTAIN_3DB_PT  = 4;	// Reserved for internal use.
-	SOXR_HI_PREC_CLOCK    = 8;	// Increase 'irrational' ratio accuracy.
-	SOXR_DOUBLE_PRECISION = 16;	// Use D.P. calcs even if precision <= 20.
-	SOXR_VR               = 32;	// Variable-rate resampling.
-
-	{ soxr_runtime_spec }		// For 'irrational' ratios only:
-	SOXR_COEF_INTERP_AUTO = 0; 	// Auto select coef. interpolation.
-	SOXR_COEF_INTERP_LOW  = 2; 	// Man. select: less CPU, more memory.
-	SOXR_COEF_INTERP_HIGH = 3; 	// Man. select: more CPU, less memory.
-
-	SOXR_STRICT_BUFFERING = 4; 	// Reserved for future use.
-	SOXR_NOSMALLINTOPT    = 8; 	// For test purposes only.
+	SOXR_TPDF               = 0;	// Applicable only if otype is INT16.
+	SOXR_NO_DITHER          = 8;	// Disable the above.
 
 	{ soxr_quality_spec }
-	SOXR_16_BITQ          = 3;
-	SOXR_20_BITQ          = 4;
-	SOXR_24_BITQ          = 5;
-	SOXR_28_BITQ          = 6;
-	SOXR_32_BITQ          = 7;
+	SOXR_ROLLOFF_SMALL      = 0;	// <= 0.01 dB
+	SOXR_ROLLOFF_MEDIUM     = 1;	// <= 0.35 dB
+	SOXR_ROLLOFF_NONE       = 2;	// For Chebyshev bandwidth.
+
+	SOXR_MAINTAIN_3DB_PT    = 4;	// Reserved for internal use.
+	SOXR_HI_PREC_CLOCK      = 8;	// Increase 'irrational' ratio accuracy.
+	SOXR_DOUBLE_PRECISION   = 16;	// Use D.P. calcs even if precision <= 20.
+	SOXR_VR                 = 32;	// Variable-rate resampling.
+
+	{ soxr_runtime_spec }			// For 'irrational' ratios only:
+	SOXR_COEF_INTERP_AUTO   = 0; 	// Auto select coef. interpolation.
+	SOXR_COEF_INTERP_LOW    = 2; 	// Man. select: less CPU, more memory.
+	SOXR_COEF_INTERP_HIGH   = 3; 	// Man. select: more CPU, less memory.
+
+	SOXR_STRICT_BUFFERING   = 4; 	// Reserved for future use.
+	SOXR_NOSMALLINTOPT      = 8; 	// For test purposes only.
+
+	{ soxr_quality_spec }
+	SOXR_16_BITQ            = 3;
+	SOXR_20_BITQ            = 4;
+	SOXR_24_BITQ            = 5;
+	SOXR_28_BITQ            = 6;
+	SOXR_32_BITQ            = 7;
 											// The 5 standard qualities found in SoX:
-	SOXR_QQ               = 0;				// 'Quick' cubic interpolation.
-	SOXR_LQ               = 1;				// 'Low' 16-bit with larger rolloff.
-	SOXR_MQ               = 2;				// 'Medium' 16-bit with medium rolloff.
-	SOXR_HQ               = SOXR_20_BITQ;	// 'High quality'.
-	SOXR_VHQ              = SOXR_28_BITQ;	// 'Very high quality'.
+	SOXR_QQ                 = 0;			// 'Quick' cubic interpolation.
+	SOXR_LQ                 = 1;			// 'Low' 16-bit with larger rolloff.
+	SOXR_MQ                 = 2;			// 'Medium' 16-bit with medium rolloff.
+	SOXR_HQ                 = SOXR_20_BITQ;	// 'High quality'.
+	SOXR_VHQ                = SOXR_28_BITQ;	// 'Very high quality'.
 											// Libsamplerate equivalent qualities:
-	SOXR_LSR0Q            = 8; 				// 'Best sinc'.
-	SOXR_LSR1Q            = 9;				// 'Medium sinc'.
-	SOXR_LSR2Q            = 10;				// 'Fast sinc'.
+	SOXR_LSR0Q              = 8; 			// 'Best sinc'.
+	SOXR_LSR1Q              = 9;			// 'Medium sinc'.
+	SOXR_LSR2Q              = 10;			// 'Fast sinc'.
 
 	SOXR_LINEAR_PHASE       = $00;
 	SOXR_INTERMEDIATE_PHASE = $10;
@@ -336,8 +340,7 @@ implementation
 
     {$ELSE}
 
-    // dummy functions because I couldn't figure out how to
-    // use soxr lib in linux
+    // dummy functions
 
 	function soxr_version: PAnsiChar;
 	function soxr_create(

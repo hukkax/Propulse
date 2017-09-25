@@ -42,6 +42,7 @@ type
 		keySampleReplace,
 		keySampleCutLeft,
 		keySampleCutRight,
+		keySampleCrop,
 		keySampleReverse,
 		keySampleInvert,
 		keySampleCentralise,
@@ -330,6 +331,7 @@ begin
 		Bind(keySampleDelete,		'Delete',			'Alt+D');
 		Bind(keySampleCutLeft,		'Cut.PreLoop',		'Alt+B');
 		Bind(keySampleCutRight,		'Cut.PostLoop',		'Alt+L');
+		Bind(keySampleCrop,			'Crop',				'Alt+X');
 		Bind(keySampleReverse,		'Reverse',			'Alt+G');
 		Bind(keySampleInvert,		'Invert',			'Alt+I');
 		Bind(keySampleAmplify,		'Amplify',			'Alt+M');
@@ -384,6 +386,7 @@ begin
 		AddEditCmd('Select Pre-loop', 			actSelectPreLoop);
 		AddEditCmd('Select Post-loop', 			actSelectPostLoop);
 		AddEditCmd('Select None', 				actSelectNone);
+		AddEditCmd('Crop to Selection', 		actCrop);
 
 		AddEditCmd('Clipboard', -1);	// ----------------------------------
 
@@ -706,6 +709,7 @@ begin
 		AddCmd(Ord(keySampleSwap),			'Swap with...');
 		AddCmd(Ord(keySampleCutLeft),		'Cut pre-loop');
 		AddCmd(Ord(keySampleCutRight),		'Cut post-loop');
+		AddCmd(Ord(keySampleCrop),			'Crop to selection');
 		AddCmd(Ord(keySampleReverse),		'Reverse');
 		AddCmd(Ord(keySampleInvert),		'Invert');
 		if SOXRLoaded then
@@ -1192,6 +1196,8 @@ begin
 				keySampleClipCopy:			SampleEdit.ProcessCommand(actCopy);
 				keySampleClipPaste:			SampleEdit.ProcessCommand(actPaste);
 				keySampleClipMixPaste:		SampleEdit.ProcessCommand(actMixPaste);
+
+				keySampleCrop:				SampleEdit.ProcessCommand(actCrop);
 
 				keySampleCutLeft:
 				begin

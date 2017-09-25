@@ -6,7 +6,7 @@ uses
 	ConfigurationManager, Types;
 
 const
-	VERSION  =  '0.8.9.7';
+	VERSION  =  '0.8.9.9';
 
 	URL = 'http://hukka.yiff.fi/propulse/';
 
@@ -129,6 +129,12 @@ type
 			Samples: 				String;
 		end;
 
+		Midi: packed record
+			Enabled:				Boolean;	// enable MIDI input?
+			UseDisplay:				Boolean;	// use LED matrix as "display"?
+			DisplayEffect:			Byte;		// which effect to show on display?
+		end;
+
 		Import: packed record
 			Resampling: packed record
 				Enable:				Boolean;
@@ -152,6 +158,10 @@ const
 	VSYNC_AUTO	= 0;
 	VSYNC_FORCE	= 1;
 	VSYNC_OFF	= 2;
+
+	SELECT_PREV   = -1;
+	SELECT_NEXT   = -2;
+	SELECT_TOGGLE = -3;
 
 	// ========================================================================
 	// Alphabet
@@ -330,7 +340,9 @@ begin
 	{$IFDEF UNIX}
 	writeln(Msg);
     {$ELSE}
-    {$IFDEF DEBUG}writeln(Msg);{$ENDIF}
+    {$IFDEF DEBUG}
+	writeln(Msg);
+	{$ENDIF}
 	{$ENDIF}
 end;
 

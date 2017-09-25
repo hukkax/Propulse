@@ -167,7 +167,6 @@ type
 var
 	CmdChars: AnsiString;
 	CurrentSample,
-	CurrentOrder,
 	CurrentPattern: Byte;
 	EditorKeys: TKeyBindings;
 
@@ -518,7 +517,7 @@ begin
 			if np >= 0 then
 			begin
 				np := np + Semitones;
-				if InRange(np, 0, 36) then
+				if InRange(np, 0, 35) then
 				begin
 					Note.Period := PeriodTable[np];
 					Note.Text   := GetNoteText(Note.Period);
@@ -1704,7 +1703,7 @@ begin
 			COL_VOLUME_1:	// volume 1st digit
 			begin
 				o := Pos(chrKey, KeyboardNumbers) - 1;
-				if o in [0..6] then
+				if o >= 0 then
 				begin
 					Cursor.Note.Command := $C;
 					Cursor.Note.Parameter := Min( (o * 10) + (Cursor.Note.Parameter mod 10), 64);

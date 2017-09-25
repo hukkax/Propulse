@@ -28,6 +28,7 @@ type
 	class var
 		COLOR_BACKGROUND,
 		COLOR_WAVEFORM,
+		COLOR_WAVEFORM_PEAKS,
 		COLOR_OVERRUN,
 		COLOR_CENTERLINE,
 		COLOR_LOOP,
@@ -52,6 +53,7 @@ type
 		function 	PixelToSamplePos(x, mx: Integer): Integer; inline;
 		function 	PixelToSampleValue(Y: Integer): SmallInt; inline;
 		function 	GetSampleY(X: Integer): Integer; inline;
+		procedure 	GetSamplePeakY(X: Integer; var Ymin, Ymax: Integer);
 	public
 		ReadOnly:	Boolean;
 
@@ -176,6 +178,32 @@ begin
 	Result := Trunc( ((127 - ShortInt(FSample.Data[PixelToSamplePos(X,-1)])) / 127) * HalfHeight);
 end;
 
+procedure TSampleView.GetSamplePeakY(X: Integer; var Ymin, Ymax: Integer);
+var
+	i, v, p1, p2: Integer;
+begin
+	Ymin := 0;
+	Ymax := 0;
+	if X = 0 then
+	begin
+		Ymin := ShortInt(FSample.Data[0]);
+		Ymax := Ymin;
+	end
+	else
+	begin
+		p1 := PixelToSamplePos(X-1, -1);
+		p2 := PixelToSamplePos(X,   -1);
+		for i := p1 to p2 do // find peaks from range
+		begin
+			v := ShortInt(FSample.Data[i]);
+			if v < Ymin then Ymin := v;
+			if v > Ymax then Ymax := v;
+		end;
+	end;
+	Ymin := Trunc( ((Ymin+128) / 256) * HalfHeight*2);
+	Ymax := Trunc( ((Ymax+128) / 256) * HalfHeight*2);
+end;
+
 // sample pos -> pixel x pos
 function TSampleView.SampleToPixelPos(pos: Integer): Integer;
 var
@@ -220,7 +248,7 @@ var
 	x1, y1, x2, y2, x, y: Cardinal;
 	Col: TColor32;
 
-	function GetLoopBoxColor(Hovered: Boolean): TColor32;
+	function GetLoopBoxColor(Hovered: Boolean): TColor32; inline;
 	begin
 		if Hovered then
 			Result := Console.Palette[COLOR_LOOP_HOVER]
@@ -252,14 +280,14 @@ begin
 		//
 		if (FSample.LoopLength > 1) or (FSample.LoopStart > 0) then
 		begin
-			x := x1 + SampleToPixelPos(FSample.LoopStart * 2);
+			x := Cardinal(x1 + SampleToPixelPos(FSample.LoopStart * 2));
 
 			if (x - PixelRect.Left) >= BOXSIZE then
 				BoxL := Bounds(x-BOXSIZE, y1, BOXSIZE, BOXSIZE)
 			else
 				BoxL := Bounds(x, y1, BOXSIZE, BOXSIZE);
 
-			y := x1 + SampleToPixelPos((FSample.LoopStart + FSample.LoopLength) * 2);
+			y := Cardinal(x1 + SampleToPixelPos((FSample.LoopStart + FSample.LoopLength) * 2));
 			if y < (PixelRect.Right - BOXSIZE) then
 				BoxR := Bounds(y+1, y1, BOXSIZE, BOXSIZE)
 			else
@@ -284,7 +312,7 @@ begin
 		begin
 			if (Sample = FSample.Index-1) and (PlayPos >= 0) then
 			begin
-				x := x1 + SampleToPixelPos(PlayPos); /// !!! FIXME 217
+				x := Cardinal(x1 + SampleToPixelPos(PlayPos)); /// !!! FIXME 217
 				if x < x2 then
 					Console.Bitmap.VertLine(x, y1, y2, Console.Palette[COLOR_PLAYBACK]);
 			end;
@@ -299,9 +327,10 @@ end;
 
 procedure TSampleView.DrawWaveform;
 var
-	w, h, x, y, x1, x2: Integer;
-	C: TColor32;
-	PaintSelection: Boolean;
+	w, h, x, y, y2, x1, x2: Integer;
+	C, CP: TColor32;
+	PC: PColor32;
+	PaintSelection, PaintNormalWaveform: Boolean;
 
 	procedure DrawCenterLine;
 	var
@@ -340,27 +369,53 @@ begin
 			x1 := 0; x2 := 0;
 		end;
 
-		BmCache.MoveTo(0, GetSampleY(0));
-
 		if PaintSelection then
 			BmCache.FillRectS(x1, 0, x2+1, h, Console.Palette[COLOR_SEL_BACK]);
 
+		BmCache.MoveTo(0, GetSampleY(0));
+
 		C := Console.Palette[COLOR_WAVEFORM];
-//		bmCache.PenColor := C; !!!
+		PaintNormalWaveform :=
+			(C <> Console.Palette[COLOR_BACKGROUND]) and
+			(C <> Console.Palette[COLOR_WAVEFORM_PEAKS]);
+
+		// Paint waveform peaks if not all samples in the view range would be
+		// otherwise visible
+		//
+		if (not PaintNormalWaveform) or (Step > 1.0) then
+		begin
+			CP := Console.Palette[COLOR_WAVEFORM_PEAKS];
+			if CP <> Console.Palette[COLOR_BACKGROUND] then
+			for x := 1 to w do
+			begin
+				GetSamplePeakY(x, y, y2);
+				BmCache.VertLine(x, h-y2-1, h-y-1, CP);
+			end;
+		end;
 
 		// Draw stippled center line
 		DrawCenterLine;
 
 		// Paint waveform data
-		for x := 1 to w do
-			BmCache.LineTo(x, GetSampleY(x), C);
+		if PaintNormalWaveform then
+			for x := 1 to w do
+				BmCache.LineTo(x, GetSampleY(x), C);
 
 		if PaintSelection then
 		begin
-			for y := 0 to h do
-			for x := x1 to x2 do
-				if (x >= 0) and (x < w) and (BmCache.Pixel[x,y] = C) then
-					BmCache.Pixel[x,y] := Console.Palette[COLOR_SEL_FORE];
+			C  := Console.Palette[COLOR_SEL_FORE];
+			CP := Console.Palette[COLOR_SEL_BACK];
+			for y := 0 to h-1 do
+			begin
+				PC := BmCache.PixelPtr[x1, y];
+				for x := x1 to x2 do
+				begin
+					if (x >= 0) and (x < w) then
+						if PC^ <> CP then
+							PC^ := C;
+					Inc(PC);
+				end;
+			end;
 		end;
 
 		{if Sample.ByteLength > $1FFFF then

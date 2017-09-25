@@ -13,7 +13,8 @@ type
 
   TSDLLogApi = class(TSubLibrary)
   public type
-    TSDL_LogOutputFunction = procedure(userdata: SDL_Data; category: SDL_LogCategory; priority: SDL_LogPriority; const msg: SDL_String);
+	TSDL_LogOutputFunction = procedure(userdata: SDL_Data; category: SDL_LogCategory; priority: SDL_LogPriority; const msg: SDL_String);
+	//TSDL_LogOutputFunction = procedure(userdata: Pointer; category: Integer; priority: Integer; const msg: PAnsiChar);
   private type
     TSDL_LogSetAllPriority = procedure(priority: SDL_LogPriority) cdecl;
     TSDL_LogSetPriority = procedure(category: SDL_LogCategory; priority: SDL_LogPriority) cdecl;
@@ -29,6 +30,7 @@ type
     TSDL_LogMessage = procedure(category: SDL_LogCategory; priority: SDL_LogPriority; const fmt: SDL_String) cdecl; varargs;
     TSDL_LogGetOutputFunction = procedure(out callback: TSDL_LogOutputFunction; out userdata: SDL_Data) cdecl;
     TSDL_LogSetOutputFunction = procedure(callback: TSDL_LogOutputFunction; userdata: SDL_Data) cdecl;
+	//TSDL_LogSetOutputFunction = procedure(callback: TSDL_LogOutputFunction; userdata: Pointer) cdecl;
   public
     (**
      *  \brief Set the priority of all log categories

@@ -9,14 +9,14 @@
  ; Unknown
  + Unknown
 
- PoroTracker:
- § Implemented in PoroTracker
+ Propulse:
+ § Implemented in Propulse
  * White text
 @
 
 [Propulse Tracker Help
 §
-=Last modified: 2017-04-13
+=Last modified: 2017-08-17
 §
 * Global Keys:
 §
@@ -40,6 +40,7 @@
 §
 §   Ctrl-N            New song
 §   Ctrl-P            Calculate approximate song length
+§   Ctrl-Shift-P      Jump to a time in song (by minutes and seconds)
 §   Ctrl-S            Save current module
 §   Ctrl-Shift-C      Cleanup module
 §   Shift-F10         Render selection/pattern to sample
@@ -369,7 +370,7 @@
 * Program settings
 §
 # Task priority: (Windows only)
-§ You can choose to give a higher processing priority to PoroTracker to
+§ You can choose to give a higher processing priority to Propulse to
 § lessen the chance of audio dropouts. (On by default)
 §
 
@@ -380,7 +381,7 @@
 
 * Key bindings
 §
-§ You can redefine most key bindings in PoroTracker to suit your needs.
+§ You can redefine most key bindings in Propulse to suit your needs.
 §
 
 * Color palette
@@ -396,7 +397,8 @@
 =(C) 2016-2017 Joel Toivonen
 =(hukka of exec/void/svenonacid)
 §
-=http://hukka.yiff.fi/porotracker
+=https://github.com/hukkax/Propulse
+=http://hukka.yiff.fi/propulse
 =http://hukka.ncn.fi
 =email: hukkax@gmail.com
 §
@@ -406,11 +408,12 @@
 =http://16-bits.org
 §
 §
-=Additional contributions and thanks:
+=Additional contributions and testing:
 =8bitbubsy
 =muzzy
 =wuffe
 =Tempest
+=Mark Knopper
 §
 =Original BLEP and filter code:
 =aciddose

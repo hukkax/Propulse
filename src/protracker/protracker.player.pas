@@ -95,8 +95,9 @@ type
 	end;
 
 	TPTChannel = class
+	private
+		FEnabled: Boolean;
 	public
-		Enabled: 		Boolean;
 		Paula: 			TPaulaVoice;
 		Note:			PNote;
 		n_start,
@@ -126,8 +127,12 @@ type
 		n_repend: 		Cardinal;
 
 		procedure 	Reset;
+		procedure	SetEnabled(E: Boolean);
+
 		constructor Create(i: Byte);
 		destructor  Destroy; override;
+	property
+		Enabled:	Boolean read FEnabled write SetEnabled;
 	end;
 
 	TPTModule = class
@@ -138,6 +143,7 @@ type
 		FilterLED: 			TLedFilter;
 		LEDStatus: 			Boolean;
 		Blep, BlepVol: 		array [0..AMOUNT_CHANNELS-1] of TBlep;
+		SetBPMFlag:			Byte;
 
 		DisableMixer: 		Boolean;
 		samplesPerFrame: 	Cardinal;
@@ -243,7 +249,7 @@ type
 		PosJumpAssert,
 		PBreakFlag: 		Boolean;
 
-		TempoMode: 			ShortInt;	// 0 = CIA, 1 = VBlank
+		VBlankMode: 		Boolean;	// False = CIA, True = VBlank
 		PBreakPosition: 	ShortInt;
 		PattDelTime,
 		PattDelTime2: 		ShortInt;
@@ -289,6 +295,7 @@ type
 					Normalize, BoostHighs: Boolean): Cardinal;
 		function 	RenderToWAV(const Filename: String; Loops: Byte = 1; Tail: Byte = 0): Cardinal;
 		function	GetLength(Loops: Byte = 0; InSamples: Boolean = False): Cardinal;
+		procedure	JumpToTime(Minutes, Seconds: Byte);
 
 		function 	IsPatternEmpty(i: Byte): Boolean;
 		function 	CountUsedPatterns: Byte;
@@ -305,7 +312,7 @@ type
 		procedure 	Pause(Pause: Boolean = True);
 		procedure 	Close;
 
-		procedure 	PlayNote(Note: PNote; Chan: Byte);
+		procedure 	PlayNote(Note: PNote; Chan: Byte; Vol: Byte = 255);
 		procedure 	PlaySample(_note, _sample, _channel: Byte;
 					_volume: ShortInt = -1; _start: Integer = 0; _length: Integer = 0);
 		procedure 	PlayVoice(var ch: TPTChannel);
@@ -738,8 +745,8 @@ begin
 
 	n_index := i;
 	Paula := TPaulaVoice.Create(outputFreq);
+	SetEnabled(True);
 	Reset;
-	Enabled := True;
 end;
 
 procedure TPTChannel.Reset;
@@ -775,6 +782,12 @@ begin
 	Paula.QueuedSample := 31;
 	Paula.PlayPos := -1;
 	Paula.f_OutputFreq := outputFreq;
+end;
+
+procedure TPTChannel.SetEnabled(E: Boolean);
+begin
+	FEnabled := E;
+	Paula.Enabled := E;
 end;
 
 destructor TPTChannel.Destroy;
@@ -826,7 +839,7 @@ var
 begin
 	Info.Title := '';
 	if Length(S) > 0 then
-		for i := 0 to Min(19, Length(S)) do
+		for i := 0 to Min(19, Length(S)-1) do
 			Info.Title[i] := S[i+1];
 end;
 
@@ -871,7 +884,7 @@ begin
 		Result := FORMAT_MK;
 	end
 	else
-	if (buf = 'FEST') then
+	if (buf = 'FEST') or (buf = 'M&K!') then
 	begin
 		// Special NoiseTracker format (used in music disks?)
 		Result := FORMAT_FEST;
@@ -1713,6 +1726,7 @@ begin
 	Info.PatternCount := 0;
 	Info.Tempo := 6;
 	Info.Filename := '';
+	SetBPMFlag := 0;
 
 	DisableMixer := True;
 
@@ -2107,33 +2121,29 @@ begin
 end;
 
 procedure TPTModule.SetSpeed(var ch: TPTChannel);
-var
-	bufsize: Cardinal;
 begin
 	if (ch.Note.Parameter) = 0 then Exit;
 
 	Counter := 0;
 
-	if (TempoMode <> 0) or ((ch.Note.Parameter) < 32) then
+	if (VBlankMode) or ((ch.Note.Parameter) < 32) then
 	begin
 		CurrentSpeed := ch.Note.Parameter;
+
 		if CurrentSpeed = 0 then
 			RenderInfo.HasBeenPlayed := True;
+
+		if RenderMode = RENDER_NONE then
+			if Assigned(OnSpeedChange) then
+				OnSpeedChange;
 	end
 	else
 	begin
-		CurrentBPM := ch.Note.Parameter;
-		SetReplayerBPM(CurrentBPM);
-		bufsize := samplesPerFrame * 2 + 2;
-		if Length(MixBuffer) < bufsize then
-			SetLength(MixBuffer, bufsize);
+		// CIA doesn't refresh its registers until the next interrupt, so change it later
+		SetBPMFlag := ch.Note.Parameter;
 	end;
 
 	//Log('SetSpeed (%d) samplesPerFrame=%d', [ch.Note.Parameter, samplesPerFrame]);
-
-	if RenderMode = RENDER_NONE then
-		if Assigned(OnSpeedChange) then
-			OnSpeedChange;
 end;
 
 procedure TPTModule.Arpeggio(var ch: TPTChannel);
@@ -2423,7 +2433,7 @@ begin
 		ch.n_sampleoffset := ch.Note.Parameter;
 
 	newOffset := ch.n_sampleoffset * 128;
-	if (newOffset < ch.n_length) then
+	if (ch.n_length <= 32767) and (newOffset < ch.n_length) then
 	begin
 		Dec(ch.n_length, newOffset);
 		Inc(ch.n_start, (newOffset * 2));
@@ -2489,6 +2499,7 @@ begin
 			$07: begin
 					ch.Paula.SetPeriod(ch.n_period);
 					Tremolo(ch);
+					Exit; // don't call Paula.SetVolume with tremolo
 				 end;
 			$0A: begin
 					ch.Paula.SetPeriod(ch.n_period);
@@ -2584,7 +2595,8 @@ begin
 		srepeat       := Samples[sample].LoopStart;
 
 		ch.Paula.Sample := sample;
-		Samples[sample].Age := 3;
+		if ch.Paula.Enabled then
+			Samples[sample].Age := 3;
 
 		if (srepeat > 0) then
 		begin
@@ -2659,12 +2671,26 @@ end;
 procedure TPTModule.IntMusic;
 var
 	i: Integer;
+	bufsize: Cardinal;
 begin
 	if (RenderMode <> RENDER_NONE) and (RenderMode <> RENDER_SAMPLE) then
 	begin
 		RenderInfo.HasBeenPlayed := False;
 		if Counter = 0 then
 			RenderInfo.RowVisitTable[PlayPos.Order, PlayPos.Row] := True;
+	end;
+
+	// PT quirk: CIA refreshes its timer values on the next interrupt, so do the real tempo change here
+	if SetBPMFlag > 0 then
+	begin
+		CurrentBPM := SetBPMFlag;
+		SetReplayerBPM(CurrentBPM);
+    	SetBPMFlag := 0;
+
+		bufsize := samplesPerFrame * 2 + 2;
+		if Length(MixBuffer) < bufsize then
+			SetLength(MixBuffer, bufsize);
+		//Log('SetSpeed (%d) samplesPerFrame=%d', [CurrentBPM, samplesPerFrame]);
 	end;
 
 	Inc(Counter);
@@ -2797,6 +2823,7 @@ begin
 
 	ApplyAudioSettings;
 
+	SetBPMFlag     := 0;
 	PattDelTime    := 0;
 	PattDelTime2   := 0;
 	PBreakPosition := 0;
@@ -2804,10 +2831,7 @@ begin
 	PBreakFlag     := False;
 	LowMask        := $FF;
 
-	if Options.Audio.CIAmode then
-		TempoMode := 1
-	else
-		TempoMode := 0;
+	VBlankMode := Options.Audio.CIAmode;
 
 	LEDStatus := False;
 	Counter := CurrentSpeed;
@@ -2816,9 +2840,7 @@ begin
 		ClearRowVisitTable;
 
 	for i := 0 to 30 do
-	begin
 		Samples[i].Age := -1;
-	end;
 
 	for i := 0 to AMOUNT_CHANNELS-1 do
 	begin
@@ -2915,7 +2937,7 @@ begin
 		while Mixing do;
 end;
 
-procedure TPTModule.PlayNote(Note: PNote; Chan: Byte);
+procedure TPTModule.PlayNote(Note: PNote; Chan: Byte; Vol: Byte = 255);
 var
 	sample: TSample;
 	srepeat: Word;
@@ -2943,7 +2965,10 @@ begin
 	ch.n_start    := 0; // Data[0]
 	ch.n_period   := PeriodTable[(37 * sample.Finetune) + GetPeriodTableOffset(Note.Period)];
 	ch.n_finetune := sample.Finetune;
-	ch.n_volume   := sample.Volume;
+	if Vol > 64 then
+		ch.n_volume   := sample.Volume
+	else
+		ch.n_volume   := Min(Vol, 64);
 	ch.n_length   := sample.Length;
 	ch.n_replen   := sample.LoopLength;
 	srepeat       := sample.LoopStart;
@@ -3512,6 +3537,39 @@ begin
 	{Log('OrderChanges=%d  Order=%d  Pattern=%d', [renderinfo.OrderChanges, playpos.Order, playpos.Pattern]);
 	Log('SamplesRendered=%d  Result=%d', [renderinfo.SamplesRendered, Result]);
 	Log('');}
+end;
+
+procedure TPTModule.JumpToTime(Minutes, Seconds: Byte);
+var
+	Secs, DestSeconds: Word;
+begin
+	DestSeconds := Minutes * 60 + Seconds;
+
+	Stop;
+	Mixing := False;
+	DisableMixer := True;
+
+	RenderMode := RENDER_LENGTH;
+	RenderInfo.SamplesRendered := 0;
+
+	PlayPos.Pattern := OrderList[0];
+	PlayPos.Row := 0;
+	PlayPos.Order := 0;
+	PlayMode := PLAY_SONG;
+	InitPlay(OrderList[0]);
+
+	RenderInfo.LoopsWanted := 255;
+	Secs := 0;
+
+	while (Secs < DestSeconds) and (PlayMode = PLAY_SONG) do
+	begin
+		IntMusic;
+		Inc(RenderInfo.SamplesRendered, samplesPerFrame);
+		Secs := RenderInfo.SamplesRendered div outputFreq;
+	end;
+
+	RenderMode := RENDER_NONE;
+	Stop;
 end;
 
 
