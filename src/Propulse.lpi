@@ -31,7 +31,7 @@
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
             <Libraries Value=".."/>
-            <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\bass"/>
+            <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\bass;midi"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -51,6 +51,7 @@
           <Linking>
             <Debugging>
               <GenerateDebugInfo Value="False"/>
+              <DebugInfoType Value="dsDwarf2"/>
               <StripSymbols Value="True"/>
             </Debugging>
             <LinkSmart Value="True"/>
@@ -69,11 +70,11 @@
             <CompilerMessages>
               <IgnoredMessages idx5057="True" idx5024="True" idx4080="True" idx4079="True" idx4035="True"/>
             </CompilerMessages>
-            <CustomOptions Value="-OoFASTMATH
+            <CustomOptions Value="-dRELEASE
+-dBASS_DYNAMIC
+-OoFASTMATH
 -OoLOOPUNROLL
--OoREMOVEEMPTYPROCS
--dRELEASE
--dBASS_DYNAMIC"/>
+-OoREMOVEEMPTYPROCS"/>
             <OtherDefines Count="4">
               <Define0 Value="RELEASE"/>
               <Define1 Value="BASS_DYNAMIC"/>
@@ -435,7 +436,7 @@
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
       <Libraries Value=".."/>
-      <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\bass"/>
+      <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\bass;midi"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
@@ -477,7 +478,7 @@
 -dDEBUG
 -dBASS_DYNAMIC"/>
       <OtherDefines Count="4">
-        <Define0 Value="DEBUG"/>
+        <Define0 Value="RELEASE"/>
         <Define1 Value="BASS_DYNAMIC"/>
         <Define2 Value="DISABLE_SDL2_2_0_5"/>
         <Define3 Value="DISABLE_SDL2_2_0_4"/>
