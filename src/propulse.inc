@@ -4,6 +4,6 @@
 {$ENDIF}
 
 {$IFDEF WINDOWS}
-	{$DEFINE MIDI} // enable MIDI input support
+	{.$DEFINE MIDI} // enable MIDI input support
 {$ENDIF}
 

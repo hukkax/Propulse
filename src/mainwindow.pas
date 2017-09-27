@@ -1055,9 +1055,9 @@ begin
 			MSG_ORDERCHANGE:		ModuleOrderChanged;
 			MSG_TIMERTICK:			TimerTick;
 
+			{$IFDEF MIDI}
 			MSG_MIDI_SELPATTERN:	Editor.SelectPattern(GetMessageValue(InputEvent));
 			MSG_MIDI_SELSAMPLE:		Editor.SetSample(GetMessageValue(InputEvent));
-
 			MSG_SHORTCUT:
 			begin
 				KeyBind := TKeyBinding(InputEvent.user.data1^);
@@ -1067,6 +1067,7 @@ begin
 					OnKeyDown(i, KeyBind.Shortcut.Shift);
 				end;
 			end;
+			{$ENDIF}
 		end;
 
 		SDL_KEYDOWN:
@@ -1287,6 +1288,8 @@ begin
 		.SetInfo('Show empty command parameters as', 0, 1, ['...', '.00']);
 		Cfg.AddBoolean(Sect, 'NoteB3AsInvalid', @Tracker.NoteB3Warning, False)
 		.SetInfo('Consider note B-3 as invalid', 0, 1, ['No', 'Yes']);
+		Cfg.AddBoolean(Sect, 'RestoreSamples', @Tracker.RestoreSamples, False)
+		.SetInfo('Restore samples when playback stopped', 0, 1, ['No', 'Yes']);
 
 		Sect := 'Program';
 		Cfg.AddBoolean(Sect, 'HighPriority', @HighPriority, True)

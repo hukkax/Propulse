@@ -2846,6 +2846,10 @@ begin
 	for i := 0 to AMOUNT_CHANNELS-1 do
 		Channel[i].Note := @Notes[pattern, i, 0];
 
+	if Options.Tracker.RestoreSamples then
+		for i := 0 to Samples.Count-1 do
+			Samples[i].StoreBackup;
+
 	RenderInfo.SamplesRendered := 0;
 	RenderInfo.RowsRendered := 0;
 	RenderInfo.OrderChanges := 0;
@@ -2912,6 +2916,10 @@ begin
 		Channel[i].Paula.Kill;
 		Channel[i].Note := @Notes[OrderList[0], i, 0];
 	end;
+
+	if Options.Tracker.RestoreSamples then
+		for i := 0 to Samples.Count-1 do
+			SampleChanged[i] := Samples[i].RestoreBackup;
 
 	Counter := 0;
 	DisableMixer := False;

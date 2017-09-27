@@ -73,13 +73,14 @@ type
 	TSampleFormat = ( SamFmtRAW, SamFmtIFF, SamFmtWAV, SamFmtITS, SamFmtFromExt );
 
 	TSample = class
-	private
 	public
-		Data:			packed array of Byte;
+		Data,
+		Backup:			packed array of Byte;
 		Name:			packed array [0..21] of AnsiChar;
 		Finetune:		ShortInt;
 		Volume:			Byte;
 		Length:			Cardinal;	// data length in words
+		BackupLength:	Word;
 		LoopStart,
 		LoopLength,
 		tmpLoopStart:	Word;		// positions in words
@@ -113,6 +114,8 @@ type
 		function  		SetLoopEnd(WordPos: Integer): Boolean;
 		procedure		ZeroFirstWord;
 		procedure 		Clear;
+		function 		RestoreBackup: Boolean;
+		procedure 		StoreBackup;
 		procedure		Reverse(X1: Integer = 0; X2: Integer = -1);
 		procedure		Invert(X1: Integer = 0; X2: Integer = -1);
 		procedure		Centralise;
@@ -348,6 +351,8 @@ procedure TSample.Clear;
 begin
 	SetName('');
 	SetLength(Data, 2);
+	SetLength(Backup, 0);
+	BackupLength := 0;
 	Length     := 0;
 	LoopStart  := 0;
 	LoopLength := 1;
@@ -355,6 +360,21 @@ begin
 	Finetune   := 0;
 	Age        := -1;
 	ZeroFirstWord;
+end;
+
+procedure TSample.StoreBackup;
+begin
+	BackupLength := (Length * 2) and $FFFF;
+	SetLength(Backup, BackupLength);
+	Move(Data[0], Backup[0], BackupLength);
+end;
+
+function TSample.RestoreBackup: Boolean;
+begin
+	Result := (BackupLength > 0);
+	if Result then
+		Move(Backup[0], Data[0], BackupLength);
+	BackupLength := 0;
 end;
 
 procedure TSample.Reverse(X1: Integer = 0; X2: Integer = -1);

@@ -90,6 +90,7 @@ type
 			AltHomeEndBehavior:		Boolean;
 			NoteB3Warning:			Boolean;
 			ShowEmptyParamZeroes: 	Boolean;
+			RestoreSamples:			Boolean;
 		end;
 
 		Display: packed record
