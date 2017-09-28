@@ -23,6 +23,10 @@ const
 
 	MAXCOLUMNS   = 3;		// max columns for list widget, 0-based
 
+	COLOR_LINK           = 10;
+	COLOR_LINK_HOVER     = 11;
+	COLOR_LINK_HOVERBACK = 15;
+
 type
 	TCWEListItem = class; 	// forward
 
@@ -166,34 +170,404 @@ type
 					IsProtected: Boolean = False); override;
 	end;
 
+	TCWEMemo = class;
+	TTextLine = class;
+
+	TTextObjectKind = ( txtNormal, txtLink );
+
+	TTextObject = class
+	public
+		X:			Word;
+		Y:			Cardinal;
+		ColorFore,
+		ColorBack:  ShortInt;
+		Kind:		TTextObjectKind;
+		Line:		TTextLine;
+		Text,
+		Data:		AnsiString;
+
+		constructor Create(const aLine: TTextLine; const aText: AnsiString;
+					aX: Word; aY: Cardinal; colFg: ShortInt = -1; colBg: ShortInt = -1);
+
+		procedure	Paint(DX, DY: Word);
+		function 	OnHover: Boolean;
+		function 	OnClick: Boolean;
+
+		function 	Length: Word; inline;
+		function 	X2: Word; inline;
+		function	GetPixelCoords: TRect;
+	end;
+	TTextObjectList = TObjectList<TTextObject>;
+
+	TTextLine = class
+	public
+		Memo: 		TCWEMemo;
+		Y:			Cardinal;
+		Items:		TTextObjectList;
+
+		constructor	Create(const aMemo: TCWEMemo; const S: AnsiString; aY: Cardinal;
+					out Center, Box: Boolean);
+		destructor	Destroy; override;
+
+		function 	ObjectAt(X: Word): TTextObject;
+		function	OnClick(X: Word): Boolean;
+		function	GetText: AnsiString;
+	end;
+	TTextLineList = TObjectList<TTextLine>;
+
+	TTextAnchor = class
+	public
+		Y:		Cardinal;
+		Name:	AnsiString;
+
+		constructor	Create(const S: AnsiString; aY: Cardinal);
+	end;
+	TAnchorList = TObjectList<TTextAnchor>;
+
+
 	TCWEMemo = class(TCWEScrollableControl)
 	private
 		procedure 	AdjustScrollbar;
 	public
-		Lines:		TStringList;
+		Lines:		TTextLineList;
+		Anchors:	TAnchorList;
+		HoveredTextObject: TTextObject;
 
 		constructor	Create(Owner: TCWEControl;
 					const sCaption, sID: AnsiString; const Bounds: TRect;
 					IsProtected: Boolean = False); override;
 		destructor  Destroy; override;
 
-		procedure 	Add(const S: AnsiString; Color: ShortInt = -1; Center: Boolean = False);
+		procedure 	Add(const S: AnsiString; Color: ShortInt = -1; Center: Boolean = False); virtual;
+		function 	GetSection(const AnchorName: AnsiString): TStrings;
 
 		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 		function	MouseWheel(Shift: TShiftState; WheelDelta: Integer; P: TPoint): Boolean; override;
 		function	MouseDown(Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean; override;
+		procedure 	MouseMove(X, Y: Integer; P: TPoint); override;
 
 		procedure 	Paint; override;
 	end;
 
+
 implementation
 
 uses
-	MainWindow, DateUtils,
 	{$IFDEF WINDOWS}Windows, ShellAPI,{$ENDIF}
+	MainWindow, DateUtils,
 	SDL.Api.Types,
 	TextMode, Math,
 	ProTracker.Util;
+
+{ TTextAnchor }
+
+constructor TTextAnchor.Create(const S: AnsiString; aY: Cardinal);
+begin
+	inherited Create;
+	Name := S;
+	Y := aY;
+end;
+
+// ==========================================================================
+{ TTextLine }
+// ==========================================================================
+
+constructor TTextLine.Create(const aMemo: TCWEMemo; const S: AnsiString; aY: Cardinal;
+	out Center, Box: Boolean);
+var
+	DX: Integer;
+	Txt: TTextObject;
+
+	procedure AddItem(const S: AnsiString);
+	begin
+		Txt.Text := S;
+		Items.Add(Txt);
+		Inc(DX, Length(S));
+		Txt := TTextObject.Create(Self, '', DX, Y, aMemo.ColorFore);
+		Txt.Kind := txtNormal;
+	end;
+
+const
+	ShortTags = '#@FB';
+var
+	x, t: Integer;
+	Tag, RS: AnsiString;
+	InTag: Boolean;
+	C: AnsiChar;
+begin
+	inherited Create;
+
+	Y := aY;
+	DX := 0;
+	Memo := aMemo;
+
+	Center := False;
+	Box := False;
+
+	Items := TTextObjectList.Create;
+	Txt := TTextObject.Create(Self, '', DX, Y, aMemo.ColorFore);
+
+	if Pos('<', S) > 0 then
+	begin
+		RS := '';
+		InTag := False;
+
+		for x := 1 to Length(S) do
+		begin
+			C := S[x];
+
+			if not InTag then
+			begin
+				if C = '<' then
+				begin
+					InTag := (Copy(S, x+1, 1) <> '<');
+					if InTag then
+					begin
+						if RS <> '' then
+						begin
+							AddItem(RS);
+							RS := '';
+						end;
+						Tag := '';
+					end;
+				end;
+				if not InTag then
+					RS := RS + C;
+			end
+			else
+			begin
+				if C = '>' then
+				begin
+					if Tag <> '' then
+					begin
+						C := UpperCase(Tag)[1];
+
+						if Pos(C, ShortTags) > 0 then
+						begin
+							Tag := Copy(Tag, 2, MaxInt);
+
+							if C = '#' then			// anchor (destination)
+							begin
+								Memo.Anchors.Add(TTextAnchor.Create(Tag, Y));
+							end
+							else
+							if C = '@' then			// hyperlink
+							begin
+								t := Pos('=', Tag);
+								if t > 0 then
+								begin
+									Txt.Data := Copy(Tag, 1, t-1);
+									Tag := Copy(Tag, t+1, MaxInt);
+								end
+								else
+									Txt.Data := Tag;
+
+								Txt.ColorFore := COLOR_LINK;
+								Txt.Kind := txtLink;
+
+								AddItem(Tag);
+							end
+							else
+							if C = 'F' then		// foreground color
+							begin
+								if Tag = '' then
+									Txt.ColorFore := aMemo.ColorFore
+								else
+									Txt.ColorFore := StrToInt('$' + Tag);
+							end
+							else
+							if C = 'B' then		// background color
+							begin
+								if Tag = '' then
+									Txt.ColorBack := Memo.ColorBack
+								else
+									Txt.ColorBack := StrToInt('$' + Tag);
+							end;
+						end
+						else
+						begin
+							Tag := UpperCase(Tag);
+
+							if Tag = 'C' then		// center line
+							begin
+								Center := True;
+							end
+							else
+							if Tag = 'H1' then	// center + white + box around line
+							begin
+								Center := True;
+								Box := True;
+								Txt.ColorFore := 11;
+								Txt.ColorBack := 15;
+							end
+							else
+							if Tag = 'H2' then	// center + white
+							begin
+								Center := True;
+								Txt.ColorFore := 11;
+							end
+							else
+							if Tag = 'H3' then	// red text
+							begin
+								Txt.ColorFore := 4;
+							end
+							else
+							if Tag = 'HR' then	// horizontal line
+							begin
+								AddItem(' ' + StringOfChar(#154, Memo.Rect.Right-Memo.Rect.Left-2));
+							end;
+
+						end;
+
+						Tag := '';
+						InTag := False;
+					end;
+				end
+				else
+					Tag := Tag + C;
+
+			end;
+
+		end;
+
+	end
+	else
+		RS := S;
+
+	if RS <> '' then
+	begin
+		Txt.Text := RS;
+		Items.Add(Txt);
+	end
+	else
+	if Txt.Text = '' then
+		Txt.Free;
+
+	if Center then
+	begin
+		x := ((Memo.Rect.Right - Memo.Rect.Left) div 2) - (Length(GetText) div 2);
+		for Txt in Items do
+			Txt.X := Txt.X + x;
+	end;
+end;
+
+destructor TTextLine.Destroy;
+begin
+	Items.Free;
+	inherited Destroy;
+end;
+
+function TTextLine.ObjectAt(X: Word): TTextObject;
+var
+	Txt: TTextObject;
+begin
+	for Txt in Items do
+		if (X >= Txt.X) and (X <= Txt.X2) then
+			Exit(Txt);
+	Result := nil;
+end;
+
+function TTextLine.OnClick(X: Word): Boolean;
+var
+	Txt: TTextObject;
+begin
+	Txt := ObjectAt(X);
+	if Txt <> nil then
+		Result := Txt.OnClick
+	else
+		Result := False;
+end;
+
+function TTextLine.GetText: AnsiString;
+var
+	Txt: TTextObject;
+begin
+	Result := '';
+	for Txt in Items do
+		Result := Result + Txt.Text;
+end;
+
+// ==========================================================================
+{ TTextObject }
+// ==========================================================================
+
+constructor TTextObject.Create(const aLine: TTextLine; const aText: AnsiString;
+	aX: Word; aY: Cardinal; colFg: ShortInt; colBg: ShortInt);
+begin
+	Line := aLine;
+	Text := aText;
+	X := aX;
+	Y := aY;
+	ColorFore := colFg;
+	ColorBack := colBg;
+end;
+
+function TTextObject.GetPixelCoords: TRect;
+begin
+end;
+
+function TTextObject.X2: Word;
+begin
+	Result := X + System.Length(Text);
+end;
+
+function TTextObject.Length: Word;
+begin
+	Result := System.Length(Text);
+end;
+
+procedure TTextObject.Paint(DX, DY: Word);
+var
+	c: ShortInt;
+begin
+	if Self = Line.Memo.HoveredTextObject then
+		Console.Write(Text, DX + X, DY, COLOR_LINK_HOVER, COLOR_LINK_HOVERBACK)
+	else
+	begin
+		c := ColorBack;
+		if c < 0 then c := Line.Memo.ColorBack;
+		Console.Write(Text, DX + X, DY, ColorFore, c);
+	end;
+end;
+
+function TTextObject.OnHover: Boolean;
+begin
+	if (Kind = txtLink) then
+	begin
+		Result := True;
+		if Self <> Line.Memo.HoveredTextObject then
+		begin
+			Line.Memo.HoveredTextObject := Self;
+			Line.Memo.Paint;
+		end;
+	end
+	else
+		Result := False;
+end;
+
+function TTextObject.OnClick: Boolean;
+var
+	A: TTextAnchor;
+begin
+	if Kind = txtLink then
+	begin
+		if Pos('://', Data) > 3 then
+		begin
+			{$IFDEF WINDOWS}
+			ShellExecute(0, 'open', PChar(Data), nil, nil, SW_SHOW);
+			Exit(True);
+			{$ENDIF}
+		end
+		else
+		for A in Line.Memo.Anchors do
+			if A.Name = Data then
+			begin
+				Line.Memo.ScrollTo(A.Y);
+				Exit(True);
+			end;
+	end;
+	Result := False;
+end;
 
 // ==========================================================================
 { TCWELabel }
@@ -880,8 +1254,11 @@ constructor TCWEMemo.Create;
 begin
 	inherited;
 
-	Lines := TStringList.Create;
-	Lines.OwnsObjects := False;
+	Lines := TTextLineList.Create;
+	Anchors := TAnchorList.Create;
+
+	HoveredTextObject := nil;
+
 	ColorFore := TConsole.COLOR_PANEL;
 
 	WantMouse := True;
@@ -894,6 +1271,7 @@ end;
 destructor TCWEMemo.Destroy;
 begin
 	Lines.Free;
+	Anchors.Free;
 	inherited;
 end;
 
@@ -902,23 +1280,6 @@ begin
 	MaxScroll := Max(Lines.Count - Height - 1, 0);
 	if Assigned(Scrollbar) then
 		Scrollbar.Adjust(Lines.Count-1, Height);
-end;
-
-procedure TCWEMemo.Add(const S: AnsiString; Color: ShortInt = -1; Center: Boolean = False);
-var
-	i: Integer;
-begin
-	if Color < 0 then Color := ColorFore;
-
-	if Center then
-		i := Lines.AddObject(StringOfChar(' ',
-			(Rect.Right-Rect.Left) div 2 - (Length(S) div 2)) + S, TObject(Color))
-	else
-		i := Lines.AddObject(S, TObject(Color));
-
-	if i >= (Offset + Height) then
-		Offset := Max(i - Height + 0, 0); // +1->0 2016-12-01
-	AdjustScrollbar;
 end;
 
 function TCWEMemo.KeyDown;
@@ -982,6 +1343,25 @@ begin
 	Paint;
 end;
 
+procedure TCWEMemo.MouseMove(X, Y: Integer; P: TPoint);
+var
+	Txt: TTextObject;
+begin
+	if (not Assigned(Screen)) then Exit;
+
+	X := P.X + 1;
+	Y := P.Y + Offset;
+
+	if (Y < 0) or (Y >= Lines.Count-1) then Exit;
+
+	Txt := Lines[Y].ObjectAt(X);
+	if (Txt = nil) or (not Txt.OnHover) and (HoveredTextObject <> nil) then
+	begin
+		HoveredTextObject := nil;
+		Paint;
+	end;
+end;
+
 function TCWEMemo.MouseDown(Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
 var
 	S, W: String;
@@ -995,7 +1375,11 @@ begin
 
 	if (Button <> mbLeft) or (Y < 0) or (Y >= Lines.Count-1) then Exit;
 
-	S := Lines[Y];
+	Result := Lines[Y].OnClick(X);
+	if Result then Exit;
+
+	{$IFDEF WINDOWS}
+	S := Lines[Y].GetText;
 	if (X > Length(S)) or (S[X] = ' ') then Exit;
 
 	X1 := X; // find start of word
@@ -1006,7 +1390,6 @@ begin
 	W := Trim(Copy(S, X1+1, X2-X1));
 
 	// if it's a hyperlink, open it
-	{$IFDEF WINDOWS}
 	if Pos('://', W) > 3 then
 		ShellExecute(0, 'open', PChar(W), nil, nil, SW_SHOW);
 	{$ENDIF}
@@ -1014,10 +1397,82 @@ begin
 	Result := True;
 end;
 
+procedure TCWEMemo.Add(const S: AnsiString; Color: ShortInt = -1; Center: Boolean = False);
+var
+	i: Integer;
+	TS: AnsiString;
+	Box: Boolean;
+	LI: TTextLine;
+begin
+	TS := '';
+
+	if Center then
+		TS := '<C>';
+	if Color >= 0 then
+		TS := TS + '<F' + IntToHex(Color, 1) + '>';
+
+	TS := TS + S;
+
+	i := Pos('<H1>', UpperCase(TS));
+	if i > 0 then
+		TS := Copy(TS, 1, i+3) + #131 + ' ' + Copy(TS, i+4, MaxInt) + ' ' + #132;
+
+	LI := TTextLine.Create(Self, TS, Lines.Count, Center, Box);
+
+	if Box then
+	begin
+		i := Length(LI.GetText) - 2;
+
+		Lines.Add(TTextLine.Create(Self, '<c><bF><fB>' + #128 + StringOfChar(#129, i) + #130,
+			Lines.Count, Center, Box));
+
+		Lines.Add(LI);
+
+		Lines.Add(TTextLine.Create(Self, '<c><bF><fB>' + #133 + StringOfChar(#134, i) + #135,
+			Lines.Count, Center, Box));
+	end
+	else
+		Lines.Add(LI);
+
+	i := Lines.Count;
+	if i >= (Offset + Height) then
+		Offset := Max(i - Height, 0); // +1->0 2016-12-01
+
+	AdjustScrollbar;
+end;
+
+function TCWEMemo.GetSection(const AnchorName: AnsiString): TStrings;
+var
+	A: TTextAnchor;
+	i, y, line, last: Integer;
+begin
+	for i := 0 to Anchors.Count-1 do
+	begin
+		A := Anchors[i];
+		if A.Name = AnchorName then
+		begin
+			y := A.Y;
+			if i >= Anchors.Count-1 then
+				last := Lines.Count-1
+			else
+				last := Anchors[i+1].Y-1;
+
+			Result := TStringList.Create;
+			for line := y to last do
+				Result.Add(Lines[line].GetText);
+
+			Exit;
+		end;
+	end;
+
+	Result := nil;
+end;
+
 procedure TCWEMemo.Paint;
 var
-	y, c: Integer;
-	S: String;
+	y: Integer;
+//	S: String;
+	Txt: TTextObject;
 begin
 	if Border.Pixel then
 	begin
@@ -1033,12 +1488,16 @@ begin
 	begin
 		if (y + Offset) >= Lines.Count then
 			Break;
-		S := Copy(Lines[y + Offset], 1, Width+1);
-		if Lines.Objects[y + Offset] <> nil then
-			c := Integer(Lines.Objects[y + Offset])
-		else
-			c := 3;
-		Console.Write(S, Rect.Left, Rect.Top + y, c);
+//		S := Copy(Lines[y + Offset], 1, Width+1);
+		for Txt in Lines[y+Offset].Items do
+			Txt.Paint(Rect.Left, Rect.Top + y);
+
+{		begin
+			if Txt = HoveredTextObject then
+				Console.Write(Txt.Text, Rect.Left + Txt.X, Rect.Top + y, 13)
+			else
+				Console.Write(Txt.Text, Rect.Left + Txt.X, Rect.Top + y, Max(Txt.ColorFore, 3));
+		end;}
 	end;
 end;
 

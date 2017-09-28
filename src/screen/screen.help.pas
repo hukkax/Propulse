@@ -8,9 +8,8 @@ uses
 
 type
 	THelpScreen = class(TCWEScreen)
-	private
 	public
-		Memo:	TCWEMemo;
+		Memo:		TCWEMemo;
 
 		procedure	Show(Context: AnsiString); reintroduce;
 
@@ -57,21 +56,19 @@ begin
 	sl := TStringList.Create;
 	sl.LoadFromFile(GetDataFile('help.txt'));
 
-	{
-		Schism Tracker:
-		= Center line
-		| Normal text
-		# Red text
-		% Horizontal line
-		! Impulse Tracker only
-		: Schism Tracker only
-		; Unknown
-		+ Unknown
-
-		PoroTracker:
-		§ Implemented in PoroTracker
-		* White text
+	{	<c>   = Center line
+		<hr>  % Horizontal line
+		<h1>  [ Center and draw box around line
+		<h2>  * White text
+		<h3>  # Red text
+		<fX>    Set text color (X=0..F)
+		<bX>    Set background color (X=0..F)
+		<#X>    Create anchor
+		<@X>    Link to anchor or URL
+		      § Normal text (=Implemented in Propulse)
+		;     | Hidden text (=Unimplemented)
 	}
+
 	Context := '@' + Context;
 	PrevContext := '';
 	ContextOffset := -1;
@@ -81,7 +78,9 @@ begin
 	begin
 		S := sl[i];
 
-		if S = '' then
+		if Copy(S, 1, 1) = ';' then Continue;
+
+		(*if S = '' then
 		begin
 			if ContextOffset >= 0 then
 			begin
@@ -146,6 +145,9 @@ begin
 
 		Memo.Add(Copy(S, 2, Length(S)), Col, Center);
 		Inc(LinesInSection);
+		*)
+
+		Memo.Add(S);
 	end;
 
 	sl.Free;
