@@ -74,8 +74,10 @@ uses
 	ShortcutManager,
 	Screen.Editor,
 	Screen.FileReq,
+	Screen.Help,
 	ProTracker.Editor,
 	ProTracker.Util,
+	CWE.Dialogs,
 	CWE.Widgets.Scrollers,
 	SampleView;
 
@@ -505,6 +507,9 @@ begin
 end;
 
 function TConfigScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
+var
+	LI: TCWEListItem;
+	CI: TConfigItem;
 begin
 	// we want to always receive Return and Delete in KeyList
 	// even if they're global bindings for something else
@@ -513,15 +518,27 @@ begin
 	else
 		Result := False;
 
+	if (Key = SDLK_F1) and (ActiveControl = List) then
+	begin
+		LI := List.Items[List.ItemIndex];
+		if LI.ObjData <> nil then
+		begin
+			CI := TConfigItem(LI.ObjData);
+			//ModalDialog.ShowMessage(CI.Name, CI.Section + '.' + CI.Name);
+			ModalDialog.MultiLineMessage(CI.Caption, Help.Memo.GetSection(CI.Section + '.' + CI.Name));
+			Exit(True);
+		end;
+	end;
+
 	if WaitingForKeyBinding then
 	begin
 		// ignore Shift/Ctrl/Alt without other keys
 		case Key of
 			0,
 			SDLK_LSHIFT, SDLK_RSHIFT,
-			SDLK_LCTRL, SDLK_RCTRL,
-			SDLK_LALT, SDLK_RALT,
-			SDLK_LGUI, SDLK_RGUI:
+			SDLK_LCTRL,  SDLK_RCTRL,
+			SDLK_LALT,   SDLK_RALT,
+			SDLK_LGUI,   SDLK_RGUI:
 				Exit;
 		else
 			GetNewKeyBinding(KeyList, Key, Shift, Result); // finalize
@@ -705,6 +722,7 @@ var
 	Modifier: Integer;
 begin
 	Result := False;
+
 	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, []));
 	case Sc of
 
