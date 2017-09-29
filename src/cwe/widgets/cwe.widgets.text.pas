@@ -240,6 +240,8 @@ type
 
 		procedure 	Add(const S: AnsiString; Color: ShortInt = -1; Center: Boolean = False); virtual;
 		function 	GetSection(const AnchorName: AnsiString): TStrings;
+		function	FindSection(const AnchorName: AnsiString): Integer;
+		function	JumpToSection(const AnchorName: AnsiString): Integer;
 
 		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 		function	MouseWheel(Shift: TShiftState; WheelDelta: Integer; P: TPoint): Boolean; override;
@@ -516,20 +518,6 @@ begin
 	Result := System.Length(Text);
 end;
 
-procedure TTextObject.Paint(DX, DY: Word);
-var
-	c: ShortInt;
-begin
-	if Self = Line.Memo.HoveredTextObject then
-		Console.Write(Text, DX + X, DY, COLOR_LINK_HOVER, COLOR_LINK_HOVERBACK)
-	else
-	begin
-		c := ColorBack;
-		if c < 0 then c := Line.Memo.ColorBack;
-		Console.Write(Text, DX + X, DY, ColorFore, c);
-	end;
-end;
-
 function TTextObject.OnHover: Boolean;
 begin
 	if (Kind = txtLink) then
@@ -546,8 +534,6 @@ begin
 end;
 
 function TTextObject.OnClick: Boolean;
-var
-	A: TTextAnchor;
 begin
 	if Kind = txtLink then
 	begin
@@ -559,14 +545,23 @@ begin
 			{$ENDIF}
 		end
 		else
-		for A in Line.Memo.Anchors do
-			if A.Name = Data then
-			begin
-				Line.Memo.ScrollTo(A.Y);
-				Exit(True);
-			end;
+			Line.Memo.JumpToSection(Data);
 	end;
 	Result := False;
+end;
+
+procedure TTextObject.Paint(DX, DY: Word);
+var
+	c: ShortInt;
+begin
+	if Self = Line.Memo.HoveredTextObject then
+		Console.Write(Text, DX + X, DY, COLOR_LINK_HOVER, COLOR_LINK_HOVERBACK)
+	else
+	begin
+		c := ColorBack;
+		if c < 0 then c := Line.Memo.ColorBack;
+		Console.Write(Text, DX + X, DY, ColorFore, c);
+	end;
 end;
 
 // ==========================================================================
@@ -1250,7 +1245,8 @@ end;
 { TCWEMemo }
 // ==========================================================================
 
-constructor TCWEMemo.Create;
+constructor TCWEMemo.Create(Owner: TCWEControl; const sCaption,
+	sID: AnsiString; const Bounds: TRect; IsProtected: Boolean);
 begin
 	inherited;
 
@@ -1282,7 +1278,7 @@ begin
 		Scrollbar.Adjust(Lines.Count-1, Height);
 end;
 
-function TCWEMemo.KeyDown;
+function TCWEMemo.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
 var
 	Sc: ControlKeyNames;
 begin
@@ -1439,6 +1435,24 @@ begin
 		Offset := Max(i - Height, 0); // +1->0 2016-12-01
 
 	AdjustScrollbar;
+end;
+
+function TCWEMemo.FindSection(const AnchorName: AnsiString): Integer;
+var
+	A: TTextAnchor;
+begin
+	for A in Anchors do
+		if A.Name = AnchorName then
+			Exit(A.Y);
+	Result := -1;
+end;
+
+function TCWEMemo.JumpToSection(const AnchorName: AnsiString): Integer;
+begin
+	Result := FindSection(AnchorName);
+	if Result >= 0 then
+		ScrollTo(Result);
+//log('JumpToSection "%s" -> %d', [AnchorName, Result]);
 end;
 
 function TCWEMemo.GetSection(const AnchorName: AnsiString): TStrings;

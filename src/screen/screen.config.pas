@@ -518,16 +518,20 @@ begin
 	else
 		Result := False;
 
+	// F1 context help for config list items
+	//
 	if (Key = SDLK_F1) and (ActiveControl = List) then
 	begin
 		LI := List.Items[List.ItemIndex];
 		if LI.ObjData <> nil then
 		begin
 			CI := TConfigItem(LI.ObjData);
-			//ModalDialog.ShowMessage(CI.Name, CI.Section + '.' + CI.Name);
-			ModalDialog.MultiLineMessage(CI.Caption, Help.Memo.GetSection(CI.Section + '.' + CI.Name));
-			Exit(True);
-		end;
+			ModalDialog.MultiLineMessage(CI.Caption,
+				Help.Memo.GetSection(CI.Section + '.' + CI.Name));
+		end
+		else
+			Help.Show(LI.Captions[0] + ' Settings'); // heading -> jump to help anchor
+		Exit(True);
 	end;
 
 	if WaitingForKeyBinding then
