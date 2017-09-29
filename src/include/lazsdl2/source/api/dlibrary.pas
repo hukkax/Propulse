@@ -325,8 +325,8 @@ begin
     end
     else
     begin
-      Logger.Log(lgVerbose, ClassName + Format(': Loaded "%s"', [FFileName]));
-      Logger.Log(lgVerbose, ClassName + '.Handle: ' + IntToStr(FHandle));
+//      Logger.Log(lgVerbose, ClassName + Format(': Loaded "%s"', [FFileName]));
+//      Logger.Log(lgVerbose, ClassName + '.Handle: ' + IntToStr(FHandle));
     end;
   {$IFDEF WINDOWS}
   finally
@@ -469,7 +469,7 @@ begin
   if not Assigned(FLogger) then
     FLogger := TNULLLoger.Create;
 
-  Logger.Log(lgVerbose, ClassName + ': Init started');
+//  Logger.Log(lgVerbose, ClassName + ': Init started');
   FVersion := '0.0.0.0';
 
   FValid := True;
@@ -477,11 +477,11 @@ begin
 
   if Valid then
   begin
-    Logger.Log(lgVerbose, ClassName + ': Loading required methods');
+//    Logger.Log(lgVerbose, ClassName + ': Loading required methods');
     Required := TMethodList.Create;
     try
       GetRequiredMethods(Required);
-      Logger.Log(lgVerbose, ClassName + '.MethodCount: ' + IntToStr(Required.Count));
+//      Logger.Log(lgVerbose, ClassName + '.MethodCount: ' + IntToStr(Required.Count));
       for i := 0 to Required.Count - 1 do
       begin
         Method := GetLibProcAddress(Required[i]^.Name);
@@ -505,7 +505,7 @@ begin
 
     DoGetFileVersion(FVersion);
   end;
-  Logger.Log(lgVerbose, ClassName + Format(': Init finished(%s)', [BoolToStr(Valid, 'Ok', 'Fail')]));
+//  Logger.Log(lgVerbose, ClassName + Format(': Init finished(%s)', [BoolToStr(Valid, 'Ok', 'Fail')]));
 end;
 
 function TAbstractLibrary.Valid: Boolean;

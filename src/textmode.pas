@@ -16,7 +16,7 @@ type
 		Changed:	Boolean;
 	end;
 
-	TConsoleFont = class //record
+	TConsoleFont = class
 		Width:			Integer;
 		Height:			Integer;
 		Bitmap:			TBitmap32;
@@ -42,14 +42,14 @@ type
 		LockCount:	Integer;
 	public
 		Width,
-		Height: 	Integer;
+		Height: 	Word;
 		Bitmap: 	TBitmap32;
 		Buffer: 	packed array of packed array of TConsoleChar;
 		Palette: 	array[0..255] of TColor32;
 		Font: 		TConsoleFont;
 		OnChange: 	procedure of Object;
 
-		constructor Create(_Width, _Height: Integer; const FontFile, PaletteFile: String;
+		constructor Create(aWidth, aHeight: Word; const FontFile, PaletteFile: String;
 					var Success: Boolean);
 		destructor  Destroy; override;
 
@@ -226,7 +226,7 @@ end;
 
 { TConsole }
 
-constructor TConsole.Create(_Width, _Height: Integer;
+constructor TConsole.Create(aWidth, aHeight: Word;
 	const FontFile, PaletteFile: String; var Success: Boolean);
 
 	procedure SetPalette(const i, r, g, b: Byte);
@@ -236,19 +236,18 @@ constructor TConsole.Create(_Width, _Height: Integer;
 begin
 	inherited Create;
 
-	Width := _Width;
-	Height := _Height;
-	SetLength(Buffer, Width, Height);
+	Width := aWidth;
+	Height := aHeight;
 
 	// Impulse Tracker palette, TODO load from file
-	SetPalette(00,00,00,00);	SetPalette(01,31,22,17);
-	SetPalette(02,45,37,30);	SetPalette(03,58,58,50);
-	SetPalette(04,44,00,21);	SetPalette(05,63,63,21);
-	SetPalette(06,17,38,18);	SetPalette(07,19,03,06);
-	SetPalette(08,08,21,00);	SetPalette(09,06,29,11);
-	SetPalette(10,14,39,29);	SetPalette(11,55,58,56);
-	SetPalette(12,40,40,40);	SetPalette(13,35,05,21);
-	SetPalette(14,22,16,15);	SetPalette(15,13,12,11);
+	SetPalette(00, 00,00,00);	SetPalette(01, 31,22,17);
+	SetPalette(02, 45,37,30);	SetPalette(03, 58,58,50);
+	SetPalette(04, 44,00,21);	SetPalette(05, 63,63,21);
+	SetPalette(06, 17,38,18);	SetPalette(07, 19,03,06);
+	SetPalette(08, 08,21,00);	SetPalette(09, 06,29,11);
+	SetPalette(10, 14,39,29);	SetPalette(11, 55,58,56);
+	SetPalette(12, 40,40,40);	SetPalette(13, 35,05,21);
+	SetPalette(14, 22,16,15);	SetPalette(15, 13,12,11);
 
 	COLOR_TEXT		:= 0;
 	COLOR_PANEL		:= 2;
@@ -257,6 +256,8 @@ begin
 	COLOR_LIGHT		:= 11;
 	COLOR_BLANK		:= 0;
 	COLOR_LINK		:= 9;
+
+	SetLength(Buffer, aWidth, aHeight);
 
 	LoadPalette(PaletteFile);
 	Success := LoadFont(FontFile);

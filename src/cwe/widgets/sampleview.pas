@@ -479,11 +479,6 @@ begin
 	DrawWaveform;
 end;
 
-{
-	offsetStep = step + (((mouseX - (SCREEN_W / 2)) * step) / 128);
-	offsetStep is signed, so it's negative if you pointed to the left
-	though you need to do some more calculation since the middle of the sample window is not the middle of the screen for you
-}
 procedure TSampleView.Zoom(ZoomIn: Boolean; X: Integer = -1);
 var
 	aStep, offset: Integer;

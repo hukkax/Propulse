@@ -370,16 +370,16 @@ var
 	W, H: Integer;
 begin
 	PR := Parent.Rect;
-	OffsetRect(PR, -(Screen.Rect.Left), -(Screen.Rect.Top));
+	OffsetRect(PR, -Screen.Rect.Left, -Screen.Rect.Top);
 
 	if Horizontal then
 	begin
-		PR.Top := PR.Bottom;
+		PR.Top    := PR.Bottom;
 		PR.Bottom := PR.Bottom + 1;
 	end
 	else
 	begin
-		PR.Left := PR.Right;
+		PR.Left  := PR.Right;
 		PR.Right := PR.Right + 1;
 	end;
 	SetBounds(PR);
@@ -387,7 +387,7 @@ begin
 	W := Console.Font.Width;
 	H := Console.Font.Height;
 
-	Rects[SB_RECT_BUTTON_UP]   := Bounds(PR.Left*W, PR.Top*H, W, H);
+	Rects[SB_RECT_BUTTON_UP] := Bounds(PR.Left*W, PR.Top*H, W, H);
 	if Horizontal then
 	begin
 		Rects[SB_RECT_SCROLLBAR]   := Types.Rect(PR.Left*W, PR.Top*H, (PR.Right-1)*W, PR.Bottom*H);
