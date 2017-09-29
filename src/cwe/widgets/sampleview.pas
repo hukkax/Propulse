@@ -63,7 +63,7 @@ type
 		procedure	Init(AllowEditing, AddBorder: Boolean);
 		procedure	DrawWaveform;
 		procedure	SetViewport(aL, aR: Integer);
-		procedure 	Zoom(ZoomIn: Boolean);
+		procedure 	Zoom(ZoomIn: Boolean; X: Integer = -1);
 
 		function	MouseDownEvent(Sender: TCWEControl;
 					Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
@@ -479,15 +479,31 @@ begin
 	DrawWaveform;
 end;
 
-procedure TSampleView.Zoom(ZoomIn: Boolean);
+{
+	offsetStep = step + (((mouseX - (SCREEN_W / 2)) * step) / 128);
+	offsetStep is signed, so it's negative if you pointed to the left
+	though you need to do some more calculation since the middle of the sample window is not the middle of the screen for you
+}
+procedure TSampleView.Zoom(ZoomIn: Boolean; X: Integer = -1);
 var
-	aStep: Integer;
+	aStep, offset: Integer;
+const
+	Sensitivity = 10; // smaller values = more sensitive
 begin
 	aStep := Max(Viewport.Length div 10, 1);
 	if ZoomIn then
 	begin
-		if Viewport.Length >= 4 then
-			SetViewport(Viewport.L + aSTEP, Viewport.R - aSTEP);
+		if Viewport.Length < 4 then Exit;
+
+		if X >= 0 then // zoom towards mouse pointer
+		begin
+			offset := Trunc(X / (PixelRect.Right - PixelRect.Left) * 100) - 50; // -50%..+50%
+			offset := Trunc(Viewport.Length / Sensitivity * (offset / 50));
+		end
+		else
+			offset := 0;
+
+		SetViewport(Viewport.L + aSTEP + offset, Viewport.R - aSTEP + offset);
 	end
 	else
 		SetViewport(Viewport.L - aSTEP, Viewport.R + aSTEP);
@@ -539,7 +555,7 @@ begin
 			CaptureMouse;
 			MouseAction := MOUSE_DRAW;
 			PrevMousePos := Point(-1, -1);
-			MouseMoveEvent(Self, X+PixelRect.Left, Y+PixelRect.Top, P);
+			MouseMoveEvent(Self, X{+PixelRect.Left}, Y{+PixelRect.Top}, P);
 		end;
 
 	end;
@@ -558,8 +574,8 @@ begin
 
 	if Capturing then
 	begin
-		Dec(X, PixelRect.Left);
-		Dec(Y, PixelRect.Top);
+		//Dec(X, PixelRect.Left);
+		//Dec(Y, PixelRect.Top);
 
 		X1 := PixelToSamplePos(X, 0);
 
@@ -657,7 +673,7 @@ function TSampleView.MouseWheelEvent(Sender: TCWEControl;
 begin
 	if (not WantMouse) or (ReadOnly) then Exit(False);
 	Result := True;
-	Zoom(not DirDown);
+	Zoom(not DirDown, {PixelToSamplePos}MouseCoords.X);
 end;
 
 procedure TSampleView.ScrollBy(Amount: Integer);
