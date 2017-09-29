@@ -634,7 +634,7 @@ begin
 	end
 	else
 	begin
-		P := Point(X, Y);
+		P := Point(X + PixelRect.Left, Y + PixelRect.Top);
 		X := MouseAction;
 
 		if PtInRect(BoxL, P) then
