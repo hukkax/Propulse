@@ -83,6 +83,8 @@ type
 		BackupLength:	Word;
 		LoopStart,
 		LoopLength,
+		TempLoopStart,
+		TempLoopLength,
 		tmpLoopStart:	Word;		// positions in words
 		Age: 			ShortInt;
 		FileOffset:		Cardinal;
@@ -356,6 +358,8 @@ begin
 	Length     := 0;
 	LoopStart  := 0;
 	LoopLength := 1;
+	TempLoopStart  := LoopStart;
+	TempLoopLength := LoopLength;
 	Volume     := 64;
 	Finetune   := 0;
 	Age        := -1;

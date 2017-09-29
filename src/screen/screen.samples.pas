@@ -114,6 +114,7 @@ type
 		lblLoopEnd,
 		lblSelection,
 		lblLength:	TCWELabel;
+		btnLoop:	TCWEButton;
 		Cursor:		TPoint;
 
 		procedure 	DialogCallback(ID: Word; Button: TDialogButton;
@@ -137,6 +138,7 @@ type
 
 		procedure 	WaveformKeyDown(Sender: TCWEControl;
 					var Key: Integer; Shift: TShiftState; var Handled: Boolean);
+		procedure	LoopToggled(Sender: TCWEControl);
 
 		constructor	Create(var Con: TConsole; const sCaption, sID: AnsiString); override;
 	end;
@@ -156,6 +158,29 @@ uses
 	Screen.FileReqSample, Screen.Editor, Screen.Config,
 	CWE.MainMenu, Dialog.ValueQuery;
 
+
+procedure TSampleScreen.LoopToggled(Sender: TCWEControl);
+var
+	Sam: TSample;
+begin
+	Sam := GetCurrentSample;
+	with Sam do
+	if btnLoop.Down then
+	begin
+		// enable sample loop
+		LoopStart  := TempLoopStart;
+		LoopLength := TempLoopLength;
+	end
+	else
+	begin
+		// disable sample loop
+		TempLoopStart  := LoopStart;
+		TempLoopLength := LoopLength;
+		LoopStart  := 0;
+		LoopLength := 1;
+	end;
+	UpdateSampleInfo;
+end;
 
 procedure TSampleScreen.WaveformKeyDown(Sender: TCWEControl;
 	var Key: Integer; Shift: TShiftState; var Handled: Boolean);
@@ -250,7 +275,7 @@ begin
 	sliFineTune := TCWESlider.Create(Self, '', 'Sample Finetune',
 		Bounds(X, Y, W, 1), True);
 	sliFineTune.Init([-8, 7, 0]); // Min, Max, Default
-	sliFineTune.CreateLabelControl;
+	sliFineTune.CreateLabelControl.SetSize(2, 1);
 	sliFineTune.OnChange  := ValueChanged;
 	sliFineTune.OnKeyDown := SliderKeyDown;
 	TCWELabel.Create(Self, 'Finetune', '', Bounds(1, Y, 8, 1), True);
@@ -265,12 +290,17 @@ begin
 	TCWELabel.Create(Self, 'Volume', '', Bounds(1, Y, 8, 1), True);
 	Inc(Y, 2);
 
+	btnLoop := TCWEButton.Create(Self, ' ', 'Loop', Bounds(1, Y, 1, 1)); //6, 3));
+	btnLoop.Toggle := True;
+	btnLoop.OnChange := LoopToggled;
+	//TCWELabel.Create(Self, 'Loop', '', Bounds(3, Y, 4, 1), True);
+
 	sliLoopStart := TCWESlider.Create(Self, '', 'Sample Loop Start',
 		Bounds(X, Y, W, 1), True);
 	sliLoopStart.Init([0, 64, 0]); // Min, Max, Default
 	sliLoopStart.OnChange  := ValueChanged;
 	sliLoopStart.OnKeyDown := SliderKeyDown;
-	TCWELabel.Create(Self, 'Repeat', '', Bounds(1, Y, 8, 1), True);
+	TCWELabel.Create(Self, 'Repeat', '', Bounds(3, Y, 6, 1), True);
 	Inc(Y, 2);
 
 	sliLoopEnd := TCWESlider.Create(Self, '', 'Sample Loop End',
@@ -278,7 +308,7 @@ begin
 	sliLoopEnd.Init([0, 64, 0]); // Min, Max, Default
 	sliLoopEnd.OnChange  := ValueChanged;
 	sliLoopEnd.OnKeyDown := SliderKeyDown;
-	TCWELabel.Create(Self, 'RepEnd', '', Bounds(1, Y, 8, 1), True);
+	TCWELabel.Create(Self, 'RepEnd', '', Bounds(3, Y, 6, 1), True);
 
 	lblLength := TCWELabel.Create(Self, '', 'Sample Length Label',
 		Bounds(Waveform.Rect.Left, Waveform.Rect.Bottom+2, 12, 1), True);
@@ -914,6 +944,15 @@ begin
 
 	Console.EndUpdate;
 	Updating := False;
+
+	with btnLoop do
+	begin
+		OnChange := nil;
+		Down := Sample.IsLooped;
+		OnChange := LoopToggled;
+	end;
+
+	Paint;
 end;
 
 { TSampleList }
