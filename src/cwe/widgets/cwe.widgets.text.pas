@@ -85,24 +85,32 @@ type
 		function	TextInput(var Key: Char): Boolean; override;
 
 		procedure 	Paint; override;
+
 		constructor	Create(Owner: TCWEControl;
 					const sCaption, sID: AnsiString; const Bounds: TRect;
 					IsProtected: Boolean = False); override;
 	end;
 
 	TCWEButton = class(TCWEControl)
+	private
+		FIsDown:		Boolean;
 	public
 		Tag:			Integer;
 		ModalResult:	SmallInt;
 		Shortcut:		ShortcutManager.TShortCut;
+		Toggle:			Boolean;
+
+		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
+		function	MouseUp(Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean; override;
+
+		procedure	DoToggle;
+		procedure	Toggled(B: Boolean);
+		procedure 	Paint; override;
 
 		constructor	Create(Owner: TCWEControl;
 					const sCaption, sID: AnsiString; const Bounds: TRect;
 					IsProtected: Boolean = False); override;
-		procedure 	Paint; override;
-
-		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
-		function	MouseUp(Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean; override;
+		property	Down: Boolean read FIsDown write Toggled;
 	end;
 
 	TCWEListItem = class
@@ -224,7 +232,6 @@ type
 	end;
 	TAnchorList = TObjectList<TTextAnchor>;
 
-
 	TCWEMemo = class(TCWEScrollableControl)
 	private
 		procedure 	AdjustScrollbar;
@@ -261,7 +268,9 @@ uses
 	TextMode, Math,
 	ProTracker.Util;
 
+// ==========================================================================
 { TTextAnchor }
+// ==========================================================================
 
 constructor TTextAnchor.Create(const S: AnsiString; aY: Cardinal);
 begin
@@ -672,6 +681,9 @@ begin
 	Shortcut.Key := 0;
 	Shortcut.Shift := [];
 
+	Toggle := False;
+	FIsDown := False;
+
 	WantMouse := True;
 	WantKeyboard := True;
 	WantHover := True;
@@ -686,9 +698,12 @@ begin
 	Result := True;
 	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, Shift));
 	case Sc of
-		ctrlkeyRETURN:
+		ctrlkeyRETURN, ctrlkeySPACE:
+		begin
+			DoToggle;
 			if Assigned(FOnChange) then
 				FOnChange(Self);
+		end;
 		ctrlkeyLEFT, ctrlkeyUP:
 			Screen.BrowseControls(True);
 		ctrlkeyRIGHT, ctrlkeyDOWN:
@@ -713,12 +728,30 @@ begin
 			Window.OnKeyDown(Key, Shift);
 			Result := True;
 		end;
+		DoToggle;
 		if Assigned(FOnChange) then
 		begin
 			Result := True;
 			FOnChange(Self);
 		end;
 	end;
+end;
+
+procedure TCWEButton.DoToggle;
+begin
+	if Toggle then
+	begin
+		FIsDown := not FIsDown;
+		Toggled(FIsDown);
+	end;
+end;
+
+procedure TCWEButton.Toggled;
+begin
+	FIsDown := B;
+	if (Width = 1) and (Height = 1) then
+		if FIsDown then Caption := #251 else Caption := ' ';
+	Paint;
 end;
 
 procedure TCWEButton.Paint;
@@ -731,23 +764,22 @@ begin
 
 	colF := ColorFore;
 
-	if (Focused) and (Hovered) and (Screen.MouseInfo.Buttons[mbLeft]) then
+	if (Focused) and (Hovered) and (Screen.MouseInfo.Buttons[mbLeft]) then // pressing down
 	begin
 		colF := TConsole.COLOR_3DLIGHT;
 		Console.FrameRectPx(Rect, True);
 	end
 	else
 	begin
-		if (Hovered) {or (Focused)} then colF := TConsole.COLOR_3DLIGHT;
+		if (Hovered) {or (Focused)} then // mouse hovering
+			colF := TConsole.COLOR_3DLIGHT;
 		if (Focused and WantKeyboard) then
-		begin
-			Console.FrameRectPx(Rect, False, False{True});
-		end
+			Console.FrameRectPx(Rect, FIsDown, False{True})
 		else
 		begin
 			// hack to remove the fat border from a previous draw op
-			Console.FrameRectPx(Rect, False, True, -1, TConsole.COLOR_PANEL, TConsole.COLOR_PANEL);
-			Console.FrameRectPx(Rect, False, False);
+			Console.FrameRectPx(Rect, FIsDown, True, -1, TConsole.COLOR_PANEL, TConsole.COLOR_PANEL);
+			Console.FrameRectPx(Rect, FIsDown, False);
 		end;
 	end;
 
@@ -761,19 +793,6 @@ begin
 			Console.GetPixelRect(Rect, 2),
 			Console.Palette[TConsole.COLOR_TEXT]);
 end;
-
-(*
-procedure TCWEWidgetEngine.SetControlInfo(Kind: TCWEControlClass;
-	Want_Mouse, Want_Keyboard, Want_Hover: Boolean);
-begin
-{	with ControlInfo[Kind] do
-	begin
-		WantMouse    := Want_Mouse;
-		WantKeyboard := Want_Keyboard;
-		WantHover    := Want_Hover;
-	end;}
-end;
-*)
 
 // ==========================================================================
 { TCWEList }

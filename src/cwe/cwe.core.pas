@@ -149,6 +149,7 @@ type
 
 		procedure	SetColors(Fg, Bg: Byte);
 		procedure 	SetBounds(const Bounds: TRect); virtual;
+		procedure	SetSize(X, Y: Word); virtual;
 
 		function 	GetPixelSize: TPoint;
 		procedure 	GetPixelRect(var R: TRect);
@@ -788,6 +789,13 @@ begin
 	//ClientRect := Types.Rect(Bounds.Left+1, Bounds.Top+1, Bounds.Right-1, Bounds.Bottom-1);
 	Width  := Max(Bounds.Right  - Bounds.Left - 1, 1);
 	Height := Max(Bounds.Bottom - Bounds.Top  - 1, 1);
+end;
+
+procedure TCWEControl.SetSize(X, Y: Word);
+begin
+	Width  := X;
+	Height := Y;
+	Rect := Bounds(Rect.Left, Rect.Top, Width, Height);
 end;
 
 function TCWEControl.GetPixelSize: TPoint;
