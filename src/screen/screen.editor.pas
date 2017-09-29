@@ -353,11 +353,12 @@ var
 begin
 	// Channel VUmeters
 	//
+	h := Console.Font.Height div 2;
+
 	for hh := 0 to AMOUNT_CHANNELS-1 do
 	begin
-		h := Console.Font.Height div 2;
 		w  := (Editor.lblChannels[hh].Width + 1) * Console.Font.Width;
-		oy := (Editor.lblChannels[hh].Rect.Top - 1) * (h*2) + h;
+		oy := (Editor.lblChannels[hh].Rect.Top)  * Console.Font.Height - h;
 		ox := (Editor.lblChannels[hh].Rect.Left) * Console.Font.Width;
 
 		Console.Bitmap.FillRect(Bounds(ox, oy, w, h),
