@@ -13,7 +13,7 @@
 
 <#Main><h1>Propulse Tracker Help
 
-<c><f9>Last modified: 2017-09-27
+<c><f9>Last modified: 2017-10-04
 
 <h2>Global Keys:
 
@@ -281,7 +281,7 @@
  The audio device to be used.
 
  <h3><#Audio.Frequency>Sampling rate: *
- Sets the desired sampling rate for the audio device, from 11 to 48 KHz.
+ Sets the desired sampling rate for the audio device.
 
  <h3><#Audio.Buffer>Audio buffer: *
  This is the audio buffer size in milliseconds. Too low values will cause
@@ -306,12 +306,13 @@
  <h3><#Audio.FilterHighPass>Highpass filter:
  Amigas also contain a slight highpass filter, which can be enabled here.
 
-;<#Audio.FilterLed>LED filter:
-;
+ <h3><#Audio.FilterLed>LED filter:
+ TBD
+
  <h3><#Audio.CIAMode>Timing mode:
  Works like the CIA/VBL setting in original ProTracker; best left at CIA.
 
- <h3><#Audio.EditorInvertLoop>Play EFX (Invert Loop) like:
+ <h3><#Audio.EditorInvertLoop>Play EFx (Invert Loop) like:
  The Invert Loop effect plays differently in the ProTracker editor as opposed
  to other programs that use the ProTracker module playback routines. You can
  choose either playback behavior here.
@@ -327,7 +328,7 @@
  set to 2 for a double-size window, unless that size would exceed the monitor
  resolution.
 
- <h3><#Display.VSync>Vertical sync:
+ <h3><#Display.Vsync>Vertical sync: *
  Enable or disable vertical sync. Visuals will look smoother with this
  enabled. "Auto" will enable vertical sync if the monitor's display frequency
  is between 50-60 Hz.
@@ -340,10 +341,10 @@
  specified in mouse.pcx (or mouse2.pcx for large fonts), or none altogether.
 
  <h3><#Display.SampleAsBytes>Show sample sizes/offsets in:
+ Sample data sizes and offsets can be shown as either bytes or words.
+
  <h3><#Display.SampleAsDecimal>Show sizes/offsets as:
- Control how various numeric size and offset information is displayed.
- Sample sizes can be shown as either bytes and words, in either decimal or
- hexadecimal.
+ Sample sizes and offsets can be shown in either decimal or hexadecimal.
 
  <h3><#Display.RawFileSizes>Show filesizes as:
  Choose whether load/save module/sample dialogs should display file sizes as
@@ -373,10 +374,16 @@
  not emulate this behavior (nor does any other PC replayer that I know of),
  you can at least choose to colorize the notes differently.
 
+ <h3><#Editor.RestoreSamples>Restore samples when playback stopped:
+ Useful with effects that modify sample data (Invert Loop, Karplus-Strong).
+ When enabled, a temporary copy of all sample data is created in memory when
+ module playback is started, and original sample data is again restored once
+ stopping playback.
+
 
 <#Program Settings><h2>Program settings
 
- <h3><#Program.HighPriority>Task priority: (Windows only)
+ <h3><#Program.HighPriority>Task priority: (Windows only) *
  You can choose to give a higher processing priority to Propulse to
  lessen the chance of audio dropouts. (On by default)
 
