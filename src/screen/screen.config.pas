@@ -117,6 +117,7 @@ end;
 constructor TConfigScreen.Create;
 const
 	X2 = 58;
+	BAL = 2;
 begin
 	inherited;
 
@@ -125,14 +126,14 @@ begin
 	AddHeader('');
 
 	List := TCWEConfigList.Create(Self, '', 'Options',
-		Types.Rect(1, 5, X2, 21), True);
+		Types.Rect(1, 5, X2, 21+BAL), True);
 	List.ColumnWidth[1] := 18;
 	List.ColumnColor[1] := 3;
 	List.Border.Pixel := True;
 	RegisterLayoutControl(List, CTRLKIND_BOX, False, True, True);
 
 	KeyList := TCWETwoColumnList.Create(Self, '', 'Keybindings',
-		Types.Rect(1, 24, X2, 44), True);
+		Types.Rect(1, 24+BAL, X2, 44), True);
 	KeyList.ColumnWidth[1] := 18;
 	KeyList.OnKeyDown := GetNewKeyBinding;
 	KeyList.ColumnColor[0] := 2;
@@ -147,12 +148,12 @@ begin
 	ColorList.Border.Pixel := True;
 	RegisterLayoutControl(ColorList, CTRLKIND_BOX, False, True, True);
 
-	TCWELabel.Create(Self, 'Program Settings (Arrows to change values)', '',
+	TCWELabel.Create(Self, 'Program Settings (Arrows to change values, F1 for help)', '',
 		Types.Rect(1, 3, 58, 4)).ColorFore := 1;
 	TCWELabel.Create(Self, 'Color Palette', '',
 		Types.Rect(61, 3, 74, 4)).ColorFore := 1;
 	TCWELabel.Create(Self, 'Key Bindings (Enter to modify)', '',
-		Types.Rect(1, 22, 58, 23)).ColorFore := 1;
+		Types.Rect(1, 22+BAL, 58, 23+BAL)).ColorFore := 1;
 
 {	bLoadPalette := TCWEButton.Create(Self, 'Load preset', 'LoadPal',
 		Bounds(ColorList.Rect.Left, ColorList.Rect.Bottom+1, 18, 1), True);}
