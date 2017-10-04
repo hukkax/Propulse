@@ -507,6 +507,18 @@ begin
 end;
 
 procedure TCWEScreen.MouseMove(X, Y: Integer; P: TPoint);
+
+	procedure DoMouseLeave(const Ctrl: TCWEControl);
+	begin
+		HoveredControl := nil;
+		with Ctrl do
+		if WantHover then
+		begin
+			MouseLeave;
+			Paint;	// redraw control without hover effect
+		end;
+	end;
+
 var
 	OldCtrl: TCWEControl;
 begin
@@ -555,14 +567,7 @@ begin
 	if (P.X < 0) or (P.Y < 0) then
 	begin
 		if (OldCtrl <> nil) then
-		begin
-			HoveredControl := nil;
-			if OldCtrl.WantHover then
-			begin
-				OldCtrl.MouseLeave;
-				OldCtrl.Paint;	// redraw control without hover effect
-			end;
-		end;
+			DoMouseLeave(OldCtrl);
 		MouseInfo.Control := nil;
 	end
 	else
@@ -571,14 +576,7 @@ begin
 		//Window.Caption := Format('%d,%d', [MouseInfo.Pos.X, MouseInfo.Pos.Y]);
 
 		if (OldCtrl <> nil) and (OldCtrl <> MouseInfo.Control) then
-		begin
-			HoveredControl := nil;
-			if OldCtrl.WantHover then
-			begin
-				OldCtrl.MouseLeave;
-				OldCtrl.Paint;	// redraw control without hover effect
-			end;
-		end;
+			DoMouseLeave(OldCtrl);
 
 		if (MouseInfo.Control <> nil) then
 		begin
@@ -926,12 +924,19 @@ end;
 
 function TCWEControl.MouseEnter: Boolean;
 begin
-	Result := False;
+	if Assigned(FOnMouseEnter) then
+		Result := FOnMouseEnter(Self)
+	else
+		Result := False;
 end;
 
 function TCWEControl.MouseLeave: Boolean;
 begin
-	Result := False;
+	if Assigned(FOnMouseLeave) then
+		Result := FOnMouseLeave(Self)
+	else
+		Result := False;
+
 	MouseCoords := Point(-1, -1);
 end;
 
