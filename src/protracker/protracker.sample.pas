@@ -112,6 +112,7 @@ type
 		function 		GetName: AnsiString;
 		procedure 		UpdateVoice;
 		procedure		SetName(const S: AnsiString);
+		function 		EnableLooping(B: Boolean): Boolean;
 		function  		SetLoopStart(WordPos: Integer): Boolean;
 		function  		SetLoopEnd(WordPos: Integer): Boolean;
 		procedure		ZeroFirstWord;
@@ -262,6 +263,25 @@ begin
 			Ch.SRC_LEN := LoopLength * 2;
 		end;
 	end;
+end;
+
+function TSample.EnableLooping(B: Boolean): Boolean;
+begin
+	if B then
+	begin
+		// enable sample loop
+		LoopStart  := TempLoopStart;
+		LoopLength := TempLoopLength;
+	end
+	else
+	begin
+		// disable sample loop
+		TempLoopStart  := LoopStart;
+		TempLoopLength := LoopLength;
+		LoopStart  := 0;
+		LoopLength := 1;
+	end;
+	Result := IsLooped;
 end;
 
 function TSample.SetLoopStart(WordPos: Integer): Boolean;

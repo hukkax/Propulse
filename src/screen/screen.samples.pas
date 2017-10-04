@@ -164,22 +164,11 @@ var
 	Sam: TSample;
 begin
 	Sam := GetCurrentSample;
-	with Sam do
-	if btnLoop.Down then
+	if Sam <> nil then
 	begin
-		// enable sample loop
-		LoopStart  := TempLoopStart;
-		LoopLength := TempLoopLength;
-	end
-	else
-	begin
-		// disable sample loop
-		TempLoopStart  := LoopStart;
-		TempLoopLength := LoopLength;
-		LoopStart  := 0;
-		LoopLength := 1;
+		Sam.EnableLooping(btnLoop.Down);
+		UpdateSampleInfo;
 	end;
-	UpdateSampleInfo;
 end;
 
 procedure TSampleScreen.WaveformKeyDown(Sender: TCWEControl;
