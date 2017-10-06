@@ -357,11 +357,6 @@
 
 <#Editor Settings><h2>Editor settings
 
- <h3><#Editor.UseITCommands>Effect commands:
- Choose if you want to use ProTracker or Impulse Tracker commands when
- tracking. For example, volume fade is Axx in PT and Dxx in IT. This
- setting only affects display and editing, not file saving.
-
  <h3><#Editor.AltHomeEndBehavior>Home and End keys behavior:
  Affects navigation in the pattern editor; either the traditional style or
  Propulse Tracker's own method.
