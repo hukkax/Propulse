@@ -203,7 +203,7 @@ type
 
 		function 	Length: Word; inline;
 		function 	X2: Word; inline;
-		function	GetPixelCoords: TRect;
+		//function	GetPixelCoords: TRect;
 	end;
 	TTextObjectList = TObjectList<TTextObject>;
 
@@ -357,12 +357,12 @@ begin
 						begin
 							Tag := Copy(Tag, 2, MaxInt);
 
-							if C = '#' then			// anchor (destination)
+							if C = '#' then		// anchor (destination)
 							begin
 								Memo.Anchors.Add(TTextAnchor.Create(Tag, Y));
 							end
 							else
-							if C = '@' then			// hyperlink
+							if C = '@' then		// hyperlink
 							begin
 								t := Pos('=', Tag);
 								if t > 0 then
@@ -399,7 +399,7 @@ begin
 						begin
 							Tag := UpperCase(Tag);
 
-							if Tag = 'C' then		// center line
+							if Tag = 'C' then	// center line
 							begin
 								Center := True;
 							end
@@ -513,9 +513,9 @@ begin
 	ColorBack := colBg;
 end;
 
-function TTextObject.GetPixelCoords: TRect;
+{function TTextObject.GetPixelCoords: TRect;
 begin
-end;
+end;}
 
 function TTextObject.X2: Word;
 begin

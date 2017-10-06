@@ -711,11 +711,11 @@ begin
 			SortMode := Cmd;
 			if InSampleReq then
 			begin
-				Options.Dirs.SampleSortMode := SortMode;
+				Options.Dirs.SampleSortMode := Cmd;
 				if SampleRequester.InModule then Exit;
 			end
 			else
-				Options.Dirs.FileSortMode := SortMode;
+				Options.Dirs.FileSortMode := Cmd;
 			SetDirectory(Directory);
 		end;
 
@@ -997,13 +997,13 @@ begin
 	inherited;
 
 	LoadBookmarks(ConfigPath + 'bookmarks-modules.ini');
-	SortMode := Options.Dirs.FileSortMode;
 
 	FileList.OnChange		:= FileOrDirSelected;
 	DirList.OnChange		:= FileOrDirSelected;
 	DirEdit.OnChange		:= DirOrFilenameEntered;
 	FilenameEdit.OnChange	:= DirOrFilenameEntered;
 
+	SortMode := Options.Dirs.FileSortMode;
 	SaveMode := False;
 	LoadLayout(Self);
 
