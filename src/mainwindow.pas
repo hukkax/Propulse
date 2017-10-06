@@ -256,8 +256,10 @@ end;
 procedure TWindow.UpdateVUMeter(Len: DWord);
 var
 	InModal: Boolean;
+	{$IFDEF MIDI}
 	i: Integer;
 	Vol: Single;
+	{$ENDIF}
 begin
 	// this hack will update the background screen (vumeters etc.) if a module
 	// is currently playing underneath a modal dialog
@@ -1009,15 +1011,17 @@ end;
 procedure TWindow.HandleInput;
 var
 	InputEvent: SDL_Event;
-	c: SDL_SInt32;
-	X, Y, i: Integer;
+	X, Y: Integer;
 	B: Boolean;
 	Btn: TMouseButton;
 	Key: SDL_KeyCode;
 	km: SDL_KeyMods;
 	Shift: TShiftState;
 	AnsiInput: AnsiString;
+	{$IFDEF MIDI}
 	KeyBind: TKeyBinding;
+	i: Integer;
+	{$ENDIF}
 
 	function GetXY: TPoint;
 	begin
@@ -1343,8 +1347,8 @@ begin
 		Sect := 'Directory';
 		Cfg.AddString	(Sect, 'Modules', 		@Dirs.Modules, 			AppPath);
 		Cfg.AddString	(Sect, 'Samples', 		@Dirs.Samples, 			AppPath);
-		Cfg.AddByte		(Sect, 'SortMode',		@Dirs.FileSortMode,   	FILESORT_NAME);
-		Cfg.AddByte		(Sect, 'SortModeS',		@Dirs.SampleSortMode, 	FILESORT_NAME);
+		Cfg.AddByte		(Sect, 'SortMode',		@Dirs.FileSortMode,   	FILESORT_NAME).Max := FILESORT_DATE;
+		Cfg.AddByte		(Sect, 'SortModeS',		@Dirs.SampleSortMode, 	FILESORT_NAME).Max := FILESORT_DATE;
 
 		Sect := 'Resampling';
 		Cfg.AddBoolean(Sect, 'Resample.Automatic', @Import.Resampling.Enable, True)
@@ -1713,6 +1717,7 @@ begin
 			AddCmd(Ord(keyScreenLoad), 				'Load module');
 			AddCmd(Ord(keyScreenSave), 				'Save module');
 			AddCmd(Ord(keySongLength), 				'Show length/size');
+			AddCmd(Ord(keyJumpToTime), 				'Jump to time...');
 			AddCmd(Ord(keyCleanup), 				'Cleanup');
 			AddCmd(Ord(keyRenderToSample),			'Selection to sample');
 
