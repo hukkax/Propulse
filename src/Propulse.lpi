@@ -31,7 +31,7 @@
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
             <Libraries Value=".."/>
-            <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\bass"/>
+            <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\bass;midi"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -51,6 +51,7 @@
           <Linking>
             <Debugging>
               <GenerateDebugInfo Value="False"/>
+              <DebugInfoType Value="dsDwarf2"/>
               <StripSymbols Value="True"/>
             </Debugging>
             <LinkSmart Value="True"/>
@@ -69,11 +70,11 @@
             <CompilerMessages>
               <IgnoredMessages idx5057="True" idx5024="True" idx4080="True" idx4079="True" idx4035="True"/>
             </CompilerMessages>
-            <CustomOptions Value="-OoFASTMATH
+            <CustomOptions Value="-dRELEASE
+-dBASS_DYNAMIC
+-OoFASTMATH
 -OoLOOPUNROLL
--OoREMOVEEMPTYPROCS
--dRELEASE
--dBASS_DYNAMIC"/>
+-OoREMOVEEMPTYPROCS"/>
             <OtherDefines Count="4">
               <Define0 Value="RELEASE"/>
               <Define1 Value="BASS_DYNAMIC"/>
@@ -154,7 +155,7 @@
         <PackageName Value="LazUtils"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="51">
+    <Units Count="55">
       <Unit0>
         <Filename Value="propulse.pas"/>
         <IsPartOfProject Value="True"/>
@@ -405,6 +406,25 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="Dialog.JumpToTime"/>
       </Unit50>
+      <Unit51>
+        <Filename Value="protracker/protracker.midi.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ProTracker.MIDI"/>
+      </Unit51>
+      <Unit52>
+        <Filename Value="propulse.inc"/>
+        <IsPartOfProject Value="True"/>
+      </Unit52>
+      <Unit53>
+        <Filename Value="protracker/protracker.messaging.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ProTracker.Messaging"/>
+      </Unit53>
+      <Unit54>
+        <Filename Value="include/midiio.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="MIDIIO"/>
+      </Unit54>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -416,7 +436,7 @@
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
       <Libraries Value=".."/>
-      <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\bass"/>
+      <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\bass;midi"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
@@ -458,7 +478,7 @@
 -dDEBUG
 -dBASS_DYNAMIC"/>
       <OtherDefines Count="4">
-        <Define0 Value="DEBUG"/>
+        <Define0 Value="RELEASE"/>
         <Define1 Value="BASS_DYNAMIC"/>
         <Define2 Value="DISABLE_SDL2_2_0_5"/>
         <Define3 Value="DISABLE_SDL2_2_0_4"/>

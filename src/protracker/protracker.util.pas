@@ -6,7 +6,7 @@ uses
 	ConfigurationManager, Types;
 
 const
-	VERSION  =  '0.8.9.9';
+	VERSION  =  '0.9.0.0';
 
 	URL = 'http://hukka.yiff.fi/propulse/';
 
@@ -85,11 +85,11 @@ type
 		end;
 
 		Tracker: packed record
-			ITCommands: 			Boolean;
 			VolumeColumn:			Boolean;
 			AltHomeEndBehavior:		Boolean;
 			NoteB3Warning:			Boolean;
 			ShowEmptyParamZeroes: 	Boolean;
+			RestoreSamples:			Boolean;
 		end;
 
 		Display: packed record
@@ -117,6 +117,7 @@ type
 			FilterLed: 				Boolean;
 			CIAmode: 				Boolean;	// tempo mode, False=VBlank, True=CIA
 			EditorInvertLoop: 		Boolean;	// play EFx command like in PT editor?
+			EnableKarplusStrong:	Boolean;	// enable E8x Karplus-Strong effect?
 		end;
 
 		Dirs: packed record

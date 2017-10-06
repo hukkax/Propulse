@@ -11,10 +11,7 @@ uses
 {.$DEFINE TIMING}
 
 const
-	CmdCharsITExt: AnsiString = 'QSDZ';
-	CmdCharsPT:    AnsiString = '0123456789AB DEF';
-	CmdCharsIT:    AnsiString = 'JFEGHLKRXODB C AQSDZ';
-	//CmdCharsIT:  AnsiString = 'JFEGHLKRXODB CZA';
+	CmdChars:    AnsiString = '0123456789AB DEF';
 
 	KeyboardNotes      = 'ZSXDCVGBHNJMQ2W3ER5T6Y7UI9O0P';
 	KeyboardNumbers    = '0123456789';
@@ -165,7 +162,6 @@ type
 	end;
 
 var
-	CmdChars: AnsiString;
 	CurrentSample,
 	CurrentPattern: Byte;
 	EditorKeys: TKeyBindings;
@@ -430,13 +426,9 @@ begin
 				begin
 					DestNote.Command   := Note.Command;
 					DestNote.Parameter := Note.Parameter;
-					DestNote.CmdText   := Note.CmdText;
 				end;
 
 			end;
-
-			DestNote.ParseText;
-			DestNote.GetText;
 		end;
 
 		if not Locked then
@@ -1303,11 +1295,7 @@ begin
 				end;
 
 				COL_COMMAND:
-				begin
 					Cursor.Note.Command := 0;
-					if Options.Tracker.ITCommands then
-						Cursor.Note.Parameter := 0; // don't want no J command!
-				end;
 
 				COL_PARAMETER_1, COL_PARAMETER_2:
 					Cursor.Note.Parameter := 0;
@@ -1328,7 +1316,6 @@ begin
 				LastNote.Command   := Command;
 				LastNote.Parameter := Parameter;
 				LastNote.Text := Text;
-				LastNote.CmdText := CmdText;
 				Editor.SetSample(Sample);
 			end;
 		end;
@@ -1361,8 +1348,6 @@ begin
 						begin
 							Command   := LastNote.Command;
 							Parameter := LastNote.Parameter;
-							CmdText   := LastNote.CmdText;
-							ParseText;
 						end;
 
 						Text := LastNote.Text;
@@ -1384,35 +1369,11 @@ begin
 					if Cursor.Note.Command = $C then
 						Cursor.Note.Parameter := Min(64, Cursor.Note.Parameter)
 					else
-					if Options.Tracker.ITCommands then
-					begin
-						Cursor.Note.Command := LastNote.Command;
-						Cursor.Note.CmdText[1] := LastNote.CmdText[1];
-						Cursor.Note.ParseText;
-						Cursor.Note.GetText;
-					end
-					else
 						Cursor.Note.Command := LastNote.Command;
 				end;
 
 				COL_PARAMETER_1, COL_PARAMETER_2:
-				begin
-					if Options.Tracker.ITCommands then
-					begin
-						{if Cursor.Note.Command = 0 then
-							Cursor.Note.CmdText[1] := 'J';
-						Cursor.Note.CmdText :=
-							Cursor.Note.CmdText[1] + Copy(LastNote.CmdText, 2, 2);
-						Cursor.Note.ParseText;}
-						if Cursor.Note.Command = 0 then
-							Cursor.Note.Command := LastNote.Command;
-						Cursor.Note.CmdText := LastNote.CmdText;
-
-						Cursor.Note.ParseText;
-					end
-					else
-						Cursor.Note.Parameter := LastNote.Parameter;
-				end;
+					Cursor.Note.Parameter := LastNote.Parameter;
 			end;
 
 			Module.SetModified;
@@ -1707,7 +1668,6 @@ begin
 				begin
 					Cursor.Note.Command := $C;
 					Cursor.Note.Parameter := Min( (o * 10) + (Cursor.Note.Parameter mod 10), 64);
-					Cursor.Note.GetText;
 					LastNote.Command := $C;
 					LastNote.Parameter := Cursor.Note.Parameter;
 					Module.SetModified;
@@ -1723,7 +1683,6 @@ begin
 				begin
 					Cursor.Note.Command := $C;
 					Cursor.Note.Parameter := Min( (Cursor.Note.Parameter div 10 * 10) + o, 64);
-					Cursor.Note.GetText;
 					LastNote.Command := $C;
 					LastNote.Parameter := Cursor.Note.Parameter;
 					Module.SetModified;
@@ -1738,26 +1697,11 @@ begin
 				o := Pos(chrKey, CmdChars) - 1;
 				if o >= 0 then
 				begin
-					if Options.Tracker.ITCommands then
-						i := Pos(chrKey, CmdCharsITExt) - 1
-					else
-						i := -1;
-
-					if i >= 0 then
-					begin
-						Cursor.Note.CmdText[1] := CmdCharsITExt[i+1];
-						Cursor.Note.ParseText;
-					end
-					else
-						Cursor.Note.Command := o;
-
+					Cursor.Note.Command := o;
 					if o = $C then
 						Cursor.Note.Parameter := Min(64, Cursor.Note.Parameter);
-					if i < 0 then
-						Cursor.Note.GetText;
 
 					LastNote.Command := Cursor.Note.Command;
-					LastNote.CmdText := Cursor.Note.CmdText;
 					LastNote.Text := Cursor.Note.Text;
 
 					Module.SetModified;
@@ -1775,36 +1719,17 @@ begin
 				begin
 					if Cursor.Column = COL_PARAMETER_1 then
 					begin
-						if Options.Tracker.ITCommands then
-						begin
-							Cursor.Note.CmdText[2] := AnsiChar(KeyboardHexNumbers[o+1]);
-							Cursor.Note.ParseText;
-						end
-						else
-						begin
-							Cursor.Note.Parameter := (o * $10) + (Cursor.Note.Parameter mod $10);
-							Cursor.Note.GetText;
-						end;
+						Cursor.Note.Parameter := (o * $10) + (Cursor.Note.Parameter mod $10);
 						Inc(Cursor.Column);
 					end
 					else
 					begin
-						if Options.Tracker.ITCommands then
-						begin
-							Cursor.Note.CmdText[3] := AnsiChar(KeyboardHexNumbers[o+1]);
-							Cursor.Note.ParseText;
-						end
-						else
-						begin
-							Cursor.Note.Parameter := (Cursor.Note.Parameter div $10 * $10) + o;
-							Cursor.Note.GetText;
-						end;
+						Cursor.Note.Parameter := (Cursor.Note.Parameter div $10 * $10) + o;
 						Cursor.Column := COL_PARAMETER_1;
 						Advance;
 					end;
 					LastNote.Parameter := Cursor.Note.Parameter;
 					LastNote.Text := Cursor.Note.Text;
-					LastNote.CmdText := Cursor.Note.CmdText;
 					Module.SetModified;
 					Result := True;
 				end;
@@ -2021,13 +1946,8 @@ begin
 					Console.Write(SEMP2, CX + 10, CY, fg, bg);
 			end
 			else
-			begin
-				if Options.Tracker.ITCommands then
-					Console.Write(Note.CmdText, CX + 10, CY, fg, bg) //Note.GetText
-				else
-					Console.Write(CmdChars[Note.Command+1] // strings start at [1]
-						+ HexVals[Note.Parameter], CX + 10, CY, fg, bg);
-			end;
+				Console.Write(CmdChars[Note.Command+1] // strings start at [1]
+					+ HexVals[Note.Parameter], CX + 10, CY, fg, bg);
 		end;
 
 	end;
@@ -2071,15 +1991,13 @@ end;
 
 procedure TClipPattern.ToClipboard;
 var
-	WasIT, WasPZ: Boolean;
+	WasPZ: Boolean;
 	patt, ch, row: Integer;
 	Note: PNote;
 	S: String;
 begin
-	WasIT := Options.Tracker.ITCommands;
 	WasPZ := Options.Tracker.ShowEmptyParamZeroes;
 
-	Options.Tracker.ITCommands := True;
 	Options.Tracker.ShowEmptyParamZeroes := False;
 
 	S := '';
@@ -2094,13 +2012,8 @@ begin
 	end;
 
 	ClipBoard.AsText := S;
-	Options.Tracker.ITCommands := WasIT;
 	Options.Tracker.ShowEmptyParamZeroes := WasPZ;
 end;
 *)
-
-initialization
-
-	CmdChars := CmdCharsPT;
 
 end.

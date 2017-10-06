@@ -1,5 +1,7 @@
 unit Screen.Splash;
 
+{$I propulse.inc}
+
 interface
 
 uses
@@ -83,6 +85,7 @@ uses
 	SysUtils,
 	Math,
 	BuildInfo,
+	{$IFDEF MIDI}ProTracker.MIDI,{$ENDIF}
 	ProTracker.Util,
 	Screen.Editor;
 
@@ -346,9 +349,20 @@ end;
 // ============================================================================
 
 procedure TSplashScreen.Show;
+{$IFDEF MIDI}
+var
+	Ctrl: TMIDIController;
+{$ENDIF}
 begin
 	Randomize;
 	ScrollText := StringReplace(Scroll_Text, '§', SCRSEP, [rfReplaceAll]);
+
+	{$IFDEF MIDI}
+//	if (Options.Midi.Enabled) and
+	for Ctrl in MIDI.Controllers do
+		if (Ctrl <> nil) and (Ctrl.ScrollText <> nil) then
+			Ctrl.ScrollText.Text := ' PROPULSE tracker by hukka 2017  ';
+	{$ENDIF}
 end;
 
 procedure TSplashScreen.OKClick(Sender: TCWEControl);

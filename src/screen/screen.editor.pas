@@ -353,11 +353,12 @@ var
 begin
 	// Channel VUmeters
 	//
+	h := Console.Font.Height div 2;
+
 	for hh := 0 to AMOUNT_CHANNELS-1 do
 	begin
-		h := Console.Font.Height div 2;
 		w  := (Editor.lblChannels[hh].Width + 1) * Console.Font.Width;
-		oy := (Editor.lblChannels[hh].Rect.Top - 1) * (h*2) + h;
+		oy := (Editor.lblChannels[hh].Rect.Top)  * Console.Font.Height - h;
 		ox := (Editor.lblChannels[hh].Rect.Left) * Console.Font.Width;
 
 		Console.Bitmap.FillRect(Bounds(ox, oy, w, h),
@@ -561,6 +562,7 @@ begin
 	Module.PlayPos.Order := Order;
 	CurrentPattern := Module.OrderList[Order];
 	PatternEditor.Cursor.Row := Row;
+	OrderList.Cursor.Y := Order;
 
 	UpdateInfoLabels;
 	PatternEditor.ValidateCursor;
@@ -628,6 +630,8 @@ begin
 end;
 
 procedure TEditorScreen.Paint;
+const
+	CHSEP = 253; // 168
 var
 	x, y: Integer;
 begin
@@ -644,8 +648,13 @@ begin
 	// channel separators
 	//
 	for x := 1 to AMOUNT_CHANNELS-1 do
-	for y := PatternEditor.Rect.Top to PatternEditor.Rect.Bottom-1 do
-		Console.PutChar(x * PATTERN_CHAN_WIDTH + (PatternEditor.Rect.Left + 2), y, 168, 2, 0);
+	with PatternEditor do
+	begin
+		for y := Rect.Top to Rect.Bottom-1 do
+			Console.PutChar(x * PATTERN_CHAN_WIDTH + (Rect.Left + 2), y, CHSEP, 1, 2);
+		//Console.PutChar(x * PATTERN_CHAN_WIDTH + (Rect.Left + 2), Rect.Top-1, 32, 2, 2);
+		//Console.PutChar(x * PATTERN_CHAN_WIDTH + (Rect.Left + 2), Rect.Bottom, 32, 2, 2);
+	end;
 
 	UpdateInfoLabels;
 

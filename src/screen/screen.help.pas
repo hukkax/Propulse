@@ -9,9 +9,12 @@ uses
 type
 	THelpScreen = class(TCWEScreen)
 	private
+		Timestamp:	LongInt;
 	public
-		Memo:	TCWEMemo;
+		Memo:		TCWEMemo;
 
+		function 	HelpFileName: String;
+		function 	LoadHelp: Boolean;
 		procedure	Show(Context: AnsiString); reintroduce;
 
 		constructor	Create(var Con: TConsole; const sCaption, sID: AnsiString); override;
@@ -24,6 +27,7 @@ var
 implementation
 
 uses
+	SysUtils,
 	ProTracker.Util,
 	Layout;
 
@@ -41,117 +45,53 @@ begin
 	ActiveControl := Memo;
 
 	LoadLayout(Self);
+
+	LoadHelp;
+end;
+
+function THelpScreen.HelpFileName: String;
+begin
+	Result := GetDataFile('help.txt');
+end;
+
+function THelpScreen.LoadHelp: Boolean;
+var
+	sl: TStringList;
+	S: AnsiString;
+	Fn: String;
+begin
+	Memo.Lines.Clear;
+
+	Fn := HelpFileName;
+	Result := FileExists(Fn);
+
+	if Result then
+	begin
+		Timestamp := FileAge(Fn);
+		sl := TStringList.Create;
+		sl.LoadFromFile(Fn);
+		for S in sl do
+			if Copy(S, 1, 1) <> ';' then
+				Memo.Add(S);
+		sl.Free;
+	end
+	else
+	begin
+		Timestamp := 0;
+		Memo.Add('<h1>Help file not found!');
+	end;
 end;
 
 procedure THelpScreen.Show(Context: AnsiString);
 var
-	sl: TStringList;
-	S, PrevContext: AnsiString;
-	C: AnsiChar;
-	i, LinesInSection, Col: Integer;
-	ContextOffset: Integer;
-	Center: Boolean;
+	Fn: String;
 begin
-	Memo.Lines.Clear;
+	Fn := HelpFileName;
+	if (FileExists(Fn)) and (FileAge(Fn) <> Timestamp) then
+		LoadHelp; // reload help file if it's been modified
 
-	sl := TStringList.Create;
-	sl.LoadFromFile(GetDataFile('help.txt'));
-
-	{
-		Schism Tracker:
-		= Center line
-		| Normal text
-		# Red text
-		% Horizontal line
-		! Impulse Tracker only
-		: Schism Tracker only
-		; Unknown
-		+ Unknown
-
-		PoroTracker:
-		§ Implemented in PoroTracker
-		* White text
-	}
-	Context := '@' + Context;
-	PrevContext := '';
-	ContextOffset := -1;
-	LinesInSection := 0;
-
-	for i := 0 to sl.Count-1 do
-	begin
-		S := sl[i];
-
-		if S = '' then
-		begin
-			if ContextOffset >= 0 then
-			begin
-				Memo.Add('');
-				Inc(LinesInSection);
-			end;
-			Continue;
-		end;
-
-		if S[1] = '@' then
-		begin
-			if (PrevContext = Context) and (LinesInSection in [1..Memo.Height-1]) then
-			for Col := Memo.Height downto LinesInSection do
-				Memo.Add('');
-
-			PrevContext := '-';
-
-			if (S = Context) or (S = '@') then
-			begin
-				ContextOffset := Memo.Lines.Count;
-				if S = Context then
-					PrevContext := S;
-			end;
-
-			LinesInSection := 0;
-			Continue;
-		end
-		else
-		if ContextOffset < 0 then Continue;
-
-		Center := False;
-		Col := -1;
-		C := S[1];
-
-		if Pos(C, ' |!:;+') > 0 then
-			Continue;
-
-		if C = '#' then
-			Col := 4
-		else
-		if C = '*' then
-			Col := 3
-		else
-		if C = '%' then
-			S := '  ' + StringOfChar(#154, Memo.Rect.Right-Memo.Rect.Left-2)
-		else
-		if C = '=' then
-		begin
-			Center := True;
-		end
-		else
-		if C = '[' then
-		begin
-			Col := 11;
-			S := #131 + ' ' + Copy(S, 2, Length(S)) + ' ' + #132;
-			Memo.Add(#128 + StringOfChar(#129, Length(S)-2) + #130, Col, True);
-			Memo.Add(S, Col, True);
-			Memo.Add(#133 + StringOfChar(#134, Length(S)-2) + #135, Col, True);
-			Inc(LinesInSection, 3);
-			Continue;
-		end;
-
-		Memo.Add(Copy(S, 2, Length(S)), Col, Center);
-		Inc(LinesInSection);
-	end;
-
-	sl.Free;
-
-	if ContextOffset >= 0 then
-		Memo.ScrollTo(ContextOffset);
+	if Memo.JumpToSection(Context) < 0 then
+		Memo.ScrollTo(0);
 	ChangeScreen(TCWEScreen(Self));
 end;
 

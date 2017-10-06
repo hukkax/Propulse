@@ -74,8 +74,10 @@ uses
 	ShortcutManager,
 	Screen.Editor,
 	Screen.FileReq,
+	Screen.Help,
 	ProTracker.Editor,
 	ProTracker.Util,
+	CWE.Dialogs,
 	CWE.Widgets.Scrollers,
 	SampleView;
 
@@ -115,6 +117,7 @@ end;
 constructor TConfigScreen.Create;
 const
 	X2 = 58;
+	BAL = 2;
 begin
 	inherited;
 
@@ -123,14 +126,14 @@ begin
 	AddHeader('');
 
 	List := TCWEConfigList.Create(Self, '', 'Options',
-		Types.Rect(1, 5, X2, 21), True);
+		Types.Rect(1, 5, X2, 21+BAL), True);
 	List.ColumnWidth[1] := 18;
 	List.ColumnColor[1] := 3;
 	List.Border.Pixel := True;
 	RegisterLayoutControl(List, CTRLKIND_BOX, False, True, True);
 
 	KeyList := TCWETwoColumnList.Create(Self, '', 'Keybindings',
-		Types.Rect(1, 24, X2, 44), True);
+		Types.Rect(1, 24+BAL, X2, 44), True);
 	KeyList.ColumnWidth[1] := 18;
 	KeyList.OnKeyDown := GetNewKeyBinding;
 	KeyList.ColumnColor[0] := 2;
@@ -145,12 +148,12 @@ begin
 	ColorList.Border.Pixel := True;
 	RegisterLayoutControl(ColorList, CTRLKIND_BOX, False, True, True);
 
-	TCWELabel.Create(Self, 'Program Settings (Arrows to change values)', '',
+	TCWELabel.Create(Self, 'Program Settings (Arrows to change values, F1 for help)', '',
 		Types.Rect(1, 3, 58, 4)).ColorFore := 1;
 	TCWELabel.Create(Self, 'Color Palette', '',
 		Types.Rect(61, 3, 74, 4)).ColorFore := 1;
 	TCWELabel.Create(Self, 'Key Bindings (Enter to modify)', '',
-		Types.Rect(1, 22, 58, 23)).ColorFore := 1;
+		Types.Rect(1, 22+BAL, 58, 23+BAL)).ColorFore := 1;
 
 {	bLoadPalette := TCWEButton.Create(Self, 'Load preset', 'LoadPal',
 		Bounds(ColorList.Rect.Left, ColorList.Rect.Bottom+1, 18, 1), True);}
@@ -505,6 +508,9 @@ begin
 end;
 
 function TConfigScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
+var
+	LI: TCWEListItem;
+	CI: TConfigItem;
 begin
 	// we want to always receive Return and Delete in KeyList
 	// even if they're global bindings for something else
@@ -513,15 +519,31 @@ begin
 	else
 		Result := False;
 
+	// F1 context help for config list items
+	//
+	if (Key = SDLK_F1) and (ActiveControl = List) then
+	begin
+		LI := List.Items[List.ItemIndex];
+		if LI.ObjData <> nil then
+		begin
+			CI := TConfigItem(LI.ObjData);
+			ModalDialog.MultiLineMessage(CI.Caption,
+				Help.Memo.GetSection(CI.Section + '.' + CI.Name));
+		end
+		else
+			Help.Show(LI.Captions[0] + ' Settings'); // heading -> jump to help anchor
+		Exit(True);
+	end;
+
 	if WaitingForKeyBinding then
 	begin
 		// ignore Shift/Ctrl/Alt without other keys
 		case Key of
 			0,
 			SDLK_LSHIFT, SDLK_RSHIFT,
-			SDLK_LCTRL, SDLK_RCTRL,
-			SDLK_LALT, SDLK_RALT,
-			SDLK_LGUI, SDLK_RGUI:
+			SDLK_LCTRL,  SDLK_RCTRL,
+			SDLK_LALT,   SDLK_RALT,
+			SDLK_LGUI,   SDLK_RGUI:
 				Exit;
 		else
 			GetNewKeyBinding(KeyList, Key, Shift, Result); // finalize
@@ -705,6 +727,7 @@ var
 	Modifier: Integer;
 begin
 	Result := False;
+
 	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, []));
 	case Sc of
 

@@ -18,8 +18,6 @@ type
 
 	TSampleView = class(TCWEScrollableControl)
 	const
-		BOXSIZE = 4;
-
 		MOUSE_NONE      = 0;
 		MOUSE_SELECT    = 1;
 		MOUSE_SETLOOP_L = 2;
@@ -38,6 +36,7 @@ type
 		COLOR_PLAYBACK:		Byte;
 	private
 		MouseAction: Byte;
+		MouseActionOffset: SmallInt;
 		PrevMousePos: TPoint;
 		BoxL, BoxR,
 		PixelRect:	TRect;
@@ -63,12 +62,13 @@ type
 		procedure	Init(AllowEditing, AddBorder: Boolean);
 		procedure	DrawWaveform;
 		procedure	SetViewport(aL, aR: Integer);
-		procedure 	Zoom(ZoomIn: Boolean);
+		procedure 	Zoom(ZoomIn: Boolean; X: Integer = -1);
 
 		function	MouseDownEvent(Sender: TCWEControl;
 					Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
 		function	MouseUpEvent(Sender: TCWEControl;
 					Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
+		function	MouseLeaveEvent(Sender: TCWEControl): Boolean;
 		function	MouseWheelEvent(Sender: TCWEControl;
 					Shift: TShiftState; DirDown: Boolean; P: TPoint): Boolean;
 		function 	MouseMoveEvent(Sender: TCWEControl; X, Y: Integer; P: TPoint): Boolean;
@@ -151,11 +151,13 @@ begin
 	if AllowEditing then
 	begin
 		WantPixelPrecision := True;
+		WantHover := True;
 
 		OnMouseDown  := MouseDownEvent;
 		OnMouseWheel := MouseWheelEvent;
 		OnMouseMove  := MouseMoveEvent;
 		OnMouseUp    := MouseUpEvent;
+		OnMouseLeave := MouseLeaveEvent;
 
 		CreateScrollbar;
 		Scrollbar.Horizontal := True;
@@ -247,6 +249,7 @@ procedure TSampleView.Paint;
 var
 	x1, y1, x2, y2, x, y: Cardinal;
 	Col: TColor32;
+	BOXSIZE: Word;
 
 	function GetLoopBoxColor(Hovered: Boolean): TColor32; inline;
 	begin
@@ -258,6 +261,8 @@ var
 
 begin
 	if ModalDialog.Dialog <> nil then Exit;
+
+	BOXSIZE := Console.Font.Height div 2;
 
 	Console.BeginUpdate;
 
@@ -479,15 +484,26 @@ begin
 	DrawWaveform;
 end;
 
-procedure TSampleView.Zoom(ZoomIn: Boolean);
+procedure TSampleView.Zoom(ZoomIn: Boolean; X: Integer = -1);
 var
-	aStep: Integer;
+	aStep, os: Integer;
+const
+	Sensitivity = 10; // smaller values = more sensitive
 begin
 	aStep := Max(Viewport.Length div 10, 1);
 	if ZoomIn then
 	begin
-		if Viewport.Length >= 4 then
-			SetViewport(Viewport.L + aSTEP, Viewport.R - aSTEP);
+		if Viewport.Length < 4 then Exit;
+
+		if X >= 0 then // zoom towards mouse pointer
+		begin
+			os := Trunc(X / (PixelRect.Right - PixelRect.Left) * 100) - 50; // -50%..+50%
+			os := Trunc(Viewport.Length / Sensitivity * (os / 50));
+		end
+		else
+			os := 0;
+
+		SetViewport(Viewport.L + aSTEP + os, Viewport.R - aSTEP + os);
 	end
 	else
 		SetViewport(Viewport.L - aSTEP, Viewport.R + aSTEP);
@@ -539,8 +555,11 @@ begin
 			CaptureMouse;
 			MouseAction := MOUSE_DRAW;
 			PrevMousePos := Point(-1, -1);
-			MouseMoveEvent(Self, X+PixelRect.Left, Y+PixelRect.Top, P);
+			MouseMoveEvent(Self, X{+PixelRect.Left}, Y{+PixelRect.Top}, P);
 		end;
+
+		mbMiddle:
+			FSample.EnableLooping(not FSample.IsLooped);
 
 	end;
 
@@ -548,20 +567,20 @@ begin
 		SampleScreen.UpdateSampleInfo;
 end;
 
-function TSampleView.MouseMoveEvent(Sender: TCWEControl;
-	X, Y: Integer;  P: TPoint): Boolean;
+function TSampleView.MouseMoveEvent(Sender: TCWEControl; X, Y: Integer;  P: TPoint): Boolean;
 var
 	X1, X2, Z: Integer;
+	B: Boolean;
 begin
 	inherited;
 	Result := True;
 
 	if Capturing then
 	begin
-		Dec(X, PixelRect.Left);
-		Dec(Y, PixelRect.Top);
+		//Dec(X, PixelRect.Left);
+		//Dec(Y, PixelRect.Top);
 
-		X1 := PixelToSamplePos(X, 0);
+		X1 := PixelToSamplePos(X - MouseActionOffset, 0);
 
 		case MouseAction of
 
@@ -571,19 +590,22 @@ begin
 				DrawWaveform;
 			end;
 
-			MOUSE_SETLOOP_L:
-				if FSample.SetLoopStart((X1 + 1) div 2) then
-				begin
-					Paint;
-					Module.SetModified;
-				end;
-
+			MOUSE_SETLOOP_L,
 			MOUSE_SETLOOP_R:
-				if FSample.SetLoopEnd((X1 + 1) div 2) then
+			begin
+				X1 := (X1 + 1) div 2;
+
+				if MouseAction = MOUSE_SETLOOP_L then
+					B := FSample.SetLoopStart(X1)
+				else
+					B := FSample.SetLoopEnd(X1);
+
+				if B then
 				begin
 					Paint;
 					Module.SetModified;
 				end;
+			end;
 
 			MOUSE_DRAW:
 				if (X >= 0) and (X < BmCache.Width) then
@@ -623,18 +645,24 @@ begin
 	end
 	else
 	begin
-		P := Point(X, Y);
-		X := MouseAction;
+		P := Point(X + PixelRect.Left, Y + PixelRect.Top);
+		X1 := MouseAction;
 
 		if PtInRect(BoxL, P) then
-			MouseAction := MOUSE_SETLOOP_L
+		begin
+			MouseAction := MOUSE_SETLOOP_L;
+			MouseActionOffset := X - SampleToPixelPos(FSample.LoopStart * 2);
+		end
 		else
 		if PtInRect(BoxR, P) then
-			MouseAction := MOUSE_SETLOOP_R
+		begin
+			MouseAction := MOUSE_SETLOOP_R;
+			MouseActionOffset := X - SampleToPixelPos((FSample.LoopStart + FSample.LoopLength) * 2);
+		end
 		else
 			MouseAction := MOUSE_SELECT;
 
-		if MouseAction <> X then
+		if MouseAction <> X1 then
 			Paint;
 	end;
 end;
@@ -645,10 +673,19 @@ begin
 	if Capturing then
 	begin
 		Screen.MouseInfo.Capturing := False;
-//		Screen.MouseInfo.Control := nil;
+		//Screen.MouseInfo.Control := nil;
 		PrevMousePos := Point(-1, -1);
 	end;
-	MouseAction := MOUSE_NONE;
+	Result := MouseLeaveEvent(Self);
+end;
+
+function TSampleView.MouseLeaveEvent(Sender: TCWEControl): Boolean;
+begin
+	if MouseAction <> MOUSE_NONE then
+	begin
+		MouseAction := MOUSE_NONE;
+		Paint;
+	end;
 	Result := True;
 end;
 
@@ -657,7 +694,7 @@ function TSampleView.MouseWheelEvent(Sender: TCWEControl;
 begin
 	if (not WantMouse) or (ReadOnly) then Exit(False);
 	Result := True;
-	Zoom(not DirDown);
+	Zoom(not DirDown, {PixelToSamplePos}MouseCoords.X);
 end;
 
 procedure TSampleView.ScrollBy(Amount: Integer);

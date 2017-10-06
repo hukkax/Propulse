@@ -109,6 +109,7 @@ type
 		//WantMouseCapture,			// Want all mouse events while mouse button down?
 		WantKeyboard,				// Want any keyboard events?
 		WantHover:		Boolean;	// Want to be notified when mouse hovering?
+		MouseCoords:	TPoint;		// Pixel coordinates of mouse inside control
 
 		Parent:			TCWEControl;
 		Controls:		TObjectList<TCWEControl>;
@@ -148,6 +149,7 @@ type
 
 		procedure	SetColors(Fg, Bg: Byte);
 		procedure 	SetBounds(const Bounds: TRect); virtual;
+		procedure	SetSize(X, Y: Word); virtual;
 
 		function 	GetPixelSize: TPoint;
 		procedure 	GetPixelRect(var R: TRect);
@@ -505,12 +507,27 @@ begin
 end;
 
 procedure TCWEScreen.MouseMove(X, Y: Integer; P: TPoint);
+
+	procedure DoMouseLeave(const Ctrl: TCWEControl);
+	begin
+		HoveredControl := nil;
+		with Ctrl do
+		if WantHover then
+		begin
+			MouseLeave;
+			Paint;	// redraw control without hover effect
+		end;
+	end;
+
 var
 	OldCtrl: TCWEControl;
 begin
 	if (P.X = MouseInfo.Prev.X) and (P.Y = MouseInfo.Prev.Y) then
 		if (HoveredControl = nil) or (not HoveredControl.WantPixelPrecision) then
 			Exit;
+
+	X := X - Rect.Left * Console.Font.Width;
+	Y := Y - Rect.Top  * Console.Font.Height;
 
 	MouseInfo.Prev := P;
 	MouseInfo.Pos  := P;
@@ -550,14 +567,7 @@ begin
 	if (P.X < 0) or (P.Y < 0) then
 	begin
 		if (OldCtrl <> nil) then
-		begin
-			HoveredControl := nil;
-			if OldCtrl.WantHover then
-			begin
-				OldCtrl.MouseLeave;
-				OldCtrl.Paint;	// redraw control without hover effect
-			end;
-		end;
+			DoMouseLeave(OldCtrl);
 		MouseInfo.Control := nil;
 	end
 	else
@@ -566,14 +576,7 @@ begin
 		//Window.Caption := Format('%d,%d', [MouseInfo.Pos.X, MouseInfo.Pos.Y]);
 
 		if (OldCtrl <> nil) and (OldCtrl <> MouseInfo.Control) then
-		begin
-			HoveredControl := nil;
-			if OldCtrl.WantHover then
-			begin
-				OldCtrl.MouseLeave;
-				OldCtrl.Paint;	// redraw control without hover effect
-			end;
-		end;
+			DoMouseLeave(OldCtrl);
 
 		if (MouseInfo.Control <> nil) then
 		begin
@@ -624,6 +627,9 @@ begin
 	Ctrl := HoveredControl;
 	if (Ctrl = nil) then Exit;
 
+	X := X - Rect.Left - Ctrl.Rect.Left * Console.Font.Width;
+	Y := Y - Rect.Top  - Ctrl.Rect.Top  * Console.Font.Height;
+
 	// never focus scrollbars
 	if (not (Ctrl is TCWEScrollbar)) then
 	begin
@@ -653,10 +659,7 @@ begin
 CtrlMouseDown:
 	P.X := P.X - Ctrl.Rect.Left;
 	P.Y := P.Y - Ctrl.Rect.Top;
-	Result := Ctrl.MouseDown(Button,
-		X - Ctrl.Rect.Left * Console.Font.Width,
-		Y - Ctrl.Rect.Top  * Console.Font.Height,
-		P);
+	Result := Ctrl.MouseDown(Button, X, Y, P);
 
 	// stupid hack zone
 	// mousedown handler might have freed the screen (in case of modal dialog)
@@ -786,6 +789,13 @@ begin
 	Height := Max(Bounds.Bottom - Bounds.Top  - 1, 1);
 end;
 
+procedure TCWEControl.SetSize(X, Y: Word);
+begin
+	Width  := X;
+	Height := Y;
+	Rect := Bounds(Rect.Left, Rect.Top, Width, Height);
+end;
+
 function TCWEControl.GetPixelSize: TPoint;
 begin
 	Result := Types.Point(
@@ -904,22 +914,41 @@ begin
 		Result := False;
 end;
 
-function TCWEControl.MouseEnter: Boolean;
-begin
-	Result := False;
-end;
-
-function TCWEControl.MouseLeave: Boolean;
-begin
-	Result := False;
-end;
-
 function TCWEControl.MouseUp(Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
 begin
 	if Assigned(FOnMouseUp) then
 		Result := FOnMouseUp(Self, Button, X, Y, P)
 	else
 		Result := False;
+end;
+
+function TCWEControl.MouseEnter: Boolean;
+begin
+	if Assigned(FOnMouseEnter) then
+		Result := FOnMouseEnter(Self)
+	else
+		Result := False;
+end;
+
+function TCWEControl.MouseLeave: Boolean;
+begin
+	if Assigned(FOnMouseLeave) then
+		Result := FOnMouseLeave(Self)
+	else
+		Result := False;
+
+	MouseCoords := Point(-1, -1);
+end;
+
+procedure TCWEControl.MouseMove(X, Y: Integer; P: TPoint);
+begin
+	X := X - Rect.Left * Console.Font.Width;
+	Y := Y - Rect.Top  * Console.Font.Height;
+
+	MouseCoords := Point(X, Y);
+
+	if Assigned(FOnMouseMove) then
+		FOnMouseMove(Self, X, Y, P);
 end;
 
 function TCWEControl.MouseWheel(Shift: TShiftState; WheelDelta: Integer; P: TPoint): Boolean;
@@ -943,11 +972,6 @@ begin
 		Exit(False);
 
 	Result := KeyDown(Key, Shift);
-end;
-
-procedure TCWEControl.MouseMove(X, Y: Integer; P: TPoint);
-begin
-	if Assigned(FOnMouseMove) then FOnMouseMove(Self, X, Y, P);
 end;
 
 // forces control to paint on any screen and position

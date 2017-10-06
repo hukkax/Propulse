@@ -64,6 +64,7 @@ type
 					DefaultButton: TDialogButton; Callback: TButtonClickedEvent;
 					MoreData: Variant);
 		procedure	ShowMessage(const Caption, Text: AnsiString);
+		procedure 	MultiLineMessage(const Caption: AnsiString; const Lines: TStrings);
 	end;
 
 var
@@ -76,8 +77,40 @@ var
 implementation
 
 uses
-	Math, SDL.Api.Types;
+	Math, SDL.Api.Types, StrUtils;
 
+const
+	LINEEND = '|';
+
+// adapted from http://forum.lazarus.freepascal.org/index.php?topic=25715.0
+function MyWrapText(const S: AnsiString; MaxCol: Integer): AnsiString;
+var
+	P: PAnsiChar;
+	RightSpace, LastLineEnding, i: Integer;
+	C: AnsiString;
+begin
+	Result := '';
+	P := PAnsiChar(S);
+	LastLineEnding := 0;
+	i := 1;
+	while {P^ <> #0} i <= Length(S) do
+	begin
+		C := Copy(P, 1, 1);
+		Result := Result + C;
+		if C = #10 then
+			LastLineEnding := i;
+		if (i - LastLineEnding >= MaxCol) then
+		begin
+			RightSpace := Length((Result)) - RPos(' ', (Result));
+			Dec(p, RightSpace);
+			Dec(i, RightSpace);
+			SetLength(Result, Length(Result) - RightSpace);
+			Result := Result + LINEEND; //LineEnding;
+			LastLineEnding := i;
+		end;
+		Inc(P); Inc(i);
+	end;
+end;
 
 function TCWEDialog.TitlebarMouseDown(Sender: TCWEControl;
 	Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
@@ -313,8 +346,7 @@ begin
 
 	Dialog := CreateDialog(aID, Types.Rect(X, Y-2, Console.Width-X, Y+4), Caption);
 
-	Lbl := TCWELabel.Create(Dialog, Text, 'sText',
-		Bounds(0, 2, Dialog.Width+1, 1));
+	Lbl := TCWELabel.Create(Dialog, Text, 'sText', Bounds(0, 2, Dialog.Width+1, 1));
 	Lbl.Alignment := ALIGN_CENTER;
 
 	X := (Dialog.Width div 2) - (BW div 2) + 2;
@@ -334,6 +366,58 @@ end;
 procedure TCWEDialog.ShowMessage(const Caption, Text: AnsiString);
 begin
 	MessageDialog(0, Caption, Text, [btnOK], btnOK, nil, 0);
+end;
+
+procedure TCWEDialog.MultiLineMessage(const Caption: AnsiString; const Lines: TStrings);
+var
+	Memo: TCWEMemo;
+	WrapWidth, i, x: Integer;
+	S, DS: AnsiString;
+const
+	W = 49;
+	H = 13;
+begin
+	if not Assigned(Lines) then Exit;
+
+	Dialog := CreateDialog(0, Bounds(
+		(Console.Width div 2) - (W div 2),
+		(Console.Height div 2) - (H div 2), W-1, H),
+		 Caption);
+
+	Memo := TCWEMemo.Create(Dialog, '', '',
+		Types.Rect(1, 2, W-3, H-3), True);
+	Memo.Border.Pixel := True;
+
+	WrapWidth := Memo.Width+2;
+
+	S := '';
+	for i := 1 to Lines.Count-1 do
+		S := S + Trim(Lines[i]) + ' ';
+
+	S := MyWrapText(S, WrapWidth) + LINEEND;
+	DS := '';
+	for x := 1 to Length(S) do
+	begin
+		if S[x] = LINEEND then
+		begin
+			Memo.Add(Trim(DS));
+			DS := '';
+		end
+		else
+			DS := DS + S[x];
+	end;
+
+	// delete blank trailing lines
+	for i := Memo.Lines.Count-1 downto 0 do
+		if Memo.Lines[i].GetText <> '' then
+			Break
+		else
+			Memo.Lines.Delete(i);
+
+	Memo.ScrollTo(0);
+
+	AddResultButton(btnOK, 'OK', W div 2 - 3, H-2, True);
+	Show;
 end;
 
 
