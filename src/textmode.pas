@@ -92,6 +92,9 @@ type
 					nBgCol: Integer=-1; nLightCol: Integer=-1; nDarkCol: Integer=-1);
 		procedure 	FrameRectPx(R: TRect; Sunken: Boolean = False; Fat: Boolean = False;
 					nBgCol: Integer=-1; nLightCol: Integer=-1; nDarkCol: Integer=-1);
+		procedure 	RaisedRectPx(X1, Y1, X2, Y2: Integer;
+					Sunken: Boolean = False; Fat: Boolean = False;
+					nBgCol: Integer=-1; nLightCol: Integer=-1; nDarkCol: Integer=-1);
 
 		property	IsLocked: Boolean read Locked;
 	end;
@@ -574,19 +577,14 @@ begin
 		Bitmap.FillRectS(GetPixelRect(R), Palette[nBgCol]);
 end;
 
-procedure TConsole.FrameRectPx(R: TRect; Sunken: Boolean = False; Fat: Boolean = False;
+procedure TConsole.RaisedRectPx(X1, Y1, X2, Y2: Integer;
+	Sunken: Boolean = False; Fat: Boolean = False;
 	nBgCol: Integer=-1; nLightCol: Integer=-1; nDarkCol: Integer=-1);
 var
-	x1, y1, x2, y2: Integer;
 	col: TColor32;
 label
 	Draw;
 begin
-	x1 := R.Left * Font.Width  - 1;
-	y1 := R.Top  * Font.Height - 1;
-	x2 := R.Right  * Font.Width;
-	y2 := R.Bottom * Font.Height;
-
 	if nBgCol >= 0 then
 		Bitmap.FillRectS(x1, y1, x2, y2, Palette[nBgCol]);
 
@@ -621,6 +619,17 @@ Draw:
 		Fat := False;
 		goto Draw;
 	end;
+end;
+
+procedure TConsole.FrameRectPx(R: TRect; Sunken: Boolean = False; Fat: Boolean = False;
+	nBgCol: Integer=-1; nLightCol: Integer=-1; nDarkCol: Integer=-1);
+begin
+	RaisedRectPx(
+		R.Left * Font.Width  - 1,
+		R.Top  * Font.Height - 1,
+		R.Right  * Font.Width,
+		R.Bottom * Font.Height,
+		Sunken, Fat, nBgCol, nLightCol, nDarkCol);
 end;
 
 procedure TConsole.FrameRect(R: TRect; Sunken: Boolean = False; Fat: Boolean = True;

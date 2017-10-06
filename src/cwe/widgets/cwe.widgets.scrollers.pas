@@ -45,8 +45,8 @@ type
 		SB_RECT_BUTTON_UP    = 3;
 		SB_RECT_BUTTON_DOWN  = 4;
 
-		BUTTON_U = #30;//#24;
-		BUTTON_D = #31;//#25;
+		BUTTON_U = #24;//#30;
+		BUTTON_D = #25;//#31;
 		BUTTON_L = #27;
 		BUTTON_R = #26;
 	class var
@@ -403,10 +403,48 @@ begin
 end;
 
 procedure TCWEScrollbar.Paint;
+
 var
 	H, GH, X1, X2, Y1, Y2: Integer;
 	IH: Single;
 	R: TRect;
+	Beveled, Down: Boolean;
+
+	procedure RaisedText(const S: AnsiString; X, Y: Word; Beveled, Down: Boolean; Bg: Integer);
+	var
+		W, H: Word;
+	begin
+		W := Console.Font.Width;
+		H := Console.Font.Height;
+		Console.Write(S, X, Y, COLOR_SB_ICON, Bg);
+		if Beveled then
+			Console.RaisedRectPx(X*W, Y*H, (X+Length(S)) * W - 1, (Y+1) * H - 1, Down, False);
+	end;
+
+	procedure GetButtonDrawFlags(Btn: Integer; B: Boolean);
+	begin
+		Down := False;
+		if B then
+		begin
+			Beveled := True;
+			if HoveredZone = Btn then
+			begin
+				Down := Screen.MouseInfo.Buttons[mbLeft];
+				if Down then
+					H := COLOR_SB_BUTTON
+				else
+					H := COLOR_SB_HOVER;
+			end
+			else
+				H := COLOR_SB_BUTTON;
+		end
+		else
+		begin
+			Beveled := False;
+			H := COLOR_SB_GUTTER;
+		end;
+	end;
+
 begin
 	if not Visible then Exit;
 
@@ -435,7 +473,7 @@ begin
 	if Horizontal then
 	begin
 		X1 := R.Left  + Console.Font.Width;
-		X2 := R.Right - Console.Font.Width + 0;
+		X2 := R.Right - Console.Font.Width;
 		Y1 := R.Top;
 		Y2 := R.Bottom;
 		GH := X2 - X1;						// pixel width of the gutter area
@@ -469,6 +507,8 @@ begin
 		end;
 
 		Rects[SB_RECT_THUMB] := Types.Rect(X1, Y1, X2, Y2);
+		Beveled := True;
+
 		if Capturing then
 			H := COLOR_SB_ACTIVE
 		else
@@ -476,44 +516,33 @@ begin
 			H := COLOR_SB_HOVER
 		else
 			H := COLOR_SB_THUMB;
-		Console.Bitmap.FillRectS(X1, Y1, X2, Y2, Console.Palette[H]);
+
+		if Beveled then
+			Console.RaisedRectPx(X1, Y1, X2-1, Y2-1, Capturing, False, H)
+		else
+			Console.Bitmap.FillRectS(X1, Y1, X2, Y2, Console.Palette[H]);
 	end
 	else
 		Rects[SB_RECT_THUMB] := Types.Rect(-1, -1, -1, -1);
 
+	X1 := Rect.Left;
 	Y1 := Rect.Top;
 	Y2 := Rect.Bottom-1;
 
 	// Up button
-	if Parent.Offset > 0 then
-	begin
-		if HoveredZone = SB_RECT_BUTTON_UP then
-			H := COLOR_SB_HOVER
-		else
-			H := COLOR_SB_BUTTON;
-	end
-	else
-		H := COLOR_SB_GUTTER;
-	X1 := Rect.Left;
+	GetButtonDrawFlags(SB_RECT_BUTTON_UP, Parent.Offset > 0);
 	if Horizontal then
-		Console.Write(BUTTON_L, X1, Y1, COLOR_SB_ICON, H)
+		RaisedText(BUTTON_L, X1, Y1, Beveled{%H-}, Down{%H-}, H{%H-})
 	else
-		Console.Write(BUTTON_U, X1, Y1, COLOR_SB_ICON, H);
+		RaisedText(BUTTON_U, X1, Y1, Beveled, Down, H);
 
 	// Down button
-	if (ItemCount > ItemsVisible) and (Parent.Offset < Parent.MaxScroll) then
-	begin
-		if HoveredZone = SB_RECT_BUTTON_DOWN then
-			H := COLOR_SB_HOVER
-		else
-			H := COLOR_SB_BUTTON;
-	end
-	else
-		H := COLOR_SB_GUTTER;
+	GetButtonDrawFlags(SB_RECT_BUTTON_DOWN,
+		(ItemCount > ItemsVisible) and (Parent.Offset < Parent.MaxScroll));
 	if Horizontal then
-		Console.Write(BUTTON_R, Rect.Right-1, Y1, COLOR_SB_ICON, H)
+		RaisedText(BUTTON_R, Rect.Right-1, Y1, Beveled, Down, H)
 	else
-		Console.Write(BUTTON_D, X1, Y2, COLOR_SB_ICON, H);
+		RaisedText(BUTTON_D, X1, Y2, Beveled, Down, H);
 end;
 
 

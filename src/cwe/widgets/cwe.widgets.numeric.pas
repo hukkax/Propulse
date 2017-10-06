@@ -600,7 +600,10 @@ begin
 		W := TConsole.COLOR_PANEL;
 
 	if (X1 >= Rects[SL_RECT_SLIDER].Left) and (Y1 >= Rects[SL_RECT_SLIDER].Top) then
-		Console.Bitmap.FillRectS(X1, Y1, X2, Y2, Console.Palette[W]);
+	begin
+		Console.RaisedRectPx(X1, Y1, X2-1, Y2-1, Capturing, False, W);
+		//Console.Bitmap.FillRectS(X1, Y1, X2, Y2, Console.Palette[W]);
+	end;
 end;
 
 procedure TCWESlider.SetMax(const Value: Integer);
