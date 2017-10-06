@@ -297,7 +297,7 @@ begin
 		SetInfo('Current row', 0, 15, [], ColorChanged, '%.2d');
 		//       XXXXXXXXXXXXXX
 	PaletteConfig.AddByte(S, 'INVALID',
-		@TPatternEditor.COL_INVALID, 13).
+		@TPatternEditor.COL_INVALID, 7).
 		SetInfo('Invalid notes', 0, 15, [], ColorChanged, '%.2d');
 		//       XXXXXXXXXXXXXX
 
@@ -306,11 +306,11 @@ begin
 	S := 'Scrollbar';
 
 	PaletteConfig.AddByte(S, 'Gutter',
-		@TCWEScrollbar.COLOR_SB_GUTTER, 1).
+		@TCWEScrollbar.COLOR_SB_GUTTER, 15).
 		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
 
 	PaletteConfig.AddByte(S, 'Thumb',
-		@TCWEScrollbar.COLOR_SB_THUMB, 3).
+		@TCWEScrollbar.COLOR_SB_THUMB, 2).
 		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
 
 	PaletteConfig.AddByte(S, 'Button',
@@ -318,15 +318,15 @@ begin
 		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
 
 	PaletteConfig.AddByte(S, 'Icon',
-		@TCWEScrollbar.COLOR_SB_ICON, 11).
+		@TCWEScrollbar.COLOR_SB_ICON, 0).
 		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
 
 	PaletteConfig.AddByte(S, 'Hover',
-		@TCWEScrollbar.COLOR_SB_HOVER, 11).
+		@TCWEScrollbar.COLOR_SB_HOVER, 3).
 		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
 
 	PaletteConfig.AddByte(S, 'Active',
-		@TCWEScrollbar.COLOR_SB_ACTIVE, 11).
+		@TCWEScrollbar.COLOR_SB_ACTIVE, 2).
 		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
 
 	// ==============================================================

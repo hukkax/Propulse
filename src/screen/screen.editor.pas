@@ -69,6 +69,7 @@ type
 
 		procedure 	Paint; override;
 		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
+		function	MouseDown(Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean; override;
 	end;
 
 	TEditorScreen = class(TCWEScreen)
@@ -292,13 +293,13 @@ begin
 
 	// Orderlist editor widget
 	//
-	Orderlist := TOrderList.Create(Self, '', 'OrderList',
+	OrderList := TOrderList.Create(Self, '', 'OrderList',
 		Types.Rect(61, LINE_PATTERN_BEGIN, 67, LINE_PATTERN_END), True);
-	Orderlist.SetBorder(True, True, True, False);
-	Orderlist.ColorBack := TConsole.COLOR_BLANK;
+	OrderList.SetBorder(True, True, True, False);
+	OrderList.ColorBack := TConsole.COLOR_BLANK;
 	RegisterLayoutControl(TCWEControl(OrderList), CTRLKIND_BOX, True, False, True);
-	Orderlist.WantMouse := True;
-	Orderlist.WantKeyboard := True;
+	OrderList.WantMouse := True;
+	OrderList.WantKeyboard := True;
 
 	// Channel labels
 	//
@@ -872,7 +873,7 @@ end;
 // TOrderList
 // ==========================================================================
 
-function TOrderList.KeyDown;
+function TOrderList.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
 var
 	p, i: Integer;
 	Sc: ControlKeyNames;
@@ -974,6 +975,13 @@ begin
 		Offset := Min(Cursor.Y - Height, 127-31);
 
 	Paint;
+end;
+
+function TOrderList.MouseDown(Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
+begin
+	Cursor.X := 0;
+	Cursor.Y := P.Y + Offset;
+	Result := True;
 end;
 
 procedure TOrderList.Paint;
