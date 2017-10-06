@@ -85,7 +85,6 @@ type
 		end;
 
 		Tracker: packed record
-			ITCommands: 			Boolean;
 			VolumeColumn:			Boolean;
 			AltHomeEndBehavior:		Boolean;
 			NoteB3Warning:			Boolean;

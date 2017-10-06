@@ -186,17 +186,6 @@ end;
 // Module events
 // ==========================================================================
 
-procedure PatternViewChanged;
-begin
-	if Options.Tracker.ITCommands then
-	begin
-		CmdChars := CmdCharsIT;
-		Module.GetAllNoteTexts;
-	end
-	else
-		CmdChars := CmdCharsPT;
-end;
-
 procedure ApplyAudioSettings;
 begin
 	Module.ApplyAudioSettings;
@@ -386,8 +375,6 @@ procedure TWindow.DoLoadModule(const Filename: String);
 		Module.OnSpeedChange := ModuleSpeedChanged;
 		Module.OnPlayModeChange := PlayModeChanged;
 		Module.OnModified := PatternEditor.SetModified;
-
-		PatternViewChanged;
 	end;
 
 var
@@ -1279,9 +1266,6 @@ begin
 	with Options do
 	begin
 		Sect := 'Editor';
-		Cfg.AddBoolean(Sect, 'UseITCommands', @Tracker.ITCommands, False)
-		.SetInfo('Effect commands', 0, 1,
-			['ProTracker', 'Impulse Tracker'], PatternViewChanged);
 		Cfg.AddBoolean(Sect, 'AltHomeEndBehavior', @Tracker.AltHomeEndBehavior, False)
 		.SetInfo('Home and End keys behavior', 0, 1, ['Impulse Tracker', 'Propulse']);
 		Cfg.AddBoolean(Sect, 'ShowEmptyParamZeroes', @Tracker.ShowEmptyParamZeroes, True)

@@ -76,10 +76,6 @@ type
 		Parameter:		Byte;	// 8 bits
 		Text:			Byte;	// index to NoteText[]
 		Period:			Word;	// 12 bits (Period)
-		CmdText:        String[3];
-
-		procedure		ParseText;
-		procedure		GetText;
 	end;
 	PNote = ^TNote;
 
@@ -285,9 +281,6 @@ type
 
 		procedure 	RepostChanges;
 		procedure 	SetModified(B: Boolean = True; Force: Boolean = False);
-
-		procedure 	ClearAllNoteTexts;
-		procedure 	GetAllNoteTexts;
 
 		function 	LoadFromFile(const Filename: String): Boolean;
 		function 	SaveToFile(const Filename: String): Boolean;
@@ -589,125 +582,6 @@ end;
 // ==========================================================================
 // TNote
 // ==========================================================================
-
-procedure TNote.ParseText;
-
-	procedure SetCommand(i: Byte);
-	begin
-		Command := i;
-	end;
-
-	procedure SetExtCommand(i: Byte);
-	begin
-		Command := $E;
-		Parameter := (i shl 4) + (Parameter and 15);
-	end;
-
-var
-	V: Byte;
-begin
-	if not Options.Tracker.ITCommands then Exit;
-
-	V := Ord(CmdText[1]) - Ord('A') + 1;
-	Parameter := StrToIntDef('$' + Trim(Copy(CmdText, 2, 2)), 0);
-
-	if (Command = 0) and (Parameter > 0) then
-		CmdText[1] := 'J';
-
-	case V of
-
-		LETTER_D:
-			//if (Parameter shr 4) = $F then
-			if (CmdText[2] = 'F') and ((Parameter and 15) <> 0) then
-			begin
-				// EBx = DFx (Fine volume slide down by x)
-				Command := $E;
-				Parameter := $B0 + (Parameter and 15);
-			end
-			else
-			//if (Parameter and 15) = $F then
-			if (CmdText[3] = 'F') and ((Parameter shr 4) <> 0) then
-			begin
-				// EAx = DxF (Fine volume slide up by x)
-				Command := $E;
-				Parameter := Parameter shr 4;
-				CmdText[2] := AnsiChar(KeyboardHexNumbers[Parameter + 1]);
-				Parameter := $A0 + Parameter;
-				Exit;
-			end
-			else
-			begin
-				SetCommand($A);
-				CmdText[2] := AnsiChar(KeyboardHexNumbers[Parameter shr 4 + 1]);
-			end;
-
-		LETTER_S:
-			case (Parameter shr 4) of // S0x..SFx
-				$1: SetExtCommand($3);
-				$2: SetExtCommand($5);
-				$3: SetExtCommand($4);
-				$4: SetExtCommand($7);
-				$6: SetExtCommand($E);
-				$B: SetExtCommand($6);
-			else
-				SetExtCommand(Parameter shr 4);
-			end;
-
-		LETTER_Q:
-			begin
-				SetCommand($E);
-				Parameter := $90 + (Parameter and 15);
-				CmdText[2] := '0';
-			end;
-
-		LETTER_Z:
-			SetExtCommand($F);
-
-	else
-		Exit;
-	end;
-
-	CmdText[3] := AnsiChar(KeyboardHexNumbers[Parameter and 15 + 1]);
-end;
-
-procedure TNote.GetText;
-var
-	V: AnsiChar;
-begin
-{	if Command >= Length(CmdChars) then
-		CmdText := '!!!'
-	else}
-	CmdText := CmdChars[Command+1] + HexVals[Parameter];
-
-	if Command = 0 then
-	begin
-		if Parameter = 0 then
-			CmdText[1] := '.';	// no command
-	end
-	else
-	if (Command = $E) and (Options.Tracker.ITCommands) then
-	begin
-		V := CmdText[3];
-		case (Parameter shr 4) of
-			$0: CmdText := 'S0' + V;
-			$1: CmdText := 'FF' + V;
-			$2: CmdText := 'EF' + V;
-			$3: CmdText := 'S1' + V;
-			$4: CmdText := 'S3' + V;
-			$5: CmdText := 'S2' + V;
-			$6: CmdText := 'SB' + V;
-			$7: CmdText := 'S4' + V;
-			$8: CmdText := 'S8' + V;
-			$9: CmdText := 'Q0' + V;
-			$A: CmdText := 'D'  + V + 'F';
-			$B: CmdText := 'DF' + V;
-			$C: CmdText := 'SC' + V;
-			$D: CmdText := 'SD' + V;
-			$E: CmdText := 'S6' + V;
-			$F:	CmdText := 'Z0' + V;
-		end;
-	end;
-end;
 
 {procedure TNote.Decode(Data: PArrayOfByte);
 begin
@@ -1235,8 +1109,6 @@ begin
 		if mightBeIT then
 		begin
 			LoadImpulseTracker(Self, ModFile, SamplesOnly);
-			if Options.Tracker.ITCommands then
-				GetAllNoteTexts;
 			goto Done;
 		end
 		else
@@ -1250,8 +1122,6 @@ begin
 				SetTitle(sFile);
 			end;
 			LoadThePlayer(Self, ModFile, SamplesOnly);
-			if Options.Tracker.ITCommands then
-				GetAllNoteTexts;
 			goto Done;
 		end;
 	end
@@ -1546,8 +1416,6 @@ begin
 					end;
 				end;
 
-				note.GetText;
-
 			end; // channel
 		end; // row
 	end; // pattern
@@ -1634,33 +1502,6 @@ Done:
 		BASS_ChannelPlay(Stream, True);
 end;
 
-procedure TPTModule.ClearAllNoteTexts;
-var
-	patt, ch, row: Integer;
-begin
-	for patt := 0 to MAX_PATTERNS-1 do
-	for ch := 0 to AMOUNT_CHANNELS-1 do
-	for row := 0 to 63 do
-		Notes[patt, ch, row].CmdText := CHR_3PERIODS;
-end;
-
-procedure TPTModule.GetAllNoteTexts;
-var
-	patt, ch, row: Integer;
-	Note: PNote;
-begin
-	if not Options.Tracker.ITCommands then Exit;
-
-	for patt := 0 to MAX_PATTERNS-1 do
-	for ch := 0 to AMOUNT_CHANNELS-1 do
-	for row := 0 to 63 do
-	begin
-		Note := @Notes[patt, ch, row];
-		if (Note.Command <> 0) or (Note.Parameter <> 0) then
-			Note.GetText;
-	end;
-end;
-
 procedure TPTModule.RepostChanges;
 begin
 	if RenderMode = RENDER_NONE then
@@ -1694,9 +1535,7 @@ begin
 		Command := 0;
 		Parameter := 0;
 		Text := 0;
-		CmdText := CHR_3PERIODS;
 	end;
-	ClearAllNoteTexts;
 
 	SamplesOnly := aSamplesOnly;
 	ImportInfo.Samples := TObjectList<TImportedSample>.Create(True);
