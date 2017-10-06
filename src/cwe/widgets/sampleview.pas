@@ -18,8 +18,6 @@ type
 
 	TSampleView = class(TCWEScrollableControl)
 	const
-		BOXSIZE = 4;
-
 		MOUSE_NONE      = 0;
 		MOUSE_SELECT    = 1;
 		MOUSE_SETLOOP_L = 2;
@@ -251,6 +249,7 @@ procedure TSampleView.Paint;
 var
 	x1, y1, x2, y2, x, y: Cardinal;
 	Col: TColor32;
+	BOXSIZE: Word;
 
 	function GetLoopBoxColor(Hovered: Boolean): TColor32; inline;
 	begin
@@ -262,6 +261,8 @@ var
 
 begin
 	if ModalDialog.Dialog <> nil then Exit;
+
+	BOXSIZE := Console.Font.Height div 2;
 
 	Console.BeginUpdate;
 
