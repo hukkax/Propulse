@@ -99,9 +99,8 @@ type
 	end;
 
 	TConfigItemString = class(TConfigItem)
-	private
-		CurrentIndex:	Integer;
 	public
+		CurrentIndex:	Integer;
 		Value:			PString;
 		DefaultValue:	String;
 		AllowEmpty:		Boolean;
@@ -358,10 +357,17 @@ end;
 procedure TConfigItemString.Load(const Ini: TIniFile);
 var
 	S: String;
+	i: Integer;
 begin
 	S := Ini.ReadString(Section, Name, PString(Value)^);
 	if (AllowEmpty) or (S <> '') then
 		PString(Value)^ := S;
+	for i := 0 to High(ValueNames) do
+		if ValueNames[i] = S then
+		begin
+			CurrentIndex := i;
+			Break;
+		end;
 end;
 
 procedure TConfigItemString.Save(const Ini: TIniFile);
