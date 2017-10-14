@@ -9,6 +9,7 @@ uses
 
 const
 	DIALOG_CONTEXTMENU = 666;
+	CHAR_NEWLINE: AnsiChar = '|';
 
 type
 	TDialogButton = ( btnCancel = 0, btnOK, btnYes, btnNo );
@@ -64,7 +65,9 @@ type
 					DefaultButton: TDialogButton; Callback: TButtonClickedEvent;
 					MoreData: Variant);
 		procedure	ShowMessage(const Caption, Text: AnsiString);
-		procedure 	MultiLineMessage(const Caption: AnsiString; const Lines: TStrings);
+		procedure 	MultiLineMessage(const Caption, Text: AnsiString); overload;
+		procedure 	MultiLineMessage(const Caption: AnsiString; const Lines: TStrings;
+					Rewrap: Boolean = False; SkipFirstLine: Boolean = False);
 	end;
 
 var
@@ -368,16 +371,66 @@ begin
 	MessageDialog(0, Caption, Text, [btnOK], btnOK, nil, 0);
 end;
 
-procedure TCWEDialog.MultiLineMessage(const Caption: AnsiString; const Lines: TStrings);
+procedure TCWEDialog.MultiLineMessage(const Caption, Text: AnsiString);
+var
+	sl: TStringList;
+begin
+	sl := TStringList.Create;
+	sl.Delimiter := CHAR_NEWLINE;
+	sl.DelimitedText := Text;
+	MultiLineMessage(Caption, sl);
+	sl.Free;
+end;
+
+procedure TCWEDialog.MultiLineMessage(const Caption: AnsiString; const Lines: TStrings;
+	Rewrap: Boolean = False; SkipFirstLine: Boolean = False);
 var
 	Memo: TCWEMemo;
-	WrapWidth, i, x: Integer;
+	WrapWidth, i, x, H: Integer;
 	S, DS: AnsiString;
+	sl: TStringList;
 const
 	W = 49;
-	H = 13;
 begin
 	if not Assigned(Lines) then Exit;
+
+	WrapWidth := W-3; //Memo.Width+2;
+	sl := TStringList.Create;
+
+	if Rewrap then
+	begin
+		S := '';
+		if SkipFirstLine then
+			x := 1
+		else
+			x := 0;
+		for i := x to Lines.Count-1 do
+			S := S + Trim(Lines[i]) + ' ';
+
+		S := MyWrapText(S, WrapWidth) + LINEEND;
+		DS := '';
+		for x := 1 to Length(S) do
+		begin
+			if S[x] = LINEEND then
+			begin
+				sl.Add(Trim(DS));
+				DS := '';
+			end
+			else
+				DS := DS + S[x];
+		end;
+	end
+	else
+		sl.AddStrings(Lines);
+
+	// delete blank trailing lines
+	for i := sl.Count-1 downto 0 do
+		if sl[i] <> '' then
+			Break
+		else
+			sl.Delete(i);
+
+	H := Min(sl.Count+5, Console.Height - 8);
 
 	Dialog := CreateDialog(0, Bounds(
 		(Console.Width div 2) - (W div 2),
@@ -388,31 +441,10 @@ begin
 		Types.Rect(1, 2, W-3, H-3), True);
 	Memo.Border.Pixel := True;
 
-	WrapWidth := Memo.Width+2;
+	for i := 0 to sl.Count-1 do
+		Memo.Add(sl[i]);
 
-	S := '';
-	for i := 1 to Lines.Count-1 do
-		S := S + Trim(Lines[i]) + ' ';
-
-	S := MyWrapText(S, WrapWidth) + LINEEND;
-	DS := '';
-	for x := 1 to Length(S) do
-	begin
-		if S[x] = LINEEND then
-		begin
-			Memo.Add(Trim(DS));
-			DS := '';
-		end
-		else
-			DS := DS + S[x];
-	end;
-
-	// delete blank trailing lines
-	for i := Memo.Lines.Count-1 downto 0 do
-		if Memo.Lines[i].GetText <> '' then
-			Break
-		else
-			Memo.Lines.Delete(i);
+	sl.Free;
 
 	Memo.ScrollTo(0);
 

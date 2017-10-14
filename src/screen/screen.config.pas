@@ -528,7 +528,7 @@ begin
 		begin
 			CI := TConfigItem(LI.ObjData);
 			ModalDialog.MultiLineMessage(CI.Caption,
-				Help.Memo.GetSection(CI.Section + '.' + CI.Name));
+				Help.Memo.GetSection(CI.Section + '.' + CI.Name), True, True);
 		end
 		else
 			Help.Show(LI.Captions[0] + ' Settings'); // heading -> jump to help anchor
