@@ -376,6 +376,7 @@ var
 	sl: TStringList;
 begin
 	sl := TStringList.Create;
+	sl.StrictDelimiter := True; // don't newline at space, stupid!
 	sl.Delimiter := CHAR_NEWLINE;
 	sl.DelimitedText := Text;
 	MultiLineMessage(Caption, sl);
