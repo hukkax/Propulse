@@ -246,6 +246,7 @@ type
 		destructor  Destroy; override;
 
 		procedure 	Add(const S: AnsiString; Color: ShortInt = -1; Center: Boolean = False); virtual;
+
 		function 	GetSection(const AnchorName: AnsiString): TStrings;
 		function	FindSection(const AnchorName: AnsiString): Integer;
 		function	JumpToSection(const AnchorName: AnsiString): Integer;
@@ -1451,7 +1452,7 @@ begin
 
 	i := Lines.Count;
 	if i >= (Offset + Height) then
-		Offset := Max(i - Height, 0); // +1->0 2016-12-01
+		Offset := Max(i - Height - 1, 0);
 
 	AdjustScrollbar;
 end;
