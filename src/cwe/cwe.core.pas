@@ -59,7 +59,7 @@ type
 	end;
 
 	ControlKeyNames = (
-		ctrlkeyNONE,					ctrlkeyNextCtrl,	ctrlkeyPreviousCtrl,
+		ctrlkeyNONE,	ctrlkeyHELP,	ctrlkeyNextCtrl,	ctrlkeyPreviousCtrl,
 		ctrlkeyUP,		ctrlkeyDOWN,	ctrlkeyLEFT,		ctrlkeyRIGHT,
 		ctrlkeyRETURN,	ctrlkeyTAB,		ctrlkeySPACE,		ctrlkeyBACKSPACE,
 		ctrlkeyINSERT,	ctrlkeyDELETE,	ctrlkeyHOME,		ctrlkeyEND,
@@ -315,24 +315,25 @@ begin
 	begin
 		ControlKeys := SetContext('Widgets');
 
-		Bind(ctrlkeyNextCtrl,     'NextControl',     	'Tab');
-		Bind(ctrlkeyPreviousCtrl, 'PreviousControl', 	'Shift+Tab');
-		Bind(ctrlkeyUP,			'',						'Up');
-		Bind(ctrlkeyDOWN,		'',						'Down');
-		Bind(ctrlkeyLEFT,		'',						'Left');
-		Bind(ctrlkeyRIGHT,		'',						'Right');
-		Bind(ctrlkeyRETURN,		'Return',				'Return');
-		Bind(ctrlkeyTAB,		'',						'Tab');
-		Bind(ctrlkeySPACE,		'',						'Space');
-		Bind(ctrlkeyINSERT,		'',						'Insert');
-		Bind(ctrlkeyDELETE,		'',						'Delete');
-		Bind(ctrlkeyHOME,		'',						'Home');
-		Bind(ctrlkeyEND,		'',						'End');
-		Bind(ctrlkeyPGUP,		'',						'PageUp');
-		Bind(ctrlkeyPGDN,		'',						'PageDown');
-		Bind(ctrlkeyBACKSPACE,	'Backspace',			'Backspace');
-		Bind(ctrlkeyMINUS,		'Minus',				'KeyPad -');
-		Bind(ctrlkeyPLUS,		'Plus',					'KeyPad +');
+		Bind(ctrlkeyHELP,			'Help',					'F1');
+		Bind(ctrlkeyNextCtrl,		'NextControl',			'Tab');
+		Bind(ctrlkeyPreviousCtrl,	'PreviousControl',		'Shift+Tab');
+		Bind(ctrlkeyUP,				'',						'Up');
+		Bind(ctrlkeyDOWN,			'',						'Down');
+		Bind(ctrlkeyLEFT,			'',						'Left');
+		Bind(ctrlkeyRIGHT,			'',						'Right');
+		Bind(ctrlkeyRETURN,			'Return',				'Return');
+		Bind(ctrlkeyTAB,			'',						'Tab');
+		Bind(ctrlkeySPACE,			'',						'Space');
+		Bind(ctrlkeyINSERT,			'',						'Insert');
+		Bind(ctrlkeyDELETE,			'',						'Delete');
+		Bind(ctrlkeyHOME,			'',						'Home');
+		Bind(ctrlkeyEND,			'',						'End');
+		Bind(ctrlkeyPGUP,			'',						'PageUp');
+		Bind(ctrlkeyPGDN,			'',						'PageDown');
+		Bind(ctrlkeyBACKSPACE,		'Backspace',			'Backspace');
+		Bind(ctrlkeyMINUS,			'Minus',				'KeyPad -');
+		Bind(ctrlkeyPLUS,			'Plus',					'KeyPad +');
 	end;
 
 	with TCWEScrollbar do
