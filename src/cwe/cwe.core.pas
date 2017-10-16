@@ -58,8 +58,8 @@ type
 		Pixel:		Boolean;
 	end;
 
-	ControlKeyNames = (
-		ctrlkeyNONE,	ctrlkeyHELP,	ctrlkeyNextCtrl,	ctrlkeyPreviousCtrl,
+	ControlKeyNames = (	ctrlkeyNONE,
+		ctrlkeyESCAPE,	ctrlkeyHELP,	ctrlkeyNextCtrl,	ctrlkeyPreviousCtrl,
 		ctrlkeyUP,		ctrlkeyDOWN,	ctrlkeyLEFT,		ctrlkeyRIGHT,
 		ctrlkeyRETURN,	ctrlkeyTAB,		ctrlkeySPACE,		ctrlkeyBACKSPACE,
 		ctrlkeyINSERT,	ctrlkeyDELETE,	ctrlkeyHOME,		ctrlkeyEND,
@@ -315,6 +315,7 @@ begin
 	begin
 		ControlKeys := SetContext('Widgets');
 
+		Bind(ctrlkeyESCAPE,			'',						'Escape');
 		Bind(ctrlkeyHELP,			'Help',					'F1');
 		Bind(ctrlkeyNextCtrl,		'NextControl',			'Tab');
 		Bind(ctrlkeyPreviousCtrl,	'PreviousControl',		'Shift+Tab');
@@ -322,7 +323,7 @@ begin
 		Bind(ctrlkeyDOWN,			'',						'Down');
 		Bind(ctrlkeyLEFT,			'',						'Left');
 		Bind(ctrlkeyRIGHT,			'',						'Right');
-		Bind(ctrlkeyRETURN,			'Return',				'Return');
+		Bind(ctrlkeyRETURN,			'',						'Return');
 		Bind(ctrlkeyTAB,			'',						'Tab');
 		Bind(ctrlkeySPACE,			'',						'Space');
 		Bind(ctrlkeyINSERT,			'',						'Insert');
@@ -331,7 +332,7 @@ begin
 		Bind(ctrlkeyEND,			'',						'End');
 		Bind(ctrlkeyPGUP,			'',						'PageUp');
 		Bind(ctrlkeyPGDN,			'',						'PageDown');
-		Bind(ctrlkeyBACKSPACE,		'Backspace',			'Backspace');
+		Bind(ctrlkeyBACKSPACE,		'',						'Backspace');
 		Bind(ctrlkeyMINUS,			'Minus',				'KeyPad -');
 		Bind(ctrlkeyPLUS,			'Plus',					'KeyPad +');
 	end;
