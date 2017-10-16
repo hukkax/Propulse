@@ -734,7 +734,7 @@ end;
 procedure TWindow.OnKeyDown(var Key: Integer; Shift: TShiftState);
 var
 	S: AnsiString;
-	InModalDialog: Boolean;
+	InModal: Boolean;
 begin
 	if (CurrentScreen = nil) then Exit;
 
@@ -744,7 +744,7 @@ begin
 		Exit;
 	end;
 
-	InModalDialog := (ModalDialog.Dialog <> nil);
+	InModal := InModalDialog;
 
 	case GlobalKeyNames(Shortcuts.Find(GlobalKeys, Key, Shift))
 	of
@@ -765,7 +765,7 @@ begin
 			ChangeScreen(TCWEScreen(SplashScreen));
 
 		keyScreenHelp:
-			if not InModalDialog then
+			if not InModal then
 			with PatternEditor.Cursor do
 				if Column >= COL_COMMAND then
 				begin
@@ -781,7 +781,7 @@ begin
 					Help.Show(CurrentScreen.ID);
 
 		keyScreenPatternEditor:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				FollowPlayback := False;
 				Editor.ActiveControl := PatternEditor;
@@ -789,14 +789,14 @@ begin
 			end;
 
 		keyScreenOrderList:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				Editor.ActiveControl := OrderList;
 				ChangeScreen(TCWEScreen(Editor));
 			end;
 
 		keyScreenSamples:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				SampleScreen.Waveform.Sample := Module.Samples[CurrentSample-1];
 				ChangeScreen(TCWEScreen(SampleScreen));
@@ -804,7 +804,7 @@ begin
 			end;
 
 		keyPlaybackSong:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				if Module.PlayMode = PLAY_STOPPED then
 					Module.Play;
@@ -814,7 +814,7 @@ begin
 			end;
 
 		keyPlaybackPattern:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				FollowPlayback := False;
 				Module.PlayPattern(CurrentPattern);
@@ -822,7 +822,7 @@ begin
 			end;
 
 		keyPlaybackPlayFrom:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				Key := Integer(SDLK_F7); // dumb hack
 				CurrentScreen.KeyDown(Key, Shift);
@@ -830,21 +830,21 @@ begin
 			end;
 
 		keyPlaybackStop:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				Module.Stop;
 				PlayTimeCounter := 0;
 			end;
 
 		keyScreenLoad:
-			if not InModalDialog then
+			if not InModal then
 				FileRequester.Show(False, Options.Dirs.Modules);
 
 		keyScreenSave:
 			FileRequester.Show(True, Options.Dirs.Modules);
 
 		keySaveCurrent:
-			if not InModalDialog then
+			if not InModal then
 				PatternEditor.SaveModule;
 
 		// toggle fullscreen with alt-enter
@@ -855,31 +855,31 @@ begin
 			ChangeScreen(TCWEScreen(LogScreen));
 
 		keyPlaybackPrevPattern:
-			if not InModalDialog then
+			if not InModal then
 				Editor.SelectPattern(SELECT_PREV);
 
 		keyPlaybackNextPattern:
-			if not InModalDialog then
+			if not InModal then
 				Editor.SelectPattern(SELECT_NEXT);
 
 		keySongNew:
-			if not InModalDialog then
+			if not InModal then
 				NewModule(True);
 
 		keyCleanup:
-			if not InModalDialog then
+			if not InModal then
 				Dialog_Cleanup;
 
 		keySongLength:
-			if not InModalDialog then
+			if not InModal then
 				Dialog_ModuleInfo;
 
 		keyJumpToTime:
-			if not InModalDialog then
+			if not InModal then
 				Dialog_JumpToTime;
 
 		keyRenderToSample:
-			if not InModalDialog then
+			if not InModal then
 				Dialog_Render(True);
 
 		keyToggleChannel1:	Editor.ToggleChannel(0);

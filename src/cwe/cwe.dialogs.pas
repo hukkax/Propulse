@@ -21,6 +21,8 @@ type
 
 	TCWEDialogScreen = class(TCWEScreen)
 	public
+		procedure 	Dismiss(OK: Boolean);
+
 		function	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 		function	MouseUp(Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean; override;
 		procedure	MouseMove(X, Y: Integer; P: TPoint); override;
@@ -70,6 +72,8 @@ type
 					Rewrap: Boolean = False; SkipFirstLine: Boolean = False);
 	end;
 
+	function InModalDialog: Boolean; inline;
+
 var
 	ModalDialog: 	TCWEDialog;
 	DialogBooleans: array[0..9] of Boolean;
@@ -80,10 +84,16 @@ var
 implementation
 
 uses
-	Math, SDL.Api.Types, StrUtils;
+	Math, StrUtils,
+	ShortcutManager;
 
 const
 	LINEEND = '|';
+
+function InModalDialog: Boolean;
+begin
+	Result := ModalDialog.Dialog <> nil;
+end;
 
 // adapted from http://forum.lazarus.freepascal.org/index.php?topic=25715.0
 function MyWrapText(const S: AnsiString; MaxCol: Integer): AnsiString;
@@ -183,40 +193,59 @@ begin
 		ModalDialog.Close;}
 end;
 
-function TCWEDialogScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
+procedure TCWEDialogScreen.Dismiss(OK: Boolean);
 var
 	ctrl: TCWEControl;
 	btn: TCWEButton;
 begin
-	if Key = SDLK_ESCAPE then
+	for ctrl in Controls do
 	begin
-		for ctrl in Controls do
-			if (ctrl is TCWEButton) then
+		if not (ctrl is TCWEButton) then Continue;
+		btn := ctrl as TCWEButton;
+
+		if OK then
+		begin
+			if btn.ModalResult in [Ord(btnOK), Ord(btnYes)] then
 			begin
-				btn := ctrl as TCWEButton;
-				if btn.ModalResult = Ord(btnCancel) then
-				begin
-					ModalDialog.ButtonClickHandler(ctrl);
-					Exit(True);
-				end;
+				ModalDialog.ButtonClickHandler(ctrl);
+				Exit;
 			end;
+		end
+		else
+		begin
+			if btn.ModalResult = Ord(btnCancel) then
+			begin
+				ModalDialog.ButtonClickHandler(ctrl);
+				Exit;
+			end;
+		end;
+	end;
+
+	if not OK then
 		ModalDialog.Close;
-		Exit(True);
-	end
-	else
-	if Key = SDLK_RETURN then
-	begin
+end;
+
+function TCWEDialogScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
+var
+	Sc: ControlKeyNames;
+begin
+	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, Shift));
+
+	case Sc of
+
+		ctrlkeyRETURN:
 		if not (ActiveControl is TCWEButton) then
-		for ctrl in Controls do
-			if (ctrl is TCWEButton) then
-			begin
-				btn := ctrl as TCWEButton;
-				if btn.ModalResult in [Ord(btnOK), Ord(btnYes)] then
-				begin
-					ModalDialog.ButtonClickHandler(ctrl);
-					Exit(True);
-				end;
-			end;
+		begin
+			Dismiss(True);
+			Exit(True);
+		end;
+
+		ctrlkeyESCAPE:
+		begin
+			Dismiss(False);
+			Exit(True);
+		end;
+
 	end;
 
 	Result := inherited KeyDown(Key, Shift);

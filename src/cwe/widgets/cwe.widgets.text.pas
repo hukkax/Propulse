@@ -142,6 +142,7 @@ type
 		ItemIndex:		Integer;
 		Items:			TObjectList<TCWEListItem>;
 		Selection3D:	Boolean;
+		CanCloseDialog:	Boolean;
 
 		constructor	Create(Owner: TCWEControl;
 					const sCaption, sID: AnsiString; const Bounds: TRect;
@@ -265,6 +266,7 @@ implementation
 uses
 	{$IFDEF WINDOWS}Windows, ShellAPI,{$ENDIF}
 	MainWindow, DateUtils,
+	CWE.Dialogs,
 	SDL.Api.Types,
 	TextMode, Math,
 	ProTracker.Util;
@@ -820,6 +822,7 @@ begin
 
 	ColorBack := TConsole.COLOR_BLANK; //COL_LIST_BACK;
 	Selection3D := False;
+	CanCloseDialog := False;
 
 	SetData(0, TConsole.COLOR_TEXT,  'Selection background');
 	SetData(1, TConsole.COLOR_LIGHT, 'Selection foreground');
@@ -1030,8 +1033,13 @@ begin
 			end
 			else
 			begin
-				Key := SDLK_RETURN;
-				KeyDown(Key, []);
+				if (CanCloseDialog) and (InModalDialog) then
+					ModalDialog.Dialog.Dismiss(True)
+				else
+				begin
+					Key := SDLK_RETURN;
+					KeyDown(Key, []);
+				end;
 			end;
 			Exit(True);
 		end

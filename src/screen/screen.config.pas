@@ -623,6 +623,7 @@ begin
 			if B then Dec(i);
 
 			List := TCWEList.Create(Dlg, '', 'Valuelist', Types.Rect(1, 2, i, H-3), True);
+			List.CanCloseDialog := True;
 			List.Scrollbar.Visible := B;
 			List.Border.Pixel := True;
 

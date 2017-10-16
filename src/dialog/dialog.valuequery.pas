@@ -143,9 +143,10 @@ begin
 		(Console.Height div 2) - (H div 2), W, H),
 		 Caption);
 
-	List := TCWEList.Create(Dlg, '', 'List',
-		Bounds(Margin, 3, LW, LH), True);
+	List := TCWEList.Create(Dlg, '', 'List', Bounds(Margin, 3, LW, LH), True);
+	List.CanCloseDialog := True;
 	List.Scrollbar.Visible := (List.Items.Count > List.Height);
+
 	for LH := 0 to High(Items) do
 		List.AddItem(Items[LH]);
 	if Index in [0..List.Items.Count-1] then
