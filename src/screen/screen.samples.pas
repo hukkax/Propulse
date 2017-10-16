@@ -1182,25 +1182,7 @@ begin
 					Result := True;
 				end;
 			end;
-		end
-		{else
-		if (IsFocused) and (not CursorInPlay) and (not (ssCtrl in Shift)) then
-		begin
-			// Modify sample name
-			//
-			ch := GetCharFromVirtualKey(Key);
-			if ch <> '' then
-			begin
-				S := Sample.GetName;
-				while Length(S) < Cursor.X do
-					S := S + ' ';
-				Insert(ch, S, Cursor.X+1);
-				Sample.SetName(S);
-				Inc(Cursor.X);
-				Result := True;
-				Module.SetModified;
-			end;
-		end};
+		end;
 
 		if not Result then
 		begin
@@ -1255,11 +1237,7 @@ begin
 
 				keySampleCentralise:
 				begin
-i := High(Sample.Data);
-modaldialog.ShowMessage('Sample Info',
-Format('%d bytes (%d words)   %d, %d',
-[Sample.ByteLength, Sample.Length, Sample.Data[i-1], Sample.Data[i]]));
-{					Sample.Centralise;
+					{Sample.Centralise;
 					SampleChanged;}
 				end;
 
