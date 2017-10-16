@@ -19,6 +19,9 @@ uses
 		const Items: array of AnsiString;
 		Callback: TButtonClickedEvent);
 
+	function GetAskedValue(var V: Integer): Boolean;
+
+
 implementation
 
 uses
@@ -97,6 +100,21 @@ begin
 		ButtonCallback := Callback;
 		Dialog.ActivateControl(Slider);
 		Show;
+	end;
+end;
+
+function GetAskedValue(var V: Integer): Boolean;
+var
+	ctrl: TCWEControl;
+begin
+	Result := False;
+	if (ModalDialog = nil) or (ModalDialog.Dialog = nil) then Exit;
+
+	ctrl := ModalDialog.Dialog.FindControl('Slider'); // ugh
+	if ctrl <> nil then
+	begin
+		V := TCWESlider(ctrl).Position;
+		Result := True;
 	end;
 end;
 
