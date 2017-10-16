@@ -25,7 +25,7 @@ implementation
 
 uses
 	Screen.Config, Screen.Editor,
-	ProTracker.Util, ProTracker.Player;
+	ProTracker.Player;
 
 var
 	JumpToTimeDialog: TJumpToTimeDialog;

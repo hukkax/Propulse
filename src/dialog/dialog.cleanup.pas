@@ -214,7 +214,6 @@ begin
 	Module.Stop;
 
 	// Memorize sample names if locked
-	if DialogBooleans[SAMPLES_LOCKNAMES] then
 	for i := 0 to 30 do
 		SampleNames[i] := Module.Samples[i].Name;
 
@@ -280,7 +279,7 @@ begin
 	if DialogBooleans[PATTERNS_REMOVE] then
 	begin
 		for i := 0 to Module.Info.OrderCount-1 do
-			Module.OrderList[i] := NewIndex[Module.OrderList[i]];
+			Module.OrderList[i] := {%H-}NewIndex[Module.OrderList[i]];
 
 		for i := 0 to Module.Info.PatternCount do
 		for x := 0 to AMOUNT_CHANNELS-1 do
