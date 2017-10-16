@@ -1247,19 +1247,20 @@ var
 	Cfg: TConfigurationManager;
 	Sect: AnsiString;
 	i: Integer;
-	AudioDeviceList: array[1..10] of AnsiString;
+	AudioDeviceList: TStringList;
 	device: BASS_DEVICEINFO;
 begin
 	// Init list of audio devices
 	//
 	BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
-	for i := Low(AudioDeviceList) to High(AudioDeviceList) do
-	begin
+
+	AudioDeviceList := TStringList.Create;
+
+	for i := 1 to 99 do
 		if BASS_GetDeviceInfo(i, device) then
-			AudioDeviceList[i] := device.name
+			AudioDeviceList.Add(device.name)
 		else
-			AudioDeviceList[i] := Format('%d: None', [i]);
-	end;
+			Break;
 
 	// Init configuration
 	//
@@ -1310,8 +1311,10 @@ begin
 		.SetInfo('Splash screen', 0, 1, ['Disabled', 'Enabled']);
 
 		Sect := 'Audio';
-		Cfg.AddByte(Sect, 'Device', @Audio.Device, 1)
-		.SetInfo('Audio device', 1, 10, AudioDeviceList);
+{		Cfg.AddByte(Sect, 'Device', @Audio.Device, 1)
+		.SetInfo('Audio device', 1, 10, AudioDeviceList);}
+		Cfg.AddString(Sect, 'Device', @Audio.Device, 'Default')
+		.SetInfo('Audio device', 0, AudioDeviceList.Count-1, AudioDeviceList);
 		Cfg.AddByte(Sect, 'Frequency', @Audio.Frequency, 1)
 		.SetInfo('Sampling rate (Hz)', 0, 2, ['32000', '44100', '48000'], nil);
 		Cfg.AddInteger(Sect, 'Buffer', @Audio.Buffer, 0)
@@ -1365,6 +1368,8 @@ begin
 		Cfg.AddBoolean(Sect, 'Resample.HighBoost', @Import.Resampling.HighBoost, True)
 		.SetInfo('Boost highs', 0, 1, ['No', 'Yes']);
 	end;
+
+	AudioDeviceList.Free;
 
 	LogIfDebug('Loading configuration...');
 

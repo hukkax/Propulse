@@ -107,7 +107,7 @@ type
 
 		Audio: packed record
 			Driver: 				Byte;
-			Device: 				Byte;		// audio device, 1 = system default
+			Device: 				AnsiString;	// audio device
 			Frequency: 				Byte;		// 11025/22050/44100/48000
 			Buffer: 				Integer;	// audio buffer in milliseconds, 0 = detect minimum
 			Amplification: 			Single;		// default: 3.25

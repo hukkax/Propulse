@@ -476,8 +476,21 @@ end;
 
 function AudioInit(Frequency: Cardinal): Boolean;
 var
-	info: BASS_INFO;
 	device: BASS_DEVICEINFO;
+
+	function GetAudioDevice(Devname: AnsiString): Integer;
+	var
+		i: Integer;
+	begin
+		Result := -1;
+		if (DevName = '') or (DevName = 'Default') then Exit;
+		for i := 1 to 99 do
+			if (BASS_GetDeviceInfo(i, device)) and (device.name = Devname) then
+				Exit(i);
+	end;
+
+var
+	info: BASS_INFO;
 	ver, flags: DWord;
 	Minbuf: Integer;
 	S: AnsiString;
@@ -499,7 +512,7 @@ begin
 	BASS_SetConfig(BASS_CONFIG_VISTA_TRUEPOS, 0); // Speeds up initialization
 	{$ENDIF}
 
-	if not BASS_Init(Options.Audio.Device, outputFreq, flags, WindowHandle, nil) then
+	if not BASS_Init(GetAudioDevice(Options.Audio.Device), outputFreq, flags, WindowHandle, nil) then
 	begin
 		if not BASS_Init(-1, outputFreq, flags, WindowHandle, nil) then
 		begin
