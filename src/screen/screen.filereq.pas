@@ -32,6 +32,8 @@ const
 	FILE_CREATEDIR	= 8;
 	FILE_BOOKMARK	= 9;
 
+	FILE_MERGEMODULE = 10;
+
 type
 	FileOpKeyNames = (
 		filekeyNONE,
@@ -39,7 +41,8 @@ type
 		filekeyCopy,
 		filekeyMove,
 		filekeyDelete,
-		filekeyCreate
+		filekeyCreate,
+		filekeyModMerge
 	);
 
 	TBookmark = class
@@ -313,6 +316,12 @@ begin
 				AddCmdEx(FILE_COPY,					'Copy file to directory');
 				AddCmdEx(FILE_MOVE, 				'Move file to directory');
 				AddCmdEx(FILE_DELETE, 				'Delete file');
+
+				if (Self = FileRequester) and (not SaveMode) and (not InModule) then
+				begin
+					AddSection('Module');
+					AddCmdEx(FILE_MERGEMODULE,		'Merge into current');
+				end;
 			end
 			else
 			if DirList.Focused then
@@ -372,6 +381,7 @@ begin
 		filekeyMove:	HandleCommand(FILE_MOVE);
 		filekeyRename:	HandleCommand(FILE_RENAME);
 		filekeyCreate:	HandleCommand(FILE_CREATEDIR);
+		filekeyModMerge:HandleCommand(FILE_MERGEMODULE);
 	else
 		Result := inherited;
 	end;
@@ -787,6 +797,9 @@ begin
 				LISTITEM_DRIVE, LISTITEM_DIR:
 					AddBookmark(DirList.GetPath(True));
 			end;
+
+		FILE_MERGEMODULE:
+			Module.MergeWithFile(GetSelectedFile);
 
 	end;
 end;
@@ -1295,7 +1308,7 @@ begin
 							if SampleMod <> nil then
 								FreeAndNil(SampleMod);
 
-							SampleMod := TPTModule.Create(True);
+							SampleMod := TPTModule.Create(True, True);
 							ModFilename := GetFilename;
 
 							if SampleMod.LoadFromFile(ModFilename) then
