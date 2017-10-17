@@ -372,7 +372,7 @@ procedure TWindow.DoLoadModule(const Filename: String);
 		if Assigned(Module) then
 			Module.Free;
 
-		Module := TPTModule.Create(False);
+		Module := TPTModule.Create(True, False);
 
 		Module.OnSpeedChange := ModuleSpeedChanged;
 		Module.OnPlayModeChange := PlayModeChanged;
@@ -380,12 +380,22 @@ procedure TWindow.DoLoadModule(const Filename: String);
 	end;
 
 var
-	OK: Boolean;
+	OK, AltMethod: Boolean;
+	S: AnsiString;
 begin
 	ResetModule;
+	AltMethod := False;
 
 	if Filename <> '' then
-		OK := Module.LoadFromFile(Filename)
+	begin
+		OK := Module.LoadFromFile(Filename);
+		if not OK then
+		begin
+			Module.Warnings := False;
+			AltMethod := True;
+			OK := Module.LoadFromFile(Filename, True);
+		end;
+	end
 	else
 		OK := True;
 
@@ -411,8 +421,18 @@ begin
 
 		Editor.Paint;
 
-		if Module.Warnings then
-			ChangeScreen(TCWEScreen(LogScreen))
+		if (Module.Warnings) or (AltMethod) then
+		begin
+			if Module.Warnings then
+				S := 'Module loaded with errors/warnings.' + CHAR_NEWLINE
+			else
+				S := '';
+			if AltMethod then
+				S := S + 'An alternate method was used for loading.' + CHAR_NEWLINE;
+			ModalDialog.MultiLineMessage('Module loaded',
+				S + 'See the Message Log for more info.');
+			//ChangeScreen(TCWEScreen(LogScreen))
+		end;
 	end;
 end;
 
@@ -1556,6 +1576,7 @@ begin
 		Bind(filekeyMove,				'File.Move',				'Shift+F6');
 		Bind(filekeyDelete,				'File.Delete',				['Shift+F8', 'Delete']);
 		Bind(filekeyCreate,				'File.CreateDir',			'Shift+F7');
+		Bind(filekeyModMerge,			'File.MergeModule',			'Shift+Return');
 	end;
 
 	{$IFDEF MIDI}
