@@ -1171,7 +1171,7 @@ begin
 				lFilename := LowerCase(sr.Name);
 				Filename := StringReplace(lFilename, '~', '', []);
 
-				x := Pos('.', Filename);
+				x := Filename.LastIndexOf('.') + 1;
 				if x <= 1 then Continue;
 
 				ssL := Copy(Filename, 1, x-1);
