@@ -92,6 +92,7 @@ type
 
 		function 		IsEmpty: Boolean; inline;
 		function 		IsLooped: Boolean; inline;
+		function		IsDuplicateOf(const Other: TSample): Boolean;
 
 		constructor 	Create;
 		procedure 		Validate;
@@ -207,12 +208,24 @@ end;
 
 function TSample.IsEmpty: Boolean;
 begin
-	Result := not (High(Data) >= 1);
+	Result := High(Data) <= 1;
 end;
 
 function TSample.IsLooped: Boolean;
 begin
 	Result := ((LoopLength + LoopStart) > 1);
+end;
+
+function TSample.IsDuplicateOf(const Other: TSample): Boolean;
+var
+	i: Integer;
+begin
+	Result := False;
+	if (Other.Length <> Length) or (Other.Finetune <> Finetune) or (Other.Volume <> Volume) or
+		(Other.LoopStart <> LoopStart) or (Other.LoopLength <> LoopLength) then Exit;
+	for i := 0 to High(Data) do
+		if Other.Data[i] <> Data[i] then Exit;
+	Result := True;
 end;
 
 procedure TSample.ZeroFirstWord;
