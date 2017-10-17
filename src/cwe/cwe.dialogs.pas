@@ -21,7 +21,7 @@ type
 
 	TCWEDialogScreen = class(TCWEScreen)
 	public
-		procedure 	Dismiss(OK: Boolean);
+		function 	Dismiss(OK: Boolean): Boolean;
 
 		function	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 		function	MouseUp(Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean; override;
@@ -193,7 +193,7 @@ begin
 		ModalDialog.Close;}
 end;
 
-procedure TCWEDialogScreen.Dismiss(OK: Boolean);
+function TCWEDialogScreen.Dismiss(OK: Boolean): Boolean;
 var
 	ctrl: TCWEControl;
 	btn: TCWEButton;
@@ -208,7 +208,7 @@ begin
 			if btn.ModalResult in [Ord(btnOK), Ord(btnYes)] then
 			begin
 				ModalDialog.ButtonClickHandler(ctrl);
-				Exit;
+				Exit(True);
 			end;
 		end
 		else
@@ -216,13 +216,13 @@ begin
 			if btn.ModalResult = Ord(btnCancel) then
 			begin
 				ModalDialog.ButtonClickHandler(ctrl);
-				Exit;
+				Exit(True);
+//				ModalDialog.Close;
 			end;
 		end;
 	end;
 
-	if not OK then
-		ModalDialog.Close;
+	Result := False;
 end;
 
 function TCWEDialogScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
@@ -235,16 +235,10 @@ begin
 
 		ctrlkeyRETURN:
 		if not (ActiveControl is TCWEButton) then
-		begin
-			Dismiss(True);
-			Exit(True);
-		end;
+			if Dismiss(True) then Exit(True);
 
 		ctrlkeyESCAPE:
-		begin
-			Dismiss(False);
-			Exit(True);
-		end;
+			if Dismiss(False) then Exit(True);
 
 	end;
 
