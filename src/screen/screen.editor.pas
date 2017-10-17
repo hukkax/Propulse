@@ -100,6 +100,7 @@ type
 		lblChannels:	array [0..AMOUNT_CHANNELS-1] of TCWELabel;
 
 		procedure 	Reset;
+		procedure 	SwitchTo;
 		procedure 	Paint; override;
 
 		procedure	UpdateVUMeter(Len: Integer);
@@ -628,6 +629,12 @@ begin
 
 	if (not Result) and (ActiveControl <> nil) then
 		Result := ActiveControl.KeyDown(Key, Shift);
+end;
+
+procedure TEditorScreen.SwitchTo;
+begin
+	ChangeScreen(TCWEScreen(Editor));
+	Paint;
 end;
 
 procedure TEditorScreen.Paint;

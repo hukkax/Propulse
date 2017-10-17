@@ -169,6 +169,7 @@ var
 const
 	EditColumnX: array [EditColumn] of Byte = ( 0, 2, 4,5, 7,8,  10,11,12, 0 );
 
+	procedure	SwitchToEditor;
 
 implementation
 
@@ -191,6 +192,11 @@ var
 	Time: TTimeMeasurer;
 {$ENDIF}
 
+
+procedure SwitchToEditor;
+begin
+	Editor.SwitchTo;
+end;
 
 // ==========================================================================
 // TPatternEditor
@@ -332,6 +338,9 @@ begin
 	end;
 
 	if (not Force) and (B = Module.Modified) then Exit;
+
+	if Module.Warnings then
+		ChangeScreen(TCWEScreen(LogScreen));
 
 	S := Module.Info.Title;
 	if S = '' then
