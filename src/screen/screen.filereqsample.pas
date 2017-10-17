@@ -141,7 +141,7 @@ procedure TSampleFileScreen.FileOrDirSelected(Sender: TCWEControl);
 var
 	Item: TCWEListItem;
 	S: AnsiString;
-	Sam: TImportedSample;
+	//Sam: TImportedSample;
 begin
 	if Sender <> FileList then Exit;
 
@@ -303,9 +303,9 @@ begin
 		repeat
 			if (sr.Attr and faDirectory) = 0 then
 			begin
-				{$IFDEF UNIX}
+				//{$IFDEF UNIX}
 				if (Pos('.', sr.Name) = 1) then Continue;
-				{$ENDIF}
+				//{$ENDIF}
 
 				Filename := StringReplace(LowerCase(sr.Name), '~', '', []); // ???
 				IsMod :=
