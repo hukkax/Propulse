@@ -345,6 +345,8 @@ var
 begin
 	if not HasSample then Exit(False);
 
+	if Len mod 2 = 0 then Inc(Len);
+
 	with Waveform do
 	begin
 		if IsEmptySample(Sample) then
