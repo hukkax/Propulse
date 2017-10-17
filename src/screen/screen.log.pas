@@ -68,6 +68,7 @@ begin
 	Memo := TCWEMemo.Create(Self, '', 'Message Log',
 		Types.Rect(1, 1, Console.Width-2, Console.Height-1), True);
 	RegisterLayoutControl(Memo, CTRLKIND_BOX, False, True, True);
+	Memo.ColorFore := 12;
 
 	ActiveControl := Memo;
 

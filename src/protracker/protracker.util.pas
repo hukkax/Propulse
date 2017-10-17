@@ -32,7 +32,7 @@ const
 	TEXT_HEAD		= COLOR_WHITE_BRI;
 	TEXT_LIGHT		= COLOR_WHITE;
 	TEXT_INIT		= COLOR_BLUE;
-	TEXT_INFO		= COLOR_GRAY;
+	TEXT_INFO		= '$2';
 	TEXT_ERROR		= COLOR_RED;
 	TEXT_WARNING	= TEXT_ERROR + 'Warning: ';
 	TEXT_ACTION		= COLOR_WHITE;
@@ -436,7 +436,7 @@ begin
 		Module.Warnings := True;
 end;
 
-procedure Log(const S: AnsiString; const Args: array of const ); overload;
+procedure Log(const S: AnsiString; const Args: array of const); overload;
 begin
 	Log(Format(S, Args));
 end;
