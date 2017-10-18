@@ -19,6 +19,8 @@ type
 		function	Read8:		Byte; inline;
 		function	Read16:		Word; inline;
 		function	Read16R:	Word; inline;
+		function	Read24:		Cardinal; inline;
+		function	Read24R:	Cardinal; inline;
 		function	Read32:		Cardinal; inline;
 		function	Read32R:	Cardinal; inline;
 		function	Read64:		QWord; inline;
@@ -66,6 +68,18 @@ end;
 function TFileStreamEx.Read16R: Word;
 begin
 	Result := BEtoN(ReadWord);
+end;
+
+function TFileStreamEx.Read24: Cardinal;
+begin
+	Result := LEtoN(ReadDWord) and $FFFFFF;
+	Seek(-1, soFromCurrent);
+end;
+
+function TFileStreamEx.Read24R: Cardinal;
+begin
+	Result := BEtoN(ReadDWord) and $FFFFFF;
+	Seek(-1, soFromCurrent);
 end;
 
 function TFileStreamEx.Read32: Cardinal;

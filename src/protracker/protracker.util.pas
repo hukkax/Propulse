@@ -341,7 +341,7 @@ begin
 	writeln(Msg);
     {$ELSE}
     {$IFDEF DEBUG}
-	writeln(Msg);
+//	writeln(Msg);
 	{$ENDIF}
 	{$ENDIF}
 end;

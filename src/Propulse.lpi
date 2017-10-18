@@ -155,7 +155,7 @@
         <PackageName Value="LazUtils"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="55">
+    <Units Count="56">
       <Unit0>
         <Filename Value="propulse.pas"/>
         <IsPartOfProject Value="True"/>
@@ -425,6 +425,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="MIDIIO"/>
       </Unit54>
+      <Unit55>
+        <Filename Value="protracker/protracker.format.s3m.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ProTracker.Format.S3M"/>
+      </Unit55>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -462,6 +467,9 @@
       </Debugging>
       <Options>
         <LinkerOptions Value="-rpath=."/>
+        <Win32>
+          <GraphicApplication Value="True"/>
+        </Win32>
       </Options>
     </Linking>
     <Other>

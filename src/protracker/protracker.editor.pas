@@ -339,9 +339,6 @@ begin
 
 	if (not Force) and (B = Module.Modified) then Exit;
 
-	if Module.Warnings then
-		ChangeScreen(TCWEScreen(LogScreen));
-
 	S := Module.Info.Title;
 	if S = '' then
 		S := '(Untitled)';

@@ -1,7 +1,7 @@
 unit ProTracker.Format.IT;
 
-// Impulse Tracker loader for PoroTracker
-// TODO: select IT channels to convert if >4
+// Impulse Tracker loader for Propulse Tracker
+// TODO: select channels to convert if >4
 
 interface
 
