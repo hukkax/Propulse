@@ -9,7 +9,7 @@ uses
 
 const
 	AmigaExts  = '[mod][p61][stk][nst][ust][nt][m15]';
-	Extensions_Module = '[mod][it][p61]'; // [.xm][.s3m]
+	Extensions_Module = '[mod][it][s3m][p61]'; // [.xm][.s3m]
 
 	STR_DIRECTORYUP = '<Parent>';
 	STR_BOOKMARKS   = '<Bookmarks>';
@@ -23,16 +23,17 @@ const
 	FILESORT_NAME	= 0;
 	FILESORT_SIZE	= 1;
 	FILESORT_DATE	= 2;
+	FILESORT_EXT	= 3;
 
-	FILE_EXPLORE	= 3;
-	FILE_RENAME		= 4;
-	FILE_COPY		= 5;
-	FILE_MOVE		= 6;
-	FILE_DELETE		= 7;
-	FILE_CREATEDIR	= 8;
-	FILE_BOOKMARK	= 9;
+	FILE_EXPLORE	= 4;
+	FILE_RENAME		= 5;
+	FILE_COPY		= 6;
+	FILE_MOVE		= 7;
+	FILE_DELETE		= 8;
+	FILE_CREATEDIR	= 9;
+	FILE_BOOKMARK	= 10;
 
-	FILE_MERGEMODULE = 10;
+	FILE_MERGEMODULE = 11;
 
 type
 	FileOpKeyNames = (
@@ -209,6 +210,13 @@ begin
 		L.Captions[FileScreen.SortMode]);
 end;
 
+function SortByExtension(constref L, R: TCWEListItem): Integer;
+begin
+	Result := CompareText(
+		LowerCase(ExtractFileExt(R.Captions[0])),
+		LowerCase(ExtractFileExt(L.Captions[0])));
+end;
+
 function GetParentDir(const Dir: String): String;
 begin
 	Result := ExpandFileName(
@@ -306,12 +314,13 @@ begin
 				AddCmdEx(FILESORT_NAME,				'Sort by name');
 				AddCmdEx(FILESORT_SIZE,				'Sort by size');
 				AddCmdEx(FILESORT_DATE,				'Sort by date');
-				{$IFDEF WINDOWS}
-				AddCmdEx(FILE_EXPLORE,				'Show file in Explorer');
-				{$ENDIF}
+				AddCmdEx(FILESORT_EXT,				'Sort by extension');
 
 				AddSection('File operations');
 
+				{$IFDEF WINDOWS}
+				AddCmdEx(FILE_EXPLORE,				'Show file in Explorer');
+				{$ENDIF}
 				AddCmdEx(FILE_RENAME, 				'Rename file');
 				AddCmdEx(FILE_COPY,					'Copy file to directory');
 				AddCmdEx(FILE_MOVE, 				'Move file to directory');
@@ -573,10 +582,17 @@ end;
 
 procedure TFileScreen.SortFiles;
 begin
-	if SortMode = FILESORT_NAME then
-		FileList.Items.Sort(TComparer<TCWEListItem>.Construct(SortAlphabetically))
-	else
-		FileList.Items.Sort(TComparer<TCWEListItem>.Construct(SortByColumn));
+	case SortMode of
+
+		FILESORT_NAME:
+			FileList.Items.Sort(TComparer<TCWEListItem>.Construct(SortAlphabetically));
+
+		FILESORT_SIZE, FILESORT_DATE:
+			FileList.Items.Sort(TComparer<TCWEListItem>.Construct(SortByColumn));
+
+		FILESORT_EXT:
+			FileList.Items.Sort(TComparer<TCWEListItem>.Construct(SortByExtension));
+	end;
 
 	if PrevFile <> '' then
 		FileList.Select(PrevFile);
@@ -716,7 +732,7 @@ begin
 
 	case Cmd of
 
-		FILESORT_NAME, FILESORT_SIZE, FILESORT_DATE:
+		FILESORT_NAME, FILESORT_SIZE, FILESORT_DATE, FILESORT_EXT:
 		begin
 			SortMode := Cmd;
 			if InSampleReq then

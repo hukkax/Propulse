@@ -1370,8 +1370,8 @@ begin
 		Sect := 'Directory';
 		Cfg.AddString	(Sect, 'Modules', 		@Dirs.Modules, 			AppPath);
 		Cfg.AddString	(Sect, 'Samples', 		@Dirs.Samples, 			AppPath);
-		Cfg.AddByte		(Sect, 'SortMode',		@Dirs.FileSortMode,   	FILESORT_NAME).Max := FILESORT_DATE;
-		Cfg.AddByte		(Sect, 'SortModeS',		@Dirs.SampleSortMode, 	FILESORT_NAME).Max := FILESORT_DATE;
+		Cfg.AddByte		(Sect, 'SortMode',		@Dirs.FileSortMode,   	FILESORT_NAME).Max := FILESORT_EXT;
+		Cfg.AddByte		(Sect, 'SortModeS',		@Dirs.SampleSortMode, 	FILESORT_NAME).Max := FILESORT_EXT;
 
 		Sect := 'Resampling';
 		Cfg.AddBoolean(Sect, 'Resample.Automatic', @Import.Resampling.Enable, True)
