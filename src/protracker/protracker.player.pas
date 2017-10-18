@@ -350,7 +350,7 @@ uses
 	MainWindow,
 	FileStreamEx, fpwavwriter, fpwavformat,
 	ProTracker.Editor,
-	ProTracker.Format.IT, ProTracker.Format.P61,
+	ProTracker.Format.IT, ProTracker.Format.S3M, ProTracker.Format.P61,
 	CWE.Dialogs;
 
 var
@@ -1285,12 +1285,14 @@ begin
 	begin
 		if mightBeIT then
 		begin
+			// import IT
 			LoadImpulseTracker(Self, ModFile, SamplesOnly);
 			goto Done;
 		end
 		else
 		if Pos('p61', LowerCase(Filename)) > 0 then
 		begin
+			// import P61
 			if not SamplesOnly then
 			begin
 				sFile := ExtractFileName(Filename);
@@ -1300,6 +1302,18 @@ begin
 			end;
 			LoadThePlayer(Self, ModFile, SamplesOnly);
 			goto Done;
+		end
+		else
+		begin
+			// import S3M
+			ModFile.SeekTo(Origin + $2C);
+			TempFilename := 'xxxx';
+			ModFile.Read(TempFilename[1], 4);
+			if TempFilename = 'SCRM' then
+			begin
+				LoadScreamTracker(Self, ModFile, SamplesOnly);
+				goto Done;
+			end;
 		end;
 	end
 	else
