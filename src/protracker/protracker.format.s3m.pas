@@ -46,8 +46,7 @@ const
 	NOTETRANSPOSE = -48;
 	ProtectedEffects = [$B, $D, $F];
 var
-	C, P: Byte;
-	V: Integer;
+	C, P, V: Byte;
 
 	procedure SetNote(Cmd: Byte; Prm: Integer = -1);
 	begin
@@ -56,7 +55,7 @@ var
 			P := Prm
 		else
 			P := Note.Parameter;
-		if (Cmd > 0) and (Cmd <> $C) then
+		if {(Cmd > 0) and} (Cmd <> $C) then
 		begin
 			if P = 0 then
 				P := PrevParam[Cmd]
@@ -75,22 +74,11 @@ begin
 	// convert pitch
 	V := Note.Pitch;
 
-	if V in [1..119] then
-	begin
-		V := V + NOTETRANSPOSE;
-		if (V < 0) or (V > High(PeriodTable)) then
-			V := 0
-		else
-			V := PeriodTable[V];
-		if V = 0 then
-		begin
-			//Inc(Conversion.Missed.Notes);
-			V := $FFFE;
-		end;
-	end
+	if InRange(V, 1, 119) then
+		V := Max(V + NOTETRANSPOSE + 1, 0)
 	else
 	if V >= 254 then
-		V := $FFFF // note off/note cut
+		V := $FF // note off/note cut
 	else
 		V := 0;
 
@@ -99,20 +87,16 @@ begin
 	C := Note.Command;
 	P := Note.Parameter;
 
-	case Note.Command of 		// 0=no effect, 1=A ...
+	case Note.Command of 			// 0=no effect, 1=A ...
 
-		0:		;
+		0:		if P <> 0 then SetNote($0);
 		CMD_A:	SetNote($F);		// Set speed
 		CMD_B:	SetNote($B);		// Jump to order
-		CMD_C:	begin				// Break to row
-					// 16-based to 10-based
-					SetNote($D, (P div 10) shl 4 or (P mod 10));
-				end;
-		CMD_D:	if (P >= $F1)  //(((P shr 4) = $F) and ((P and 4) <> 0))
-				or (((P and 4) = $F) and (P >= $1F)) then //((P shr 4) <> 0)) then
-				SetNoteEx($B)		// Fine volume slide
+		CMD_C:	SetNote($D, (P div 10) shl 4 or (P mod 10));	// Break to row; 16-based to 10-based
+		CMD_D:	if (P >= $F1) or (((P and 4) = $F) and (P >= $1F)) then
+					SetNoteEx($B)	// Fine volume slide
 				else
-				SetNote($A);		// Volume slide
+					SetNote($A);	// Volume slide
 		CMD_E:	if P < $F0 then
 					SetNote($2)		// Pitch slide down
 				else
@@ -124,13 +108,13 @@ begin
 		CMD_G:	SetNote($3);		// Slide to note
 		CMD_H:	SetNote($4);		// Vibrato
 		CMD_J:	SetNote($0);		// Arpeggio
-		CMD_K:	begin
+		CMD_K:	begin				// Vibrato + Volumeslide
 					if Note.Parameter > $F0 then // fine slides into normal slides
 						Note.Parameter := Note.Parameter and $0F
 					else
 					if Note.Parameter and $F = $F then
 						Note.Parameter := Note.Parameter and $F0;
-					SetNote($6);		// Vibrato + Volumeslide
+					SetNote($6);
 				end;
 		CMD_L:	SetNote($5);		// Slide to note + Volumeslide
 		CMD_O:	SetNote($9);		// Set sample offset
@@ -147,12 +131,12 @@ begin
 				$B: SetNoteEx($6);	// Set loopback point / Loop x times to loopback point
 				$C: SetNoteEx($C);	// Note cut after x ticks
 				$D: SetNoteEx($D);	// Note delay for x ticks
-			else
-				Inc(Conversion.Missed.Effects);
-				//Log(TEXT_WARNING + 'Unimplemented command: ' + Chr(C + Ord('A') - 1) + IntToHex(P, 2) );
-				C := 0;
-				P := 0;
-			end;
+				else
+					Inc(Conversion.Missed.Effects);
+					//Log(TEXT_WARNING + 'Unimplemented command: ' + Chr(C + Ord('A') - 1) + IntToHex(P, 2) );
+					C := 0;
+					P := 0;
+				end;
 	else
 		Inc(Conversion.Missed.Effects);
 		//Log(TEXT_WARNING + 'Unimplemented command: ' + Chr(C + Ord('A') - 1) + IntToHex(P, 2) );
@@ -167,7 +151,7 @@ begin
 		SetNote($C, Note.Volume);
 
 	// emulate note cut/note off by setting volume to 0
-	if Note.Pitch = $FFFF then
+	if Note.Pitch = $FF then
 	begin
 		Note.Pitch := 0;
 		if C in ProtectedEffects then // don't discard important fx!
