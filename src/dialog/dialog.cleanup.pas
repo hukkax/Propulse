@@ -15,10 +15,12 @@ const
 	ACTION_CLEANUP 		= 1;
 
 	SAMPLES_REMOVE		= 0;
-	SAMPLES_REARRANGE	= 1;
-	SAMPLES_LOCKNAMES	= 2;
-	PATTERNS_REMOVE		= 3;
-	PATTERNS_REARRANGE	= 4;
+	SAMPLES_DUPLICATES	= 1;
+	SAMPLES_REARRANGE	= 2;
+	SAMPLES_LOCKNAMES	= 3;
+	PATTERNS_REMOVE		= 4;
+	PATTERNS_DUPLICATES = 5;
+	PATTERNS_REARRANGE	= 6;
 
 
 	procedure Dialog_Cleanup;
@@ -30,9 +32,7 @@ implementation
 uses
 	SysUtils,
 	Generics.Collections,
-
 	CWE.Widgets.Text,
-
 	ProTracker.Player,
 	ProTracker.Sample,
 	Screen.Editor,
@@ -41,14 +41,18 @@ uses
 	Screen.Samples;
 
 var
-	CleanLog: 		TStrings;
-	Warnings: 		Word;
+	CleanLog: 			TStrings;
+	Warnings: 			Word;
 	UnusedPatterns,
-	UnusedSamples:	Byte;
-	PatternUsage:	array[0..MAX_PATTERNS-1] of Byte;
-	SampleUsage:	array[0..30] of Cardinal;
-	UnusedPattern:	array[0..MAX_PATTERNS-1] of Boolean;
-	UnusedSample:	array[0..30] of Boolean;
+	UnusedSamples,
+	DuplicatedPatterns,
+	DuplicatedSamples:	Byte;
+	PatternUsage:		array[0..MAX_PATTERNS-1] of Byte;
+	SampleUsage:		array[0..30] of Cardinal;
+	UnusedPattern:		array[0..MAX_PATTERNS-1] of Boolean;
+	UnusedSample:		array[0..30] of Boolean;
+	DuplicatePattern:	array[0..MAX_PATTERNS-1] of ShortInt;
+	DuplicateSample:	array[0..30] of ShortInt;
 
 type
 	TPattern = class
@@ -94,6 +98,56 @@ begin
 	end;
 end;
 
+function IsPatternDuplicateOf(i1, i2: Byte): Boolean;
+var
+	x, y: Integer;
+	N1, N2: PNote;
+begin
+	Result := True;
+	if (i1 >= MAX_PATTERNS) or (i2 >= MAX_PATTERNS) then Exit;
+	for x := 0 to AMOUNT_CHANNELS-1 do
+		for y := 0 to 63 do
+		begin
+			N1 := @Module.Notes[i1, x, y];
+			N2 := @Module.Notes[i2, x, y];
+			if (N1.Sample <> N2.Sample) or (N1.Command <> N2.Command) or
+			   (N1.Pitch <> N2.Pitch) or (N1.Parameter <> N2.Parameter) then
+					Exit(False);
+		end;
+end;
+
+procedure ClearPattern(i: Byte);
+var
+	x, y: Integer;
+begin
+	if i < MAX_PATTERNS then
+		for x := 0 to AMOUNT_CHANNELS-1 do
+		for y := 0 to 63 do
+			Module.Notes[i, x, y] := EmptyNote;
+end;
+
+procedure ReplaceSampleInPattern(patt, sOld, sNew: Byte);
+var
+	x, y: Integer;
+	Note: PNote;
+begin
+	if (patt >= MAX_PATTERNS) or (Module.IsPatternEmpty(patt)) then Exit;
+	for x := 0 to AMOUNT_CHANNELS-1 do
+		for y := 0 to 63 do
+		begin
+			Note := @Module.Notes[patt, x, y];
+			if Note.Sample = sOld then Note.Sample := sNew;
+		end;
+end;
+
+procedure ReplaceSampleInPatterns(sOld, sNew: Byte);
+var
+	patt: Integer;
+begin
+	for patt := 0 to MAX_PATTERNS-1 do
+		ReplaceSampleInPattern(patt, sOld, sNew);
+end;
+
 // ==========================================================================
 // Figure out what stuff is unused in the module
 // ==========================================================================
@@ -118,8 +172,10 @@ begin
 	begin
 		PatternUsage[p] := 0;
 		UnusedPattern[p] := False;
+		DuplicatePattern[p] := -1;
 	end;
 	UnusedPatterns := 0;
+	DuplicatedPatterns := 0;
 
 	for i := 0 to Module.Info.OrderCount-1 do
 	begin
@@ -142,6 +198,25 @@ begin
 		end;
 	end;
 
+	// find duplicate patterns
+	for p := 0 to MAX_PATTERNS-1 do
+	begin
+		if (UnusedPattern[p]) or (DuplicatePattern[p] >= 0) then Continue;
+
+		for s := MAX_PATTERNS-1 downto 0 do
+		begin
+			if (s = p) or (UnusedPattern[s]) or (DuplicatePattern[s] >= 0) or
+				(Module.IsPatternEmpty(s)) then Continue;
+
+			if IsPatternDuplicateOf(p, s) then
+			begin
+				DuplicatePattern[s] := p;
+				Inc(DuplicatedPatterns);
+				Inc(Savings, 1024);
+			end;
+		end;
+	end;
+
 	// ----------------------------------------------------------------------
 	// Find unused samples
 	// ----------------------------------------------------------------------
@@ -150,6 +225,7 @@ begin
 	begin
 		SampleUsage[s] := 0;
 		UnusedSample[s] := False;
+		DuplicateSample[s] := -1;
 	end;
 
 	if Prescan then
@@ -175,6 +251,7 @@ begin
 	end;
 
 	UnusedSamples := 0;
+	DuplicatedSamples := 0;
 
 	for s := 0 to 30 do
 	begin
@@ -184,12 +261,32 @@ begin
 			if not IsEmptySample(Module.Samples[s]) then
 			begin
 				Inc(UnusedSamples);
-				Inc(Savings, Module.Samples[s].Length*2);
+				Inc(Savings, Module.Samples[s].ByteLength);
 			end;
 		end
 		else
 		if IsEmptySample(Module.Samples[s]) then
 			Inc(Warnings); // referenced empty sample
+	end;
+
+	// find duplicate samples
+	for s := 0 to 30 do
+	begin
+		if (UnusedSample[s]) or (DuplicateSample[s] >= 0) or
+			(IsEmptySample(Module.Samples[s])) then Continue;
+
+		for p := 30 downto 0 do
+		begin
+			if (p = s) or (UnusedSample[p]) or (DuplicateSample[p] >= 0) or
+				(IsEmptySample(Module.Samples[p])) then Continue;
+
+			if Module.Samples[s].IsDuplicateOf(Module.Samples[p]) then
+			begin
+				DuplicateSample[p] := s;
+				Inc(DuplicatedSamples);
+				Inc(Savings, Module.Samples[p].ByteLength);
+			end;
+		end;
 	end;
 
 	Result := Savings;
@@ -225,6 +322,16 @@ begin
 				Module.Samples[i].Clear;
 	end;
 
+	if DialogBooleans[SAMPLES_DUPLICATES] then
+	begin
+		for i := 0 to 30 do
+			if DuplicateSample[i] >= 0 then
+			begin
+				ReplaceSampleInPatterns(i+1, DuplicateSample[i]+1);
+				Module.Samples[i].Clear;
+			end;
+	end;
+
 	// Rearrange samples
 	if DialogBooleans[SAMPLES_REARRANGE] then
 	begin
@@ -249,10 +356,20 @@ begin
 
 	// Restore sample names if locked
 	if DialogBooleans[SAMPLES_LOCKNAMES] then
-	for i := 0 to 30 do
-		Module.Samples[i].SetName(SampleNames[i]);
+		for i := 0 to 30 do
+			Module.Samples[i].SetName(SampleNames[i]);
 
-	//UnusedPattern: array[0..MAX_PATTERNS-1] of Boolean;
+	if DialogBooleans[PATTERNS_DUPLICATES] then
+	begin
+		for x := 0 to MAX_PATTERNS-1 do
+		begin
+			if DuplicatePattern[x] < 0 then Continue;
+			for i := 0 to Module.Info.OrderCount-1 do
+				if Module.OrderList[i] = x then
+					Module.OrderList[i] := DuplicatePattern[x];
+			UnusedPattern[x] := True;
+		end;
+	end;
 
 	if 	not (DialogBooleans[PATTERNS_REMOVE]) and
 		not (DialogBooleans[PATTERNS_REARRANGE]) then
@@ -282,9 +399,7 @@ begin
 			Module.OrderList[i] := {%H-}NewIndex[Module.OrderList[i]];
 
 		for i := 0 to Module.Info.PatternCount do
-		for x := 0 to AMOUNT_CHANNELS-1 do
-		for y := 0 to 63 do
-			Module.Notes[i, x, y] := EmptyNote;
+			ClearPattern(i);
 
 		for i := 0 to Patterns.Count-1 do
 		for x := 0 to AMOUNT_CHANNELS-1 do
@@ -311,8 +426,8 @@ end;
 
 procedure Dialog_Cleanup;
 const
-	W  = 48-2;
-	H  = 14-1-4;
+	W  = 46;
+	H  = 11;
 	CITEM = #7' ';
 var
 	y, LH: Integer;
@@ -330,7 +445,8 @@ begin
 	Savings := TCleanup.FindUnused(True); // initial scan for potentially cleanable stuff
 	CleanLog.Clear;
 
-	if (UnusedPatterns = 0) and (UnusedSamples = 0) then
+	if 	(UnusedPatterns = 0) and (UnusedSamples = 0) and
+		(DuplicatedSamples = 0) and (DuplicatedPatterns = 0) then
 	begin
 		{if Warnings = 0 then
 		begin
@@ -355,11 +471,21 @@ begin
 					if not IsEmptySample(Module.Samples[y]) then
 					begin
 						Sn := Module.Samples[y].Name;
-						CLog(CITEM + '%.2d "%22s" %dB', [y+1, Sn, Module.Samples[y].Length*2]);
+						CLog(CITEM + '%.2d "%22s" %dB', [y+1, Sn, Module.Samples[y].ByteLength]);
 					end;
 				end;
 			end;
 		end;
+
+		if DuplicatedSamples > 0 then
+		begin
+			CLog('');
+			CLog('Module contains %d duplicate samples:', [DuplicatedSamples]);
+			for y := 0 to 30 do
+				if DuplicateSample[y] >= 0 then
+					CLog(CITEM + 'Sample %.2d is a duplicate of sample %.2d', [y+1, DuplicateSample[y]+1]);
+		end;
+
 		if UnusedPatterns > 0 then
 		begin
 			CLog('');
@@ -368,6 +494,16 @@ begin
 				if UnusedPattern[y] then
 					CLog(CITEM + 'Pattern %.2d', [y]);
 		end;
+
+		if DuplicatedPatterns > 0 then
+		begin
+			CLog('');
+			CLog('Module contains %d duplicate patterns:', [DuplicatedPatterns]);
+			for y := 0 to MAX_PATTERNS-1 do
+				if DuplicatePattern[y] >= 0 then
+					CLog(CITEM + 'Pattern %.2d is a duplicate of pattern %.2d', [y, DuplicatePattern[y]]);
+		end;
+
 	end;
 
 	if Warnings > 0 then
@@ -394,7 +530,7 @@ begin
 		 'Clean Up');
 
 	List := TCWEConfigList.Create(Dlg, '', 'Cleanup',
-		Types.Rect(1, 2, W-1, 8), True);
+		Types.Rect(1, 2, W-1, 10), True);
 	List.ColumnWidth[1] := 3;
 
 	with ModalDialog do
@@ -407,6 +543,9 @@ begin
 			@DialogBooleans[SAMPLES_REMOVE], (UnusedSamples > 0)).
 			SetInfo('Remove unused samples', 0, 1, CN_YESNO);
 		ConfigManager.AddBoolean(Sect, '',
+			@DialogBooleans[SAMPLES_DUPLICATES], (DuplicatedSamples > 0)).
+			SetInfo('Remove duplicate samples', 0, 1, CN_YESNO);
+		ConfigManager.AddBoolean(Sect, '',
 			@DialogBooleans[SAMPLES_REARRANGE], False).
 			SetInfo('Rearrange samples', 0, 1, CN_YESNO);
 		ConfigManager.AddBoolean(Sect, '',
@@ -416,8 +555,11 @@ begin
 		Sect :=	Format('Patterns (%d unused)', [UnusedPatterns]);
 
 		ConfigManager.AddBoolean(Sect, '',
-			@DialogBooleans[PATTERNS_REMOVE], (UnusedPatterns > 0)).
+			@DialogBooleans[PATTERNS_REMOVE], (UnusedPatterns + DuplicatedPatterns > 0)).
 			SetInfo('Remove unused patterns', 0, 1, CN_YESNO);
+		ConfigManager.AddBoolean(Sect, '',
+			@DialogBooleans[PATTERNS_DUPLICATES], (DuplicatedPatterns > 0)).
+			SetInfo('Remove duplicate patterns', 0, 1, CN_YESNO);
 		{ConfigManager.AddBoolean(Sect, '',
 			@DialogBooleans[PATTERNS_REARRANGE], True).
 			SetInfo('Rearrange patterns', 0, 1, CN_YESNO);}
