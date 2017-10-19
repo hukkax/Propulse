@@ -148,13 +148,14 @@ begin
 		Note.Volume := 0
 	else
 	if Note.Volume < 64 then
-		SetNote($C, Note.Volume);
+		if not ((C = $0) and (P > 0)) then // prioritize arpeggio over volume
+			SetNote($C, Note.Volume);
 
 	// emulate note cut/note off by setting volume to 0
 	if Note.Pitch = $FF then
 	begin
 		Note.Pitch := 0;
-		if C in ProtectedEffects then // don't discard important fx!
+		if (C in ProtectedEffects) or ((C = $0) and (P > 0)) then // don't discard important fx!
 		begin
 			Log(TEXT_WARNING + 'Discarded note cut command!');
 			Inc(Conversion.Missed.Effects); // !!! does this classify as an effect?
