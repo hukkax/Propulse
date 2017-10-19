@@ -74,8 +74,8 @@ type
 		Sample:			Byte;	// 8 bits
 		Command:		Byte;	// 4 bits
 		Parameter:		Byte;	// 8 bits
-		Text:			Byte;	// index to NoteText[]
-		Period:			Word;	// 12 bits (Period)
+		Pitch:			Byte;	// index to NoteText[]
+		//Period:		Word;	// 12 bits (Period)
 	end;
 	PNote = ^TNote;
 
@@ -704,7 +704,7 @@ begin
 		begin
 			Note := @Notes[i, x, y];
 			if (Note.Sample > 0) or (Note.Command > 0)   or
-			   (Note.Period > 0) or (Note.Parameter > 0) then
+			   (Note.Pitch > 0) or (Note.Parameter > 0) then
 					Exit(False);
 		end;
 end;
@@ -775,6 +775,7 @@ end;
 function TPTModule.SaveToFile(const Filename: String): Boolean;
 var
 	i, j, k, l: Integer;
+	B: Word;
 	c: Cardinal;
 	Stream: TFileStreamEx;
 begin
@@ -852,8 +853,12 @@ begin
 			for k := 0 to AMOUNT_CHANNELS-1 do
 			with Notes[i,k,l] do
 			begin
-				Stream.Write8(((Period shr 8) and $0F) or (Sample and $10));
-				Stream.Write8(Period and $FF);
+				if Pitch = 0 then
+					B := 0
+				else
+					B := PeriodTable[Pitch-1];
+				Stream.Write8(((B shr 8) and $0F) or (Sample and $10));
+				Stream.Write8(B and $FF);
 				Stream.Write8((Sample shl 4) or (Command and $0F));
 				Stream.Write8(Parameter);
 			end;
@@ -1537,16 +1542,16 @@ begin
 				note := @Notes[patt, ch, row];
 				ModFile.Read(bytes[0], 4);
 
-				note.Period    := ((bytes[0] and $0F) shl 8) or bytes[1];
+				note.Pitch     := PeriodToNote(((bytes[0] and $0F) shl 8) or bytes[1]);
 				// Don't (!) clamp, the player checks for invalid samples
 				note.Sample    :=  (bytes[0] and $F0) or (bytes[2] shr 4);
 				note.Command   := bytes[2] and $0F;
 				note.Parameter := bytes[3];
 				if note.Command = $C then
 					note.Parameter := Min(note.Parameter, 64);
-				note.Text      := GetNoteText(note.Period);
+				//Note.Note      := PeriodToNote(note.Period);
 
-				if Note.Text = High(NoteText) then
+				if Note.Pitch >= 37 { = High(NoteText)} then
 					Warnings := True;
 
 				if Info.Format = FORMAT_FEST then
@@ -1732,10 +1737,9 @@ begin
 	with EmptyNote do
 	begin
 		Sample := 0;
-		Period := 0;
+		Pitch := 0;
 		Command := 0;
 		Parameter := 0;
-		Text := 0;
 	end;
 
 	SamplesOnly := aSamplesOnly;
@@ -2609,7 +2613,11 @@ begin
 		ch.Paula.SetPeriod(Word(ch.n_period));
 
 	ch.Note := @Notes[PlayPos.Pattern, ch.n_index, PlayPos.Row];
-	ch.n_note := ch.Note.Period and $0FFF;
+
+	if ch.Note.Pitch > 0 then
+		ch.n_note := PeriodTable[ch.Note.Pitch-1] and $0FFF
+	else
+		ch.n_note := 0;
 
 	// SAFETY BUG FIX: don't handle sample-numbers >31
 	sample := ch.Note.Sample;
@@ -2998,11 +3006,11 @@ begin
 	DisableMixer := True;
 
 	ch.Note := Note;
-	ch.n_note := Note.Period and $0FFF;
+	ch.n_note := PeriodTable[Note.Pitch-1 mod 37] and $0FFF;
 
 	ch.n_sample   := Note.Sample-1;
 	ch.n_start    := 0; // Data[0]
-	ch.n_period   := PeriodTable[(37 * sample.Finetune) + GetPeriodTableOffset(Note.Period)];
+	ch.n_period   := PeriodTable[(37 * sample.Finetune) + Note.Pitch - 1];
 	ch.n_finetune := sample.Finetune;
 	if Vol > 64 then
 		ch.n_volume   := sample.Volume

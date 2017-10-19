@@ -126,9 +126,9 @@ begin
 		else
 			period := PeriodTable[noteno-1];
 		Note := @Module.Notes[pattern_number, channel_number, row_number];
-		Note.Period := period;
+		//Note.Period := period;
 		Note.Sample := instrument;
-		Note.Text := GetNoteText(Note.Period);
+		Note.Pitch := PeriodToNote(period);
 		Inc(row_number);
 	end
 	else
@@ -149,11 +149,10 @@ begin
 		else
 			period := PeriodTable[noteno-1];
 		Note := @Module.Notes[pattern_number, channel_number, row_number];
-		Note.Period := period;
 		Note.Sample := instrument;
 		Note.Command := (effect shr 8) and $FF;
 		Note.Parameter := effect and $FF;
-		Note.Text := GetNoteText(Note.Period);
+		Note.Pitch := PeriodToNote(period);
 		Inc(row_number);
 	end;
 

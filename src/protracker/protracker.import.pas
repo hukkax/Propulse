@@ -31,7 +31,7 @@ type
 
 	TExtNote = record
 		Instrument:		Byte;
-		Pitch:			Word;
+		Pitch:			Byte;
 		Volume:			Byte;
 		Command:		Byte;
 		Parameter:		Byte;
@@ -289,17 +289,12 @@ begin
 				SrcNote := @Pattern.Notes[chan, row];
 				DstNote := @Module.Notes[patt, chan, row];
 
-				DstNote.Period    := SrcNote.Pitch;
+				DstNote.Pitch     := SrcNote.Pitch;
 				DstNote.Command   := SrcNote.Command;
 				DstNote.Parameter := SrcNote.Parameter;
 				DstNote.Sample    := SrcNote.Instrument;
-				DstNote.Text := GetNoteText(DstNote.Period);
-
-				if DstNote.Text >= High(NoteText) then
-				begin
+				if DstNote.Pitch >= 37 {High(NoteText)} then
 					Inc(Conversion.Missed.Notes);
-					//DstNote.Period := 0;
-				end;
 			end;
 		end;
 

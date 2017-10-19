@@ -418,10 +418,7 @@ begin
 			case Cursor.Column of
 
 				COL_NOTE, COL_OCTAVE:
-				begin
-					DestNote.Period := Note.Period;
-					DestNote.Text   := Note.Text;
-				end;
+					DestNote.Pitch   := Note.Pitch;
 
 				COL_SAMPLE_1, COL_SAMPLE_2:
 					DestNote.Sample := Note.Sample;
@@ -511,15 +508,12 @@ begin
 
 		COL_NOTE, COL_OCTAVE:
 		begin
-			np := GetPeriodTableOffset(Note.Period);
-			if np >= 0 then
+			np := Note.Pitch;
+			if np > 0 then
 			begin
 				np := np + Semitones;
 				if InRange(np, 0, 35) then
-				begin
-					Note.Period := PeriodTable[np];
-					Note.Text   := GetNoteText(Note.Period);
-				end;
+					Note.Pitch := np;
 			end;
 		end;
 
@@ -621,7 +615,7 @@ begin
 			for y := 0 to ClipBuf.Size.Y do
 			begin
 				Note := GetNote(CurrentPattern, Cursor.Channel + x, Cursor.Row + y);
-				if (Note <> nil) and (Note.Period = EmptyNote.Period) then
+				if (Note <> nil) and (Note.Pitch = EmptyNote.Pitch) then
 					SetNote(CurrentPattern, Cursor.Channel + x, Cursor.Row + y,
 						ClipBuf.Notes[x, y], Masked);
 			end;
@@ -974,7 +968,7 @@ begin
 
 		keyNotePlay:	// 4
 		begin
-			if Cursor.Note.Period > 0 then
+			if Cursor.Note.Pitch > 0 then
 				Module.PlayNote(Cursor.Note, Cursor.Channel);
 				{Module.PlaySample(GetPeriodTableOffset(Cursor.Note.Period),
 					Cursor.Note.Sample, Cursor.Channel);}
@@ -1006,8 +1000,7 @@ begin
 				begin
 					with Cursor.Note^ do
 					begin
-						Period := PeriodTable[n];
-						Text   := GetNoteText(Period);
+						Pitch := n + 1;
 						if EditMask[EM_SAMPLE] then
 							Sample := CurrentSample;
 
@@ -1030,8 +1023,8 @@ begin
 							Parameter := LastNote.Parameter;
 						end;
 
-						LastNote.Period := Period;
-						LastNote.Text   := Text;
+						//LastNote.Period := Period;
+						LastNote.Pitch  := Pitch;
 						LastNote.Sample := Sample;
 					end;
 
@@ -1286,9 +1279,8 @@ begin
 
 				COL_NOTE, COL_OCTAVE:
 				begin
-					Cursor.Note.Period := 0;
+					Cursor.Note.Pitch := 0;
 					Cursor.Note.Sample := 0; // ???
-					Cursor.Note.Text := GetNoteText(Cursor.Note.Period);
 				end;
 
 				COL_SAMPLE_1, COL_SAMPLE_2:
@@ -1318,10 +1310,9 @@ begin
 			with GetNote(CurrentPattern, Cursor.Channel, Cursor.Row)^ do
 			begin
 				LastNote.Sample := Sample;
-				LastNote.Period := Period;
 				LastNote.Command   := Command;
 				LastNote.Parameter := Parameter;
-				LastNote.Text := Text;
+				LastNote.Pitch := Pitch;
 				Editor.SetSample(Sample);
 			end;
 		end;
@@ -1333,8 +1324,6 @@ begin
 				COL_NOTE:
 					with Cursor.Note^ do
 					begin
-						Period := LastNote.Period;
-
 						if EditMask[EM_SAMPLE] then
 							Sample := LastNote.Sample;
 						if EditMask[EM_VOLUME] then
@@ -1356,7 +1345,7 @@ begin
 							Parameter := LastNote.Parameter;
 						end;
 
-						Text := LastNote.Text;
+						Pitch := LastNote.Pitch;
 						Module.PlayNote(Cursor.Note, Cursor.Channel);
 					end;
 
@@ -1622,19 +1611,17 @@ begin
 				begin
 					Result := True;
 					with Cursor.Note^ do
-					if Period > 0 then
-					begin
-						n := GetPeriodTableOffset(Period) mod 12;
-						if n >= 0 then
+						if Pitch > 0 then
 						begin
-							Period := PeriodTable[n + ((o - 1) * 12)];
-							Text   := GetNoteText(Period);
-							LastNote.Period := Period;
-							LastNote.Text := Text;
-							Module.SetModified;
-							Advance;
+							n := Pitch mod 12;
+							if n >= 0 then
+							begin
+								Pitch := n + ((o - 1) * 12);
+								LastNote.Pitch := Pitch;
+								Module.SetModified;
+								Advance;
+							end;
 						end;
-					end;
 				end;
 			end;
 
@@ -1708,7 +1695,7 @@ begin
 						Cursor.Note.Parameter := Min(64, Cursor.Note.Parameter);
 
 					LastNote.Command := Cursor.Note.Command;
-					LastNote.Text := Cursor.Note.Text;
+					LastNote.Pitch := Cursor.Note.Pitch;
 
 					Module.SetModified;
 					Advance;
@@ -1735,7 +1722,7 @@ begin
 						Advance;
 					end;
 					LastNote.Parameter := Cursor.Note.Parameter;
-					LastNote.Text := Cursor.Note.Text;
+					LastNote.Pitch := Cursor.Note.Pitch;
 					Module.SetModified;
 					Result := True;
 				end;
@@ -1886,10 +1873,10 @@ begin
 		Note := @Module.Notes[CurrentPattern, c, row];
 		s := '    '; // 4 spaces
 
-		if Note.Period = 0 then
+		if Note.Pitch = 0 then
 			sPut(s, 1, CHR_3PERIODS)
 		else
-			sPut(s, 1, NoteText[Note.Text]);
+			sPut(s, 1, NoteText[Note.Pitch]);
 
 		if 	InRange(c,   Selection.Left, Selection.Right)  and
 			InRange(row, Selection.Top,  Selection.Bottom) then
@@ -1915,7 +1902,7 @@ begin
 			fg := ColorFore;			// normal text
 		end;
 
-		if Note.Text >= FirstInvalidNote then
+		if Note.Pitch >= FirstInvalidNote then
 			bg := COL_INVALID;
 
 		Console.Write(s, CX, CY, fg, bg);
