@@ -1376,7 +1376,7 @@ begin
 		Sect := 'Resampling';
 		Cfg.AddBoolean(Sect, 'Resample.Automatic', @Import.Resampling.Enable, True)
 		.SetInfo('Automatic resampling on import', 0, 1, ['Disabled', 'Enabled']);
-		Cfg.AddInteger(Sect, 'Resample.From', @Import.Resampling.ResampleFrom, 29556)
+		Cfg.AddCardinal(Sect, 'Resample.From', @Import.Resampling.ResampleFrom, 29556)
 		.SetInfo('Resample if sample rate exceeds', 0, 44100, []);
 		Cfg.AddByte(Sect, 'Resample.To', @Import.Resampling.ResampleTo, 24)
 		.SetInfo('Resample to note', 0, 35, NoteNames);
