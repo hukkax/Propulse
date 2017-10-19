@@ -14,7 +14,7 @@ uses
 	procedure	ReadITSample(var Moduli: TPTModule; var ModFile: TFileStreamEx;
 				i: Byte; var ips: TImportedSample);
 	function 	ReadbitsIT(var ModFile: TFileStreamEx;
-				n: ShortInt; var srcpos, bitbuf, bitnum: Cardinal): Cardinal;
+				n: Byte; var srcpos, bitbuf, bitnum: Cardinal): Cardinal;
 	function 	DecompressIT(var ModFile: TFileStreamEx; dest: PArrayOfShortInt;
 				len: Cardinal; it215, sixteenbit: Boolean; channels, index: Byte): Cardinal;
 
@@ -92,22 +92,11 @@ begin
 	// convert pitch
 	V := Note.Pitch;
 
-	if V in [1..119] then
-	begin
-		V := V + NOTETRANSPOSE;
-		if (V < 0) or (V > High(PeriodTable)) then
-			V := 0
-		else
-			V := PeriodTable[V];
-		if V = 0 then
-		begin
-			//Inc(Conversion.Missed.Notes);
-			V := $FFFE;
-		end;
-	end
+	if InRange(V, 1, 119) then
+		V := Max(V + NOTETRANSPOSE + 1, 0)
 	else
 	if V >= 254 then
-		V := $FFFF // note off/note cut
+		V := $FF // note off/note cut
 	else
 		V := 0;
 
@@ -213,7 +202,7 @@ begin
 	end;
 
 	// emulate note cut/note off by setting volume to 0
-	if Note.Pitch = $FFFF then
+	if Note.Pitch = $FF then
 	begin
 		Note.Pitch := 0;
 		if C in ProtectedEffects then // don't discard important fx!
@@ -386,8 +375,6 @@ procedure LoadImpulseTracker(var Moduli: TPTModule; var ModFile: TFileStreamEx;
 	SamplesOnly: Boolean = False);
 var
 	os, i, j, V, pattend, row, channel, rowcount: Integer;
-	p: PWordArray;
-	s: TSample;
 	ips: TImportedSample;
 	Note: PExtNote;
 
@@ -670,10 +657,10 @@ end;
 // Impulse Tracker packed sample decompression
 // ==========================================================================
 
-//{$R+}
+{$R-}
 
 function ReadbitsIT(var ModFile: TFileStreamEx;
-	n: ShortInt; var srcpos, bitbuf, bitnum: Cardinal): Cardinal;
+	n: Byte; var srcpos, bitbuf, bitnum: Cardinal): Cardinal;
 var
 	i: Integer;
 	value: Cardinal;
@@ -709,7 +696,7 @@ var
 	blklen: uint16;                // length of compressed data block in samples
 	blkpos: uint16;                // position in block
 	width: uint8;                  // actual "bit width"
-	value: uint32;                 // value read from file to be processed
+	value: Cardinal;               // value read from file to be processed
 	d1, d2: int8;                  // integrator buffers (d2 for it2.15) (8-bit)
 	d1x, d2x: int16;               // integrator buffers (16-bit)
 	v: int8;                       // sample value (8-bit)
@@ -756,7 +743,7 @@ begin
 		bitnum := 0;
 		blkpos := 0;
 		d1x := 0; d2x := 0; // reset integrator buffers
-		d1 := 0; d2 := 0; // reset integrator buffers
+		d1  := 0; d2  := 0;
 
 		//Log('  Reading block (blocksize=%d, width=%d)', [blklen, width]);
 
@@ -770,7 +757,6 @@ begin
 			blklen := Min($8000, len);
 			width := 9;
 		end;
-
 
 		// now uncompress the data block
 		while blkpos < blklen do
@@ -790,7 +776,7 @@ begin
 				if width < 7 then
 				begin
 					// check for "100..."
-					if (value = Cardinal(1 shl (width - 1))) then
+					if (int32(value) = (1 shl (width - 1))) then
 					begin // yes!
 						value := ReadbitsIT(ModFile, 4, srcpos, bitbuf, bitnum) + 1; // read new width
 						if value < width then // and expand it
@@ -805,7 +791,8 @@ begin
 				if width < 17 then
 				begin
 					borderx := ($FFFF shr (17 - width)) - 8; // lower border for width chg
-					if (value > borderx) and (value <= Cardinal(borderx) + 16) then
+					//if (value > borderx) and (value <= borderx + 16) then
+					if (int32(value) > int32(borderx)) and (int32(value) <= int32(borderx) + 16) then
 					begin
 						Dec(value, borderx); // convert width to 1-8
 						if value < width then // and expand it
@@ -827,8 +814,8 @@ begin
 				if width < 16 then
 				begin
 					shift := 16 - width;
-					vx := int16(value shl shift);
-					vx := int16(vx shr shift);
+					vx := Word(value shl shift);
+					vx := Word(vx shr shift);
 				end
 				else
 					vx := int16(value);
@@ -864,7 +851,7 @@ begin
 				if width < 7 then
 				begin
 					// check for "100..."
-					if (value = 1 shl (width - 1)) then
+					if (value = (1 shl (width - 1))) then
 					begin // yes!
 						value := ReadbitsIT(ModFile, 3, srcpos, bitbuf, bitnum) + 1; // read new width
 						if value < width then // and expand it
@@ -891,21 +878,24 @@ begin
 				end
 				else
 				// method 3 (9 bits)
-				if (value and $100) <> 0 then // bit 8 set?
+				if width = 9 then
 				begin
-					width := (value + 1) and $FF; // new width...
-					Continue; // ... and next value
+					if (value and $100) <> 0 then // bit 8 set?
+					begin
+						width := (value + 1) and $FF; // new width...
+						Continue; // ... and next value
+					end;
 				end;
 
 				// now expand value to signed byte
 				if width < 8 then
 				begin
 					shift := 8 - width;
-					v := ShortInt(value shl shift);
-					v := ShortInt(v shr shift);
+					Byte(v) := ShortInt(value shl shift);
+					Byte(v) := ShortInt(v shr shift);
 				end
 				else
-					v := int8(value);
+					v := ShortInt(value);
 
 				// integrate upon the sample values
 				Inc(d1, v);
@@ -932,7 +922,7 @@ begin
 		Dec(len, blklen);
 	end;
 
-//	Log('Done, pos=%d, destpos=%d', [srcpos, destpos] );
+	//Log('Done, pos=%d, destpos=%d', [srcpos, destpos] );
 	Result := srcpos;
 end;
 
