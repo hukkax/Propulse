@@ -208,6 +208,8 @@ begin
 	Result := CompareText(
 		R.Captions[FileScreen.SortMode],
 		L.Captions[FileScreen.SortMode]);
+	if Result = 0 then
+		Result := CompareText(L.Captions[0], R.Captions[0]);
 end;
 
 function SortByExtension(constref L, R: TCWEListItem): Integer;
@@ -215,6 +217,8 @@ begin
 	Result := CompareText(
 		LowerCase(ExtractFileExt(R.Captions[0])),
 		LowerCase(ExtractFileExt(L.Captions[0])));
+	if Result = 0 then
+		Result := CompareText(L.Captions[0], R.Captions[0]);
 end;
 
 function GetParentDir(const Dir: String): String;
