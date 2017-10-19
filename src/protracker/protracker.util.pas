@@ -138,7 +138,7 @@ type
 		Import: packed record
 			Resampling: packed record
 				Enable:				Boolean;
-				ResampleFrom:		Integer;	// Hz
+				ResampleFrom:		Cardinal;	// Hz
 				ResampleTo:			Byte;		// C-1..B-3
 				Quality: 			Byte;		// SOXRQuality[]
 				Normalize: 			Boolean;
@@ -186,10 +186,15 @@ const
 		'C-2','C#2','D-2','D#2','E-2','F-2','F#2','G-2','G#2','A-2','A#2','B-2',
 		'C-3','C#3','D-3','D#3','E-3','F-3','F#3','G-3','G#3','A-3','A#3','B-3' );
 
-	NoteText: array [0..37] of AnsiString = ( CHR_3PERIODS,
+	NoteText: array [0..85] of AnsiString = ( CHR_3PERIODS,
 		'C-1','C#1','D-1','D#1','E-1','F-1','F#1','G-1','G#1','A-1','A#1','B-1',
 		'C-2','C#2','D-2','D#2','E-2','F-2','F#2','G-2','G#2','A-2','A#2','B-2',
 		'C-3','C#3','D-3','D#3','E-3','F-3','F#3','G-3','G#3','A-3','A#3','B-3',
+		// invalid notes
+		'C-4','C#4','D-4','D#4','E-4','F-4','F#4','G-4','G#4','A-4','A#4','B-4',
+		'C-5','C#5','D-5','D#5','E-5','F-5','F#5','G-5','G#5','A-5','A#5','B-5',
+		'C-6','C#6','D-6','D#6','E-6','F-6','F#6','G-6','G#6','A-6','A#6','B-6',
+		'C-7','C#7','D-7','D#7','E-7','F-7','F#7','G-7','G#7','A-7','A#7','B-7',
 		'???'
 	);
 
@@ -290,7 +295,7 @@ const
 	function  SplitString(const aString, aSeparator: String; aMax: Integer = 0): TArrayOfString;
 
 	function  GetPeriodTableOffset(period: Word): Integer;
-	function  GetNoteText(period: Word): Integer;
+	function  PeriodToNote(period: Word): Integer;
 	function  PeriodToHz(period: Word): Cardinal; inline;
 
 	function  LinearToDecibel(linear: Single): Single; inline;
@@ -459,14 +464,14 @@ end;
 
 // returns index to NoteText[]
 //
-function GetNoteText(period: Word): Integer;
+function PeriodToNote(period: Word): Integer;
 var
 	i: Integer;
 begin
 	if period = 0 then Exit(0);
-	for i := 1 to 37 do
+	for i := 1 to High(NoteText) do
 		if period = PeriodTable[i-1] then Exit(i);
-	Result := 37;
+	Result := High(NoteText); //37;
 end;
 
 function PeriodToHz(period: Word): Cardinal;
