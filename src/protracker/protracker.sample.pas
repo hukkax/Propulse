@@ -242,7 +242,7 @@ var
 	L: Integer;
 begin
 	L := High(Data);
-	if (X2 < X1) or (X2 > L) then
+	if ({%H-}X2 < {%H-}X1) or (X2 > L) then
 		X2 := L;
 	if (X1 < 0) or (X1 > L) then
 		X1 := 0;
@@ -1093,14 +1093,12 @@ begin
 			SetLength(Data, NumSamples);
 			DecompressIT(ModFile, @Data[0], NumSamples, (Flags = RS_IT21516), True, 1, Index);
 			for i := 0 to NumSamples-1 do
-				Buffer[i] := SmallInt(Data[i]) * divider;
+				Buffer[i] := ShortInt(Data[i]) * divider;
 		end;
 
-		RS_IT2148S, RS_IT2158S:
-			Log(TEXT_WARNING + 'Unhandled: Sample %d is packed stereo!', [Index]);
-
+		RS_IT2148S, RS_IT2158S,
 		RS_IT21416S, RS_IT21516S:
-			Log(TEXT_WARNING + 'Unhandled: Sample %d is packed, stereo and 16-bit!', [Index]);
+			Log(TEXT_WARNING + 'Unhandled: Sample %d is packed stereo!', [Index]);
 
 	end;
 
