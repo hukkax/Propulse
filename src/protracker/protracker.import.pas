@@ -282,7 +282,7 @@ begin
 		end;
 
 
-		for chan := 0 to AMOUNT_CHANNELS-1 {Min(3, Pattern.UsedChannels-1)} do
+		for chan := 0 to AMOUNT_CHANNELS-1 do
 		begin
 			for row := 0 to Min(63, Pattern.Rows-1) do
 			begin
@@ -293,8 +293,6 @@ begin
 				DstNote.Command   := SrcNote.Command;
 				DstNote.Parameter := SrcNote.Parameter;
 				DstNote.Sample    := SrcNote.Instrument;
-				if DstNote.Pitch >= 37 {High(NoteText)} then
-					Inc(Conversion.Missed.Notes);
 			end;
 		end;
 

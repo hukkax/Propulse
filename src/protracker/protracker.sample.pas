@@ -1006,8 +1006,12 @@ begin
 
 		// 16-bit signed PCM data
 		RS_PCM16S:
-			for i := 0 to NumSamples - 1 do
-				Data[i] := (ModFile.Read16 div 256);
+		begin
+			SetLength(Data16, NumSamples);
+			ModFile.Read(Data16[0], NumSamples);
+			for i := 0 to NumSamples-1 do
+				Data[i] := (Data16[i] div 256);
+		end;
 
 		// IT 2.14 compressed samples
 		RS_IT2148, RS_IT2158:

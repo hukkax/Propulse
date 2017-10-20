@@ -59,7 +59,7 @@ var
 
 procedure ConvertITCommand(var Note: TExtNote; var Conversion: TConversion);
 const
-	NOTETRANSPOSE = -48;
+	NOTETRANSPOSE = -47;
 	ProtectedEffects = [$B, $D, $F];
 	VolumeOverridesEffects = [$0, $A, $B, $E];
 var
@@ -93,7 +93,15 @@ begin
 	V := Note.Pitch;
 
 	if InRange(V, 1, 119) then
-		V := Max(V + NOTETRANSPOSE + 1, 0)
+	begin
+		Inc(V, NOTETRANSPOSE);
+		if not InRange(V, 1, 36) then
+		begin
+			Inc(Conversion.Missed.Notes);
+			if V < 1 then
+				V := High(NoteText);
+		end;
+	end
 	else
 	if V >= 254 then
 		V := $FF // note off/note cut

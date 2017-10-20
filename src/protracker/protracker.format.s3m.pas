@@ -43,10 +43,11 @@ var
 
 procedure ConvertS3MCommand(var Note: TExtNote; var Conversion: TConversion);
 const
-	NOTETRANSPOSE = -48;
+	NOTETRANSPOSE = -47;
 	ProtectedEffects = [$B, $D, $F];
 var
-	C, P, V: Byte;
+	C, P: Byte;
+	V: Integer;
 
 	procedure SetNote(Cmd: Byte; Prm: Integer = -1);
 	begin
@@ -75,7 +76,15 @@ begin
 	V := Note.Pitch;
 
 	if InRange(V, 1, 119) then
-		V := Max(V + NOTETRANSPOSE + 1, 0)
+	begin
+		Inc(V, NOTETRANSPOSE);
+		if not InRange(V, 1, 36) then
+		begin
+			Inc(Conversion.Missed.Notes);
+			if V < 1 then
+				V := High(NoteText);
+		end;
+	end
 	else
 	if V >= 254 then
 		V := $FF // note off/note cut
@@ -268,10 +277,9 @@ begin
 	if (samtype = 1) and (s.ByteLength > 0) then // sample used
 	begin
 		ModFile.SeekTo(Datapos); // jump to sample data
-
+		ModFile.Read(s.Data[0], s.ByteLength);
 		for j := 0 to s.ByteLength-1 do
-			ShortInt(s.Data[j]) := ModFile.Read8 - 128;
-
+			ShortInt(s.Data[j]) := s.Data[j] - 128;
 		s.ZeroFirstWord;
 	end;
 end;
