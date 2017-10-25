@@ -350,7 +350,7 @@ uses
 	MainWindow,
 	FileStreamEx, fpwavwriter, fpwavformat,
 	ProTracker.Editor,
-	ProTracker.Format.IT, ProTracker.Format.S3M, ProTracker.Format.P61,
+	ProTracker.Import, ProTracker.Format.IT, ProTracker.Format.S3M, ProTracker.Format.P61,
 	CWE.Dialogs;
 
 var
@@ -1137,6 +1137,7 @@ var
 	bytes: array [0..3] of Byte;
 	sFile: AnsiString;
 	Origin: Cardinal;
+	Importer: TImportedModule;
 
 	// powerpacker decrunch
 	ppPackLen, ppUnpackLen: uint32;
@@ -1160,9 +1161,9 @@ label
 begin
 	Result := False;
 	Warnings := False;
-
 	lateVerSTKFlag := False;
 	mightBeIT := False;
+	Importer := nil;
 
 	// Read file data
 	//
@@ -1291,7 +1292,7 @@ begin
 		if mightBeIT then
 		begin
 			// import IT
-			LoadImpulseTracker(Self, ModFile, SamplesOnly);
+			Importer := TITModule.Create(Self, ModFile, SamplesOnly);
 			goto Done;
 		end
 		else
@@ -1316,7 +1317,7 @@ begin
 			ModFile.Read(TempFilename[1], 4);
 			if TempFilename = 'SCRM' then
 			begin
-				LoadScreamTracker(Self, ModFile, SamplesOnly);
+				Importer := TS3MModule.Create(Self, ModFile, SamplesOnly);
 				goto Done;
 			end;
 		end;
@@ -1675,6 +1676,9 @@ begin
 // ======================================================================
 Done:
 // ======================================================================
+
+	if Importer <> nil then
+		Importer.Free;
 
 	ModFile.Free;
 	Modified := False;

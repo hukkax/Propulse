@@ -3,9 +3,8 @@ unit ProTracker.Import;
 interface
 
 uses
-	Generics.Collections,
-	ProTracker.Util,
-	ProTracker.Player;
+	Generics.Collections, FileStreamEx,
+	ProTracker.Util, ProTracker.Player, ProTracker.Sample;
 
 const
 	OW_NONE				= 0; // don't overwrite any effects
@@ -14,19 +13,29 @@ const
 
 type
 	TConversion = record
+
+		Module:             TPTModule;
+		VolEffects:         Cardinal;
+
 		Missed: record
 			Notes,
 			Effects,
 			Volumes,
 			VolEffects,
-			Tracks:		Cardinal;
+			Tracks:         Cardinal;
 		end;
+
 		Want: record
 			InsertTempo,
 			InsertPattBreak,
-			FillParams:		Boolean;
+			FillParams:     Boolean;
 		end;
-		VolEffects: 	Cardinal;
+
+		Info: record
+			OrigSpeed,
+			OrigTempo:      Byte;
+		end;
+
 	end;
 
 	TExtNote = record
@@ -59,8 +68,26 @@ type
 
 	TExtPatternList = TObjectList<TExtPattern>;
 
-	procedure ProcessConvertedPatterns(var Module: TPTModule;
-		var Patterns: TExtPatternList; var Conversion: TConversion);
+
+	TImportedModule = class
+	protected
+		Module:      TPTModule;
+		Conversion:  TConversion;
+		Patterns:    TExtPatternList;
+		ModFile:     TFileStreamEx;
+		SamplesOnly: Boolean;
+		PrevParam:   array[0..255] of Byte;
+	public
+		procedure	LoadFromFile; virtual;
+		procedure	ReadSample(i: Byte; var ips: TImportedSample); virtual; abstract;
+		procedure	ProcessConvertedPatterns;
+		procedure	ConvertCommand(var Note: TExtNote); virtual; abstract;
+		procedure	Finish;
+
+		constructor	Create(var aModule: TPTModule; var aModFile: TFileStreamEx;
+			aSamplesOnly: Boolean = False); virtual;
+		destructor	Destroy; override;
+	end;
 
 
 implementation
@@ -68,133 +95,45 @@ implementation
 uses
 	Math, SysUtils;
 
+{ TImportedModule }
 
-{ TExtPattern }
-
-constructor TExtPattern.Create(NumChannels, NumRows: Byte);
+constructor TImportedModule.Create(var aModule: TPTModule;
+	var aModFile: TFileStreamEx; aSamplesOnly: Boolean);
 begin
 	inherited Create;
 
-	with EmptyNote do
+	Module := aModule;
+	ModFile := aModFile;
+	SamplesOnly := aSamplesOnly;
+
+	ZeroMemory(@Conversion, SizeOf(Conversion));
+
+	Conversion.Module := aModule;
+	with Conversion.Want do
 	begin
-		Instrument := 0;
-		Pitch := 0;
-		Command := 0;
-		Parameter := 0;
-		Volume := 64;
+		InsertTempo := True;		// insert tempo effect to first pattern?
+		InsertPattBreak := True;	// add pattern breaks to patterns < 64 rows?
+		FillParams := True;			// compensate for PT's lack of effect memory in some fx?
 	end;
 
-	Resize(NumChannels, NumRows, True);
+	Patterns := TExtPatternList.Create(True);
+
+	LoadFromFile;
 end;
 
-procedure TExtPattern.Resize(NumChannels, NumRows: Byte; Clear: Boolean = False);
-var
-	c, r: Integer;
+destructor TImportedModule.Destroy;
 begin
-	Channels := NumChannels;
-	c := Max(NumChannels, AMOUNT_CHANNELS-1);
-
-	Rows := NumRows;
-	UsedChannels := 0;
-
-	SetLength(Notes, c, NumRows);
-
-	if Clear then
-	begin
-		for c := 0 to c-1 do
-			for r := 0 to Rows-1 do
-				Notes[c, r] := EmptyNote;
-	end;
+	Finish;
+	Patterns.Free;
+	inherited Destroy;
 end;
 
-function TExtPattern.FindFreeEffectSlot(row: Byte; var Note: PExtNote;
-	AllowOverwrite: Byte = OW_NONE): Boolean;
-var
-	chan: Integer;
-	TmpNote: PExtNote;
+procedure TImportedModule.LoadFromFile;
 begin
-	Result := False;
-
-	for chan := AMOUNT_CHANNELS-1 downto 0 do
-	begin
-		TmpNote := @Notes[chan, row];
-		if (TmpNote.Command = 0) and (TmpNote.Parameter = 0) then
-		begin
-			Note := TmpNote;
-			Exit(True);
-		end;
-	end;
-
-	// not found
-	if AllowOverwrite = OW_NONE then Exit;
-
-	// overwrite a volume command instead if wanted
-	for chan := AMOUNT_CHANNELS-1 downto 0 do
-	begin
-		TmpNote := @Notes[chan, row];
-		if (TmpNote.Command = $C) then
-		begin
-			if (AllowOverwrite = OW_VOLUME_NONZERO) and
-				(TmpNote.Parameter = $00) then Exit; // don't overwrite C00?
-			Note := TmpNote;
-			Exit(True);
-		end;
-	end;
-end;
-
-function TExtPattern.InsertTempoEffect(var Module: TPTModule; tempo, speed: Byte): Boolean;
-var
-	channel: Integer;
-	Note: PExtNote;
-begin
-	Result := False;
-
-	Log('Default speed=%d, tempo=%d.', [speed, tempo]);
-
-	if (tempo = 125) and (speed = 6) then Exit;
-
-	// see if tempo command already exists at pattern start
-	for channel := AMOUNT_CHANNELS-1 downto 0 do
-	begin
-		Note := @Notes[channel, 0];
-		if (Note.Command = $F) and (Note.Parameter <> 0) then
-			Exit;
-	end;
-
-	if tempo <> 125 then
-	begin
-		if FindFreeEffectSlot(0, Note, OW_VOLUME_ANY) then
-		begin
-			Note.Command := $F;
-			Note.Parameter := tempo;
-			Log('Inserted tempo command F%s at pattern %d.', [IntToHex(tempo, 2), Index]);
-		end
-		else
-			Log(TEXT_WARNING + 'Couldn''t find slot to insert tempo command!');
-	end;
-
-	if speed <> 6 then
-	begin
-		if FindFreeEffectSlot(0, Note, OW_VOLUME_ANY) then
-		begin
-			Note.Command := $F;
-			Note.Parameter := speed;
-			Log('Inserted speed command F%s at pattern %d.', [IntToHex(speed, 2), Index]);
-		end
-		else
-			Log(TEXT_WARNING + 'Couldn''t find slot to insert speed command!');
-	end;
-end;
-
-{ Processing }
-
-// Splits long patterns into ProTracker sizes and updates orderlist;
-// inserts pattern break fx as appropriate; fills in effect values for
-// effects that don't have memory in PT.
-// Notedata in input should already use ProTracker effects and limitations.
 //
-procedure ProcessConvertedPatterns(var Module: TPTModule; var Patterns: TExtPatternList;
-	var Conversion: TConversion);
+end;
+
+procedure TImportedModule.ProcessConvertedPatterns;
 var
 	i, PC, patt, chan, row, totalchannels: Integer;
 	Pattern, NewPattern: TExtPattern;
@@ -328,5 +267,155 @@ begin
 			Log('%d volume column effects converted.', [VolEffects]);
 	end;
 end;
+
+// Process imported data after showing import options dialog
+procedure TImportedModule.Finish;
+var
+	Pattern: TExtPattern;
+	c, r: Integer;
+	Note: PExtNote;
+begin
+	// convert note pitches and effects from IT to PT
+	for Pattern in Patterns do
+		for c := 0 to Pattern.UsedChannels-1 do
+			for r := 0 to Pattern.Rows-1 do
+			begin
+				Note := @Pattern.Notes[c, r];
+				ConvertCommand(Note^);
+			end;
+
+	// insert speed/tempo command at first pattern in orderlist if required
+	if (Conversion.Want.InsertTempo) and (Patterns.Count >= Module.OrderList[0]) then
+		Patterns[Module.OrderList[0]].InsertTempoEffect(Module,
+			Conversion.Info.OrigTempo, Conversion.Info.OrigSpeed);
+
+	// convert intermediate format patterns to ProTracker format
+	ProcessConvertedPatterns;
+end;
+
+{ TExtPattern }
+
+constructor TExtPattern.Create(NumChannels, NumRows: Byte);
+begin
+	inherited Create;
+
+	with EmptyNote do
+	begin
+		Instrument := 0;
+		Pitch := 0;
+		Command := 0;
+		Parameter := 0;
+		Volume := 64;
+	end;
+
+	Resize(NumChannels, NumRows, True);
+end;
+
+procedure TExtPattern.Resize(NumChannels, NumRows: Byte; Clear: Boolean = False);
+var
+	c, r: Integer;
+begin
+	Channels := NumChannels;
+	c := Max(NumChannels, AMOUNT_CHANNELS-1);
+
+	Rows := NumRows;
+	UsedChannels := 0;
+
+	SetLength(Notes, c, NumRows);
+
+	if Clear then
+	begin
+		for c := 0 to c-1 do
+			for r := 0 to Rows-1 do
+				Notes[c, r] := EmptyNote;
+	end;
+end;
+
+function TExtPattern.FindFreeEffectSlot(row: Byte; var Note: PExtNote;
+	AllowOverwrite: Byte = OW_NONE): Boolean;
+var
+	chan: Integer;
+	TmpNote: PExtNote;
+begin
+	Result := False;
+
+	for chan := AMOUNT_CHANNELS-1 downto 0 do
+	begin
+		TmpNote := @Notes[chan, row];
+		if (TmpNote.Command = 0) and (TmpNote.Parameter = 0) then
+		begin
+			Note := TmpNote;
+			Exit(True);
+		end;
+	end;
+
+	// not found
+	if AllowOverwrite = OW_NONE then Exit;
+
+	// overwrite a volume command instead if wanted
+	for chan := AMOUNT_CHANNELS-1 downto 0 do
+	begin
+		TmpNote := @Notes[chan, row];
+		if (TmpNote.Command = $C) then
+		begin
+			if (AllowOverwrite = OW_VOLUME_NONZERO) and
+				(TmpNote.Parameter = $00) then Exit; // don't overwrite C00?
+			Note := TmpNote;
+			Exit(True);
+		end;
+	end;
+end;
+
+function TExtPattern.InsertTempoEffect(var Module: TPTModule; tempo, speed: Byte): Boolean;
+var
+	channel: Integer;
+	Note: PExtNote;
+begin
+	Result := False;
+
+	Log('Default speed=%d, tempo=%d.', [speed, tempo]);
+
+	if (tempo = 125) and (speed = 6) then Exit;
+
+	// see if tempo command already exists at pattern start
+	for channel := AMOUNT_CHANNELS-1 downto 0 do
+	begin
+		Note := @Notes[channel, 0];
+		if (Note.Command = $F) and (Note.Parameter <> 0) then
+			Exit;
+	end;
+
+	if tempo <> 125 then
+	begin
+		if FindFreeEffectSlot(0, Note, OW_VOLUME_ANY) then
+		begin
+			Note.Command := $F;
+			Note.Parameter := tempo;
+			Log('Inserted tempo command F%s at pattern %d.', [IntToHex(tempo, 2), Index]);
+		end
+		else
+			Log(TEXT_WARNING + 'Couldn''t find slot to insert tempo command!');
+	end;
+
+	if speed <> 6 then
+	begin
+		if FindFreeEffectSlot(0, Note, OW_VOLUME_ANY) then
+		begin
+			Note.Command := $F;
+			Note.Parameter := speed;
+			Log('Inserted speed command F%s at pattern %d.', [IntToHex(speed, 2), Index]);
+		end
+		else
+			Log(TEXT_WARNING + 'Couldn''t find slot to insert speed command!');
+	end;
+end;
+
+{ Processing }
+
+// Splits long patterns into ProTracker sizes and updates orderlist;
+// inserts pattern break fx as appropriate; fills in effect values for
+// effects that don't have memory in PT.
+// Notedata in input should already use ProTracker effects and limitations.
+//
 
 end.

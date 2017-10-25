@@ -1010,7 +1010,7 @@ begin
 			SetLength(Data16, NumSamples);
 			ModFile.Read(Data16[0], NumSamples);
 			for i := 0 to NumSamples-1 do
-				Data[i] := (Data16[i] div 256);
+				Data[i] := Word(Data16[i]) div 256;
 		end;
 
 		// IT 2.14 compressed samples
@@ -1022,7 +1022,7 @@ begin
 			SetLength(Data16, NumSamples);
 			DecompressIT(ModFile, @Data16[0], NumSamples, (Flags = RS_IT21516), True, 1, Index);
 			for i := 0 to NumSamples-1 do
-				Data[i] := Data16[i] div 256;
+				Data[i] := Word(Data16[i]) div 256;
 		end;
 
 		RS_IT2148S, RS_IT2158S:

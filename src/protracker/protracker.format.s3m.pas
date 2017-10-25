@@ -7,20 +7,24 @@ interface
 
 uses
 	FileStreamEx, hkaFileUtils,
-	ProTracker.Util, ProTracker.Player, ProTracker.Sample;
+	ProTracker.Util, ProTracker.Import,
+	ProTracker.Player, ProTracker.Sample;
 
-	procedure	LoadScreamTracker(var Moduli: TPTModule; var ModFile: TFileStreamEx;
-				SamplesOnly: Boolean = False);
-	procedure	ReadS3MSample(var Moduli: TPTModule; var ModFile: TFileStreamEx;
-				i: Byte; var ips: TImportedSample);
+type
+	TS3MModule = class(TImportedModule)
+	public
+		procedure	LoadFromFile; override;
+		procedure	ReadSample(i: Byte; var ips: TImportedSample); override;
+		procedure	ConvertCommand(var Note: TExtNote); override;
+	end;
+
 
 implementation
 
 uses
 	SysUtils, Math,
 	//soxr,
-	CWE.Core, Screen.Log,
-	ProTracker.Import;
+	CWE.Core, Screen.Log;
 
 const
 	CMD_A = 1;	CMD_B = 2;
@@ -37,11 +41,8 @@ const
 	CMD_W = 23;	CMD_X = 24;
 	CMD_Y = 25;	CMD_Z = 26;
 
-var
-	PrevParam: array[0..255] of Byte;
 
-
-procedure ConvertS3MCommand(var Note: TExtNote; var Conversion: TConversion);
+procedure TS3MModule.ConvertCommand(var Note: TExtNote);
 const
 	NOTETRANSPOSE = -47;
 	ProtectedEffects = [$B, $D, $F];
@@ -191,8 +192,7 @@ end;
         +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
   xxxx:	sampledata
 }
-procedure ReadS3MSample(var Moduli: TPTModule; var ModFile: TFileStreamEx;
-	i: Byte; var ips: TImportedSample);
+procedure TS3MModule.ReadSample(i: Byte; var ips: TImportedSample);
 var
 	s: TSample;
 	samtype, flag: Byte;
@@ -210,10 +210,10 @@ begin
 		Continue;
 	end;}
 
-	if Moduli.SamplesOnly then
+	if Module.SamplesOnly then
 	begin
 		ips := TImportedSample.Create;
-		Moduli.ImportInfo.Samples.Add(ips);
+		Module.ImportInfo.Samples.Add(ips);
 	end
 	else
 		ips := nil;
@@ -223,7 +223,7 @@ begin
 	Datapos := ModFile.Read16 * $10; // location of sample data in file
 
 	if ips = nil then
-		s := Moduli.Samples[i]
+		s := Module.Samples[i]
 	else
 		s := ips;
 
@@ -284,8 +284,7 @@ begin
 	end;
 end;
 
-procedure LoadScreamTracker(var Moduli: TPTModule; var ModFile: TFileStreamEx;
-	SamplesOnly: Boolean = False);
+procedure TS3MModule.LoadFromFile;
 const
 	S3M_EOR			= 0;	// End of row
 	S3M_CH_MASK 	= $1F;	// Channel
@@ -296,48 +295,31 @@ var
 	os, i, j, pattlen, row, channel: Integer;
 	ips: TImportedSample;
 	Note: PExtNote;
-
 	SamPtrs: array of Cardinal;
 	PattPtrs: array[0..MAX_PATTERNS] of Cardinal;
-
 	flag, b: Byte;
-
 	Pattern: TExtPattern;
-	Patterns: TExtPatternList;
-
-	Conversion: TConversion;
 begin
 	for i := 0 to 255 do
 		PrevParam[i] := 0;
-
-	ZeroMemory(@Conversion, SizeOf(Conversion));
-
-	with Conversion.Want do
-	begin
-		InsertTempo := True;		// insert tempo effect to first pattern?
-		InsertPattBreak := True;	// add pattern breaks to patterns < 64 rows?
-		FillParams := True;			// compensate for PT's lack of effect memory in some fx?
-	end;
 
 	if not SamplesOnly then
 	begin
 		ChangeScreen(TCWEScreen(LogScreen));
 		Log('$6Importing Scream Tracker Module.');
 
-		Patterns := TExtPatternList.Create(True);
-
 		ModFile.SeekTo($0);
-		ModFile.Read(Moduli.Info.Title[0], 20);
+		ModFile.Read(Module.Info.Title[0], 20);
 	end;
 
 	ModFile.SeekTo($20); // 0020: OrdNum SmpNum PatNum Flags Cwt/v Ffv
 
-	Moduli.Info.OrderCount := ModFile.Read16; // # of Orders
+	Module.Info.OrderCount := ModFile.Read16; // # of Orders
 	os := ModFile.Read16; // # of Samples
-	Moduli.Info.PatternCount := Min(ModFile.Read16-1, MAX_PATTERNS-1); // # of Patterns
+	Module.Info.PatternCount := Min(ModFile.Read16-1, MAX_PATTERNS-1); // # of Patterns
 
 	if not SamplesOnly then
-		Log('%d samples and %d patterns.', [os, Moduli.Info.PatternCount+1]);
+		Log('%d samples and %d patterns.', [os, Module.Info.PatternCount+1]);
 
 	flag := Byte(ModFile.Read16); // flags
 
@@ -349,16 +331,16 @@ begin
 	//
 	ModFile.SeekTo($60);
 	row := 0;
-	for i := 1 to Moduli.Info.OrderCount do
+	for i := 1 to Module.Info.OrderCount do
 	begin
 		channel := ModFile.Read8;
 		if channel < MAX_PATTERNS then
 		begin
-			Moduli.OrderList[row] := channel;
+			Module.OrderList[row] := channel;
 			Inc(row);
 		end;
 	end;
-	Moduli.Info.OrderCount := row;
+	Module.Info.OrderCount := row;
 
 	// read sample offsets
 	//
@@ -369,11 +351,11 @@ begin
 
 	// read pattern offsets
 	//
-	for i := 0 to Min(Moduli.Info.PatternCount, MAX_PATTERNS-1) do
+	for i := 0 to Min(Module.Info.PatternCount, MAX_PATTERNS-1) do
 		PattPtrs[i] := ModFile.Read16 * $10;
 
 	if SamplesOnly then
-		Moduli.ImportInfo.Samples.Clear
+		Module.ImportInfo.Samples.Clear
 	else
 		channel := Min(channel, 30);
 
@@ -384,7 +366,7 @@ begin
 		ips := nil;
 		os := SamPtrs[i];
 		ModFile.SeekTo(os);
-		ReadS3MSample(Moduli, ModFile, i, ips);
+		ReadSample(i, ips);
 	end;
 
 	if SamplesOnly then
@@ -392,7 +374,7 @@ begin
 
 	// read and convert pattern data
 	//
-	for i := 0 to Min(Moduli.Info.PatternCount, MAX_PATTERNS-1) do
+	for i := 0 to Min(Module.Info.PatternCount, MAX_PATTERNS-1) do
 	begin
 		if PattPtrs[i] = 0 then
 		begin
@@ -427,6 +409,9 @@ begin
 			end;
 
 			channel := b and S3M_CH_MASK;
+			if channel >= Pattern.UsedChannels then
+				Pattern.UsedChannels := channel + 1;
+
 			Note := @Pattern.Notes[channel, row];
 			Note.Volume := $FF; // temporary
 
@@ -459,28 +444,13 @@ begin
 
 		end; // pattern unpacking
 
-		// convert note pitches and effects from S3M to PT before additional processing
-		for channel := 0 to 3 do
-			for row := 0 to 63 do
-			begin
-				Note := @Pattern.Notes[channel, row];
-				ConvertS3MCommand(Note^, Conversion);
-			end;
 	end;
 
-	// insert speed/tempo command at first pattern in orderlist if required
-	if (Conversion.Want.InsertTempo) and (Patterns.Count >= Moduli.OrderList[0]) then
-	begin
-		ModFile.SeekTo($31);
-		i := ModFile.Read8; // tempo
-		j := ModFile.Read8; // speed
-		Patterns[Moduli.OrderList[0]].InsertTempoEffect(Moduli, j, i);
-	end;
-
-	// convert intermediate format patterns to ProTracker format
-	ProcessConvertedPatterns(Moduli, Patterns, Conversion);
-
-	Patterns.Free;
+	ModFile.SeekTo($31);
+	Conversion.Info.OrigTempo := ModFile.Read8;
+	Conversion.Info.OrigSpeed := ModFile.Read8;
 end;
 
+
 end.
+
