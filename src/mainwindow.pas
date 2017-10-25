@@ -407,7 +407,11 @@ begin
 	else
 	begin
 		if Assigned(Module) then
+		begin
+			if not TempModule.Warnings then
+				TempModule.Warnings := Module.Warnings;
 			Module.Free;
+		end;
 		Module := TempModule;
 
 		if not Module.Warnings then
@@ -447,6 +451,7 @@ begin
 			//ChangeScreen(TCWEScreen(LogScreen))
 		end;
 
+		Module.Warnings := False;
 	end;
 end;
 
