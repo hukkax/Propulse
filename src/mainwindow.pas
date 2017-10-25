@@ -367,52 +367,64 @@ end;
 
 procedure TWindow.DoLoadModule(const Filename: String);
 
-	procedure ResetModule;
+	function ResetModule: TPTModule;
 	begin
-		if Assigned(Module) then
-			Module.Free;
+		Result := TPTModule.Create(True, False);
 
-		Module := TPTModule.Create(True, False);
-
-		Module.OnSpeedChange := ModuleSpeedChanged;
-		Module.OnPlayModeChange := PlayModeChanged;
-		Module.OnModified := PatternEditor.SetModified;
+		Result.OnSpeedChange := ModuleSpeedChanged;
+		Result.OnPlayModeChange := PlayModeChanged;
+		Result.OnModified := PatternEditor.SetModified;
 	end;
 
 var
 	OK, AltMethod: Boolean;
+	TempModule: TPTModule;
 	S: AnsiString;
 begin
-	ResetModule;
+	TempModule := ResetModule;
 	AltMethod := False;
 
 	if Filename <> '' then
 	begin
-		OK := Module.LoadFromFile(Filename);
-		if not OK then
+		OK := TempModule.LoadFromFile(Filename);
+		if not OK then // try again in case file is broken
 		begin
-			Module.Warnings := False;
+			TempModule.Warnings := False;
 			AltMethod := True;
-			OK := Module.LoadFromFile(Filename, True);
+			OK := TempModule.LoadFromFile(Filename, True);
 		end;
 	end
 	else
 		OK := True;
 
-	Module.PlayPos.Order := 0;
-	CurrentPattern := Module.OrderList[0];
-	CurrentSample := 1;
-	Editor.Reset;
-	Module.SetModified(False, True);
-
 	if not OK then
 	begin
+		TempModule.Free;
 		Log('');
 		ChangeScreen(TCWEScreen(LogScreen));
-		ResetModule;
+		Exit;
 	end
 	else
 	begin
+		if Assigned(Module) then
+			Module.Free;
+		Module := TempModule;
+
+		if not Module.Warnings then
+			Log(TEXT_SUCCESS + 'Load success.')
+		else
+			Log(TEXT_FAILURE + 'Loaded with errors/warnings.');
+		Log('-');
+
+		if Stream <> 0 then
+			BASS_ChannelPlay(Stream, True);
+
+		Module.PlayPos.Order := 0;
+		CurrentPattern := Module.OrderList[0];
+		CurrentSample := 1;
+		Editor.Reset;
+		Module.SetModified(False, True);
+
 		ChangeScreen(TCWEScreen(Editor));
 
 		Editor.SetSample(1);
@@ -428,11 +440,13 @@ begin
 			else
 				S := '';
 			if AltMethod then
-				S := S + 'An alternate method was used for loading.' + CHAR_NEWLINE;
+				S := S + 'The module was loaded from a nonstandard location,' + CHAR_NEWLINE +
+					'indicating a broken or non-module file.' + CHAR_NEWLINE;
 			ModalDialog.MultiLineMessage('Module loaded',
 				S + 'See the Message Log for more info.');
 			//ChangeScreen(TCWEScreen(LogScreen))
 		end;
+
 	end;
 end;
 

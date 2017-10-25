@@ -1694,18 +1694,6 @@ Done:
 
 	Result := True;
 	Info.Filename := Filename;
-
-	if IsMaster then
-	begin
-		if not Warnings then
-			Log(TEXT_SUCCESS + 'Load success.')
-		else
-			Log(TEXT_FAILURE + 'Loaded with errors/warnings.');
-		Log('-');
-
-		if Stream <> 0 then
-			BASS_ChannelPlay(Stream, True);
-	end;
 end;
 
 procedure TPTModule.RepostChanges;
@@ -1853,7 +1841,7 @@ begin
 
 	PlayMode := PLAY_STOPPED;
 
-	if (IsMaster) and (Stream <> 0) then
+	if (Self = Module) and (IsMaster) and (Stream <> 0) then
 		BASS_ChannelStop(Stream);
 end;
 
