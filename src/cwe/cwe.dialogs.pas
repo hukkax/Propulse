@@ -69,7 +69,7 @@ type
 		procedure	ShowMessage(const Caption, Text: AnsiString);
 		procedure 	MultiLineMessage(const Caption, Text: AnsiString); overload;
 		procedure 	MultiLineMessage(const Caption: AnsiString; const Lines: TStrings;
-					Rewrap: Boolean = False; SkipFirstLine: Boolean = False);
+					Rewrap: Boolean = False; SkipFirstLine: Boolean = False; MaxWidth: Byte = 50);
 	end;
 
 	function InModalDialog: Boolean; inline;
@@ -407,18 +407,20 @@ begin
 end;
 
 procedure TCWEDialog.MultiLineMessage(const Caption: AnsiString; const Lines: TStrings;
-	Rewrap: Boolean = False; SkipFirstLine: Boolean = False);
+	Rewrap: Boolean = False; SkipFirstLine: Boolean = False; MaxWidth: Byte = 50);
 var
 	Memo: TCWEMemo;
-	WrapWidth, i, x, H: Integer;
+	WrapWidth, i, x, W, H: Integer;
 	S, DS: AnsiString;
 	sl: TStringList;
-const
-	W = 49;
 begin
 	if not Assigned(Lines) then Exit;
 
-	WrapWidth := W-3; //Memo.Width+2;
+	WrapWidth := 20;
+	for W := 0 to Lines.Count-1 do
+		WrapWidth := Max(WrapWidth, Length(Lines[W]));
+	WrapWidth := Min(MaxWidth, WrapWidth);
+
 	sl := TStringList.Create;
 
 	if Rewrap then
@@ -443,17 +445,27 @@ begin
 			else
 				DS := DS + S[x];
 		end;
+
+		W := 0;
+		for i := 0 to sl.Count-1 do
+			W := Max(W, Length(sl[i]));
 	end
 	else
+	begin
 		sl.AddStrings(Lines);
+		W := WrapWidth;
+	end;
 
 	// delete blank trailing lines
 	for i := sl.Count-1 downto 0 do
+	begin
 		if sl[i] <> '' then
 			Break
 		else
 			sl.Delete(i);
+	end;
 
+	W := Max(W + 4, 11);
 	H := Min(sl.Count+5, Console.Height - 8);
 
 	Dialog := CreateDialog(0, Bounds(
@@ -461,8 +473,7 @@ begin
 		(Console.Height div 2) - (H div 2), W-1, H),
 		 Caption);
 
-	Memo := TCWEMemo.Create(Dialog, '', '',
-		Types.Rect(1, 2, W-3, H-3), True);
+	Memo := TCWEMemo.Create(Dialog, '', '', Types.Rect(1, 2, W-3, H-3), True);
 	Memo.Border.Pixel := True;
 
 	for i := 0 to sl.Count-1 do
@@ -472,7 +483,7 @@ begin
 
 	Memo.ScrollTo(0);
 
-	AddResultButton(btnOK, 'OK', W div 2 - 3, H-2, True);
+	AddResultButton(btnOK, 'OK', W div 2 - 4, H-2, True);
 	Show;
 end;
 
