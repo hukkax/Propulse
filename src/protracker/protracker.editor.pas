@@ -1876,7 +1876,7 @@ begin
 		if Note.Pitch = 0 then
 			sPut(s, 1, CHR_3PERIODS)
 		else
-			sPut(s, 1, NoteText[Note.Pitch]);
+			sPut(s, 1, NoteText[Min(Note.Pitch, High(NoteText))]);
 
 		if 	InRange(c,   Selection.Left, Selection.Right)  and
 			InRange(row, Selection.Top,  Selection.Bottom) then
