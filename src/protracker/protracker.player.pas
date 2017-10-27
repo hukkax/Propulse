@@ -1129,13 +1129,13 @@ function TPTModule.LoadFromFile(const Filename: String; Force: Boolean = False):
 const
 	TEXT_INVALIDMOD = 'Invalid .MOD file: ';
 var
-	os, i, j, patt, row, ch: Integer;
+	os, i, j, patt, row, ch, loopOverflow: Integer;
 	s: TSample;
 	Note: PNote;
 	mightBeSTK, mightBeIT, lateVerSTKFlag: Boolean;
 	ModFile: TFileStreamEx;
 	bytes: array [0..3] of Byte;
-	sFile: AnsiString;
+	sFile, WarnText: AnsiString;
 	Origin: Cardinal;
 	Importer: TImportedModule;
 
@@ -1356,6 +1356,8 @@ begin
 			Continue;
 		end;
 
+		WarnText := '';
+
 		// index 23 of s.text is already zeroed
 		//ModFile.ReadBytes(PByte(@s.Name[0]), 22);
 		for j := 0 to 21 do
@@ -1374,34 +1376,25 @@ begin
 		s.Volume := Min(64, ModFile.ReadByte);
 
 		s.LoopStart  := ModFile.Read16R; // repeat
-		s.LoopLength := ModFile.Read16R; // replen
+		s.LoopLength := Max(ModFile.Read16R, 2); // replen
 
 		if (mightBeSTK) and (s.LoopStart > 0) then
 			s.LoopStart := s.LoopStart div 2;
-		if s.LoopLength < 2 then
-			s.LoopLength := 2;
 
 		// fix for poorly converted STK.PTMOD modules.
-		//
-		if (not mightBeSTK) and ((s.LoopStart + s.LoopLength) > s.Length) then
+		if (not mightBeSTK) and
+			(s.LoopLength > 2) and ((s.LoopStart + s.LoopLength) > s.Length) then
 		begin
+			WarnText := Format('Sample %d has illegal loop.', [i+1]);
 			if ((s.LoopStart div 2) + s.LoopLength) <= s.Length then
 			begin
-				//Debug('%d: fixing illegal sample loop.', [i+1]);
 				s.LoopStart := s.LoopStart div 2;
-			end
-			else
-			begin
-				// loop points are still illegal, deactivate loop
-				//Debug('%d: disabling illegal sample loop.', [i+1]);
-				s.LoopStart  := 0;
-				s.LoopLength := 2;
+				WarnText := WarnText + ' Loop start adjusted.';
 			end;
 		end;
 
 		if mightBeSTK then
 		begin
-			//Debug('%d might be STK.', [i+1]);
 			if s.LoopLength > 2 then
 			begin
 				j := s.LoopStart;
@@ -1413,6 +1406,27 @@ begin
 			// No finetune in STK/UST
 			s.Finetune := 0;
 		end;
+
+		// some modules are broken like this, adjust sample length if possible
+		if (s.LoopLength > 2) and ((s.LoopStart + s.LoopLength) > s.Length) then
+		begin
+			loopOverflow := (s.LoopStart + s.LoopLength) - s.Length;
+			if (s.Length + loopOverflow) <= 131070 then
+			begin
+				Inc(s.Length, loopOverflow);
+				WarnText := WarnText + ' Sample length adjusted.';
+			end
+			else
+			begin
+				// loop points are still illegal, deactivate loop
+				WarnText := WarnText + ' Loop deactivated.';
+				s.LoopStart  := 0;
+				s.LoopLength := 2;
+			end;
+		end;
+
+		if WarnText <> '' then
+			Log(TEXT_WARNING + WarnText);
 	end;
 
 	// STK 2.5 had loopStart in words, not bytes. Convert if late version STK.
