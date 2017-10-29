@@ -654,11 +654,13 @@ begin
 	value := 0;
 	i := n;
 
+	ModFile.Bytes.SeekTo(ModFile.Position);
+
 	while (i > 0) do
 	begin
 		if bitnum = 0 then
 		begin
-			bitbuf := ModFile.Read8;
+			bitbuf := ModFile.Bytes.Read8;
 			Inc(srcpos);
 			bitnum := 8;
 		end;
@@ -670,6 +672,7 @@ begin
 		Dec(i);
 	end;
 
+	ModFile.SeekTo(ModFile.Bytes.Position);
 	Result := value shr (32 - n);
 end;
 
@@ -693,10 +696,10 @@ var
 	borderx: uint16;
 	maxlen: Cardinal;
 begin
-	if sixteenbit then
+{	if sixteenbit then
 		Log('Decompressing sample %d (16-bit)', [index])
 	else
-		Log('Decompressing sample %d (8-bit)', [index]);
+		Log('Decompressing sample %d (8-bit)', [index]);}
 
 	destpos := 0;
 	maxlen := len;
@@ -704,6 +707,8 @@ begin
 	srcpos := ModFile.Position-1;
 	filelen := ModFile.Size;
 	Result := srcpos;
+
+	ModFile.ReadData;
 
 	// unpack data till the dest buffer is full
 	while len > 0 do
