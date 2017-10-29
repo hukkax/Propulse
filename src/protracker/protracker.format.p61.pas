@@ -373,7 +373,7 @@ begin
 
 				// This will make sure we exit the while loop early
 				// but still process any remaining channels
-				if decode_p61_row(Module, @ModFile.Data[0], current_pos[current_channel],
+				if decode_p61_row(Module, @ModFile.Bytes.Data[0], current_pos[current_channel],
 					i, current_channel, row_number[current_channel]) then
 						truncate_pos := row_number[current_channel];
 			end;

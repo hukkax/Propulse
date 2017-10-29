@@ -1112,19 +1112,6 @@ begin
 	Temp.Free;
 end;
 
-function FileToString(const FileName: String): AnsiString;
-var
-	Stream: TFileStream;
-begin
-	Stream := TFileStream.Create(FileName, fmOpenRead);
-	try
-		SetLength(Result, Stream.Size);//one single heap allocation
-		Stream.ReadBuffer(Pointer(Result)^, Length(Result));
-	finally
-		Stream.Free;
-	end;
-end;
-
 function TPTModule.LoadFromFile(const Filename: String; Force: Boolean = False): Boolean;
 const
 	TEXT_INVALIDMOD = 'Invalid .MOD file: ';
