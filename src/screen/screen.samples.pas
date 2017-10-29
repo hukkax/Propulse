@@ -433,6 +433,10 @@ begin
 		begin
 			AddEditCmd('Resample', 				actResample);
 		end;
+
+		AddEditCmd('Upsample',					actUpsample);
+		AddEditCmd('Downsample',				actDownsample);
+
 		AddEditCmd('Generate Waveform...',		actGenerate);
 
 		SampleEdit.Waveform := Waveform;

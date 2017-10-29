@@ -139,6 +139,7 @@ type
 		procedure		Normalize(NormalizationValue: Single = -100;
 						X1: Integer = 0; X2: Integer = -1);
 		procedure 		Downsample;
+		procedure		Upsample;
 
 	end;
 
@@ -577,14 +578,31 @@ procedure TSample.Downsample;
 var
 	x, l: Integer;
 begin
-	l := ByteLength;
-	for x := 0 to l div 2 -1 do
+	l := ByteLength div 2;
+	for x := 0 to l-1 do
 		Data[x] := Data[x * 2];
+	Resize(l);
 
-	Length := Length div 2;
-	LoopStart := LoopStart div 2;
+	LoopStart  := LoopStart div 2;
 	LoopLength := LoopLength div 2;
-	SetLength(Data, Max(l div 2, Length * 2)+1);
+
+	Validate;
+end;
+
+procedure TSample.Upsample;
+var
+	x, l: Integer;
+begin
+	l := ByteLength;
+	Resize(l * 2);
+	for x := l-1 downto 0 do
+	begin
+		Data[x*2]   := Data[x];
+		Data[x*2+1] := Data[x];
+	end;
+
+	LoopStart  := LoopStart * 2;
+	LoopLength := LoopLength * 2;
 
 	Validate;
 end;

@@ -37,6 +37,8 @@ const
 	actReverse			= 60;
 	actInvert			= 61;
 	actResample			= 70;
+	actUpsample			= 71;
+	actDownsample		= 72;
 	actGenerate			= 80;
 
 type
@@ -82,6 +84,8 @@ type
 		procedure 	Reverse;
 		procedure 	Invert;
 		procedure 	Resample;
+		procedure	Upsample;
+		procedure	Downsample;
 		procedure	Generate;
 
 		procedure 	GenerateAudio(Wavetype: TWavetype;
@@ -249,6 +253,8 @@ begin
 		actReverse:		Reverse;
 		actInvert:		Invert;
 		actResample:	Resample;
+		actUpsample:	Upsample;
+		actDownsample:	Downsample;
 		actGenerate:	Generate;
 	end;
 
@@ -730,6 +736,20 @@ procedure TSampleEditor.Resample;
 begin
 	Module.Stop;
 	SampleScreen.ResampleDialog(True);
+end;
+
+procedure TSampleEditor.Upsample;
+begin
+	Module.Stop;
+	Waveform.Sample.Upsample;
+	Module.SetModified;
+end;
+
+procedure TSampleEditor.Downsample;
+begin
+	Module.Stop;
+	Waveform.Sample.Downsample;
+	Module.SetModified;
 end;
 
 procedure TSampleEditor.Generate;
