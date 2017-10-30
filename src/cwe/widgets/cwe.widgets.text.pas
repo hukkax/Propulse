@@ -1657,7 +1657,7 @@ end;
 function TCWEEdit.TextInput(var Key: Char): Boolean;
 begin
 	Result := False;
-	if (Ord(Key) < 32) or (ModKeys(ssCtrl)) then Exit;
+	if (Ord(Key) < 32) {or (ModKeys(ssCtrl))} then Exit;
 	if (AllowedChars <> '') and (Pos(Key, AllowedChars) < 1) then Exit;
 	if Length(Caption) >= 255 then Exit;
 
