@@ -68,7 +68,7 @@
             </Verbosity>
             <WriteFPCLogo Value="False"/>
             <CompilerMessages>
-              <IgnoredMessages idx5057="True" idx5024="True" idx4080="True" idx4079="True" idx4035="True"/>
+              <IgnoredMessages idx5057="True" idx5024="True" idx4080="True" idx4079="True"/>
             </CompilerMessages>
             <CustomOptions Value="-dRELEASE
 -dBASS_DYNAMIC
@@ -155,7 +155,7 @@
         <PackageName Value="LazUtils"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="56">
+    <Units Count="57">
       <Unit0>
         <Filename Value="propulse.pas"/>
         <IsPartOfProject Value="True"/>
@@ -430,6 +430,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="ProTracker.Format.S3M"/>
       </Unit55>
+      <Unit56>
+        <Filename Value="cwe/cwe.externalapi.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="CWE.ExternalAPI"/>
+      </Unit56>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

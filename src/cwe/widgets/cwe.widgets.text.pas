@@ -71,6 +71,9 @@ type
 	end;
 
 	TCWEEdit = class(TCWEControl)
+	private
+		FOnClipboardCopy:  TCWENotifyEvent;
+		FOnClipboardPaste: TCWENotifyEvent;
 	public
 		Cursor: 	TPoint;
 		Offset,
@@ -266,8 +269,7 @@ implementation
 uses
 	{$IFDEF WINDOWS}Windows, ShellAPI,{$ENDIF}
 	MainWindow, DateUtils,
-	CWE.Dialogs,
-	SDL.Api.Types,
+	CWE.ExternalAPI, CWE.Dialogs,
 	TextMode, Math,
 	ProTracker.Util;
 
@@ -1037,7 +1039,7 @@ begin
 					ModalDialog.Dialog.Dismiss(True)
 				else
 				begin
-					Key := SDLK_RETURN;
+					Key := KEY_RETURN;
 					KeyDown(Key, []);
 				end;
 			end;
@@ -1547,7 +1549,8 @@ end;
 { TCWEEdit }
 // ==========================================================================
 
-constructor TCWEEdit.Create;
+constructor TCWEEdit.Create(Owner: TCWEControl; const sCaption,
+	sID: AnsiString; const Bounds: TRect; IsProtected: Boolean);
 begin
 	inherited;
 
@@ -1569,7 +1572,7 @@ begin
 	Cursor.X := -1;
 end;
 
-function TCWEEdit.KeyDown;
+function TCWEEdit.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
 var
 	AtEnd: Boolean;
 	Sc: ControlKeyNames;
@@ -1579,7 +1582,7 @@ begin
 
 	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, Shift));
 
-	if (ssCtrl in Shift) and (Key = SDLK_BACKSPACE) then
+	if (ssCtrl in Shift) and (Key = KEY_BACKSPACE) then
 	begin
 		Caption := '';
 		Cursor.X := 0;
@@ -1626,6 +1629,18 @@ begin
 
 		ctrlkeyRETURN:
 			Change(True); // trigger change notify event
+
+		ctrlkeyCOPY:
+			if Assigned(FOnClipboardCopy) then
+				FOnClipboardCopy(Self)
+			else
+				ClipboardCopy(Self);
+
+		ctrlkeyPASTE:
+			if Assigned(FOnClipboardPaste) then
+				FOnClipboardPaste(Self)
+			else
+				ClipboardPaste(Self);
 
 	else
 		begin

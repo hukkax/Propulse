@@ -63,7 +63,8 @@ type
 		ctrlkeyUP,		ctrlkeyDOWN,	ctrlkeyLEFT,		ctrlkeyRIGHT,
 		ctrlkeyRETURN,	ctrlkeyTAB,		ctrlkeySPACE,		ctrlkeyBACKSPACE,
 		ctrlkeyINSERT,	ctrlkeyDELETE,	ctrlkeyHOME,		ctrlkeyEND,
-		ctrlkeyPGUP,	ctrlkeyPGDN,	ctrlkeyMINUS,		ctrlkeyPLUS
+		ctrlkeyPGUP,	ctrlkeyPGDN,	ctrlkeyMINUS,		ctrlkeyPLUS,
+		ctrlkeyCOPY,	ctrlkeyPASTE
 	);
 
 	TMouseInfo = record
@@ -248,8 +249,8 @@ var
 implementation
 
 uses
-	MainWindow, Math, SDL.Api.Types,
-	CWE.Widgets.Text, CWE.Widgets.Scrollers, CWE.Dialogs,
+	MainWindow, Math,
+	CWE.Widgets.Text, CWE.Widgets.Scrollers, CWE.Dialogs, CWE.ExternalAPI,
 	Screen.Editor, ProTracker.Editor; // !!! so dumb
 
 // ==========================================================================
@@ -335,6 +336,8 @@ begin
 		Bind(ctrlkeyBACKSPACE,		'',						'Backspace');
 		Bind(ctrlkeyMINUS,			'Minus',				'KeyPad -');
 		Bind(ctrlkeyPLUS,			'Plus',					'KeyPad +');
+		Bind(ctrlkeyCOPY,			'ClipboardCopy',		'Ctrl+C');
+		Bind(ctrlkeyPASTE,			'ClipboardPaste',		'Ctrl+V');
 	end;
 
 	with TCWEScrollbar do
@@ -966,10 +969,10 @@ begin
 	end;
 
 	if WheelDelta < 0 then
-		Key := SDLK_DOWN
+		Key := KEY_DOWN
 	else
 	if WheelDelta > 0 then
-		Key := SDLK_UP
+		Key := KEY_UP
 	else
 		Exit(False);
 
