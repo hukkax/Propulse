@@ -391,21 +391,22 @@ end;
 
 function TFileScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
 begin
-	Result := True;
-	case FileOpKeyNames(Shortcuts.Find(FileOpKeys, Key, Shift)) of
-		filekeyDelete:
-			if (DirList.Focused) or (Filelist.Focused) then
-				HandleCommand(FILE_DELETE)
-			else
-				Result := inherited; // send Delete key to TCWEEdit
-		filekeyCopy:		HandleCommand(FILE_COPY);
-		filekeyMove:		HandleCommand(FILE_MOVE);
-		filekeyRename:		HandleCommand(FILE_RENAME);
-		filekeyCreate:		HandleCommand(FILE_CREATEDIR);
-		filekeyModMerge:	HandleCommand(FILE_MERGEMODULE);
+	if (DirList.Focused) or (Filelist.Focused) then
+	begin
+		Result := True;
+		case FileOpKeyNames(Shortcuts.Find(FileOpKeys, Key, Shift)) of
+			filekeyDelete:		HandleCommand(FILE_DELETE);
+			filekeyCopy:		HandleCommand(FILE_COPY);
+			filekeyMove:		HandleCommand(FILE_MOVE);
+			filekeyRename:		HandleCommand(FILE_RENAME);
+			filekeyCreate:		HandleCommand(FILE_CREATEDIR);
+			filekeyModMerge:	HandleCommand(FILE_MERGEMODULE);
+		else
+			Result := inherited;
+		end;
+	end
 	else
 		Result := inherited;
-	end;
 end;
 
 function TFileScreen.GetSelectedFile(FullPath: Boolean = True;
