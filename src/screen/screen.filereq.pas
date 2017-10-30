@@ -20,20 +20,20 @@ const
 	LISTITEM_PARENT		= LISTITEM_HEADER;
 
 	// FileSortMode
-	FILESORT_NAME	= 0;
-	FILESORT_SIZE	= 1;
-	FILESORT_DATE	= 2;
-	FILESORT_EXT	= 3;
+	FILESORT_NAME		= 0;
+	FILESORT_SIZE		= 1;
+	FILESORT_DATE		= 2;
+	FILESORT_EXT		= 3;
 
-	FILE_EXPLORE	= 4;
-	FILE_RENAME		= 5;
-	FILE_COPY		= 6;
-	FILE_MOVE		= 7;
-	FILE_DELETE		= 8;
-	FILE_CREATEDIR	= 9;
-	FILE_BOOKMARK	= 10;
-
-	FILE_MERGEMODULE = 11;
+	FILE_EXPLORE		= 4;
+	FILE_RENAME			= 5;
+	FILE_COPY			= 6;
+	FILE_MOVE			= 7;
+	FILE_DELETE			= 8;
+	FILE_CREATEDIR		= 9;
+	FILE_BOOKMARK		= 10;
+	FILE_MERGEMODULE 	= 11;
+	FILE_BROWSETOMODULE = 12;
 
 type
 	FileOpKeyNames = (
@@ -279,7 +279,6 @@ begin
 	RegisterLayoutControl(TCWEControl(FileList),  CTRLKIND_BOX, False, True, True);
 	RegisterLayoutControl(TCWEControl(DirList),   CTRLKIND_BOX, False, True, True);
 	RegisterLayoutControlClass(TCWEControl(Self), TCWEEdit, CTRLKIND_BOX, False, True, False);
-	//RegisterLayoutControl(TCWEControl(Ctrl),      CTRLKIND_BOX, False, True, True);
 
 	lblHeader := AddHeader('');
 	RegisterLayoutControl(TCWEControl(lblHeader), CTRLKIND_LABEL, False, True, False);
@@ -304,7 +303,8 @@ function TFileScreen.OnContextMenu: Boolean;
 	end;
 
 begin
-	inherited;
+	Result := inherited;
+
 	with ContextMenu do
 	begin
 		SetSection(EditorKeys);
@@ -330,11 +330,15 @@ begin
 				AddCmdEx(FILE_MOVE, 				'Move file to directory');
 				AddCmdEx(FILE_DELETE, 				'Delete file');
 
-				if (Self = FileRequester) and (not SaveMode) and (not InModule) then
+				if (Self = FileRequester) and (not InModule) then
 				begin
 					AddSection('Module');
-					AddCmdEx(FILE_MERGEMODULE,		'Merge into current');
+					if Module.Info.Filename <> '' then
+						AddCmdEx(FILE_BROWSETOMODULE,	'Browse to current module');
+					if not SaveMode then
+						AddCmdEx(FILE_MERGEMODULE,		'Merge into current');
 				end;
+
 			end
 			else
 			if DirList.Focused then
@@ -389,12 +393,16 @@ function TFileScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
 begin
 	Result := True;
 	case FileOpKeyNames(Shortcuts.Find(FileOpKeys, Key, Shift)) of
-		filekeyDelete:	HandleCommand(FILE_DELETE);
-		filekeyCopy:	HandleCommand(FILE_COPY);
-		filekeyMove:	HandleCommand(FILE_MOVE);
-		filekeyRename:	HandleCommand(FILE_RENAME);
-		filekeyCreate:	HandleCommand(FILE_CREATEDIR);
-		filekeyModMerge:HandleCommand(FILE_MERGEMODULE);
+		filekeyDelete:
+			if (DirList.Focused) or (Filelist.Focused) then
+				HandleCommand(FILE_DELETE)
+			else
+				Result := inherited; // send Delete key to TCWEEdit
+		filekeyCopy:		HandleCommand(FILE_COPY);
+		filekeyMove:		HandleCommand(FILE_MOVE);
+		filekeyRename:		HandleCommand(FILE_RENAME);
+		filekeyCreate:		HandleCommand(FILE_CREATEDIR);
+		filekeyModMerge:	HandleCommand(FILE_MERGEMODULE);
 	else
 		Result := inherited;
 	end;
@@ -820,6 +828,13 @@ begin
 
 		FILE_MERGEMODULE:
 			Module.MergeWithFile(GetSelectedFile);
+
+		FILE_BROWSETOMODULE:
+			if Module.Info.Filename <> '' then
+			begin
+				SetDirectory(ExtractFileDir(Module.Info.Filename));
+				Filelist.Select(ExtractFileName(Module.Info.Filename));
+			end;
 
 	end;
 end;
@@ -1406,6 +1421,7 @@ end;
 
 function TDirList.GetPath(Fullpath: Boolean): String;
 begin
+	Result := '';
 	case Items[ItemIndex].Data of
 
 		LISTITEM_BOOKMARK:
