@@ -30,8 +30,6 @@ uses
 	SDL.Api.libSDL2,
 	MainWindow;
 
-{ TClipboardHandler }
-
 procedure ClipboardCopy(Sender: TCWEEdit);
 begin
 	MainWindow.SDL.Clipboard.SDL_SetClipboardText(PChar(Sender.Caption));
@@ -48,12 +46,16 @@ begin
 		if Sender.AllowedChars <> '' then Exit;
 		S := MainWindow.SDL.Clipboard.SDL_GetClipboardText;
 		Text := StrPas(S);
-		Dest := Sender.Caption;
-		X := Sender.Cursor.X;
-		Dest.Insert(X, Text);
-		Sender.SetCaption(Dest);
-		Sender.Cursor.X := Min(X + Length(Text), Length(Dest));
-		Sender.Paint;
+		if Text <> '' then
+		begin
+			Dest := Sender.Caption;
+			X := Sender.Cursor.X;
+			Dest.Insert(X, Text);
+			Sender.SetCaption(Dest);
+			Sender.Cursor.X := Min(X + Length(Text), Length(Dest));
+			Sender.Paint;
+			Sender.Change(Sender.ReportAnyChange);
+		end;
 		//MainWindow.SDL.StdInc.SDL_Free(S); // crashes
 	end;
 end;
