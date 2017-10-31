@@ -637,6 +637,8 @@ begin
 	ModFile.SeekTo($32);
 	Conversion.Info.OrigTempo := ModFile.Read8;
 	Conversion.Info.OrigSpeed := ModFile.Read8;
+
+	CountChannels;
 end;
 
 // ==========================================================================

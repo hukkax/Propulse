@@ -55,6 +55,7 @@ const
 	ACTION_RENAMEDIR		= 10;
 	ACTION_RENAMEBOOKMARK	= 11;
 	ACTION_CREATEDIR		= 12;
+	ACTION_MODULEIMPORTED	= 13;
 
 type
 	// hacks to allow pointer maths on data

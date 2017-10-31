@@ -83,11 +83,12 @@ type
 		procedure	Close;
 
 		procedure	ProcessFrame;
-
 		procedure	SetTitle(const Title: AnsiString);
-		procedure 	DoLoadModule(const Filename: String);
-		procedure 	PlayModeChanged;
 
+		procedure 	DoLoadModule(const Filename: String);
+		procedure 	FinishModuleLoad(AltMethod: Boolean = False);
+
+		procedure 	PlayModeChanged;
 		procedure 	DialogCallback(ID: Word; Button: TDialogButton;
 					ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
 		procedure	OnKeyDown(var Key: Integer; Shift: TShiftState);
@@ -120,7 +121,7 @@ uses
 	BASS,
 	{$ENDIF}
     BuildInfo, Math, soxr,
-	ProTracker.Messaging,
+	ProTracker.Messaging, ProTracker.Import,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
 	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio, Dialog.JumpToTime,
@@ -156,6 +157,9 @@ begin
 
 		ACTION_LOADMODULE:
 			DoLoadModule(Data);
+
+		ACTION_MODULEIMPORTED:
+			FinishModuleLoad;
 
 		ACTION_NEWMODULE:
 			with Editor do
@@ -379,7 +383,6 @@ procedure TWindow.DoLoadModule(const Filename: String);
 var
 	OK, AltMethod: Boolean;
 	TempModule: TPTModule;
-	S: AnsiString;
 begin
 	TempModule := ResetModule;
 	AltMethod := False;
@@ -414,12 +417,6 @@ begin
 		end;
 		Module := TempModule;
 
-		if not Module.Warnings then
-			Log(TEXT_SUCCESS + 'Load success.')
-		else
-			Log(TEXT_FAILURE + 'Loaded with errors/warnings.');
-		Log('-');
-
 		if Stream <> 0 then
 			BASS_ChannelPlay(Stream, True);
 
@@ -437,22 +434,48 @@ begin
 
 		Editor.Paint;
 
-		if (Module.Warnings) or (AltMethod) then
-		begin
-			if Module.Warnings then
-				S := 'Module loaded with errors/warnings.' + CHAR_NEWLINE
-			else
-				S := '';
-			if AltMethod then
-				S := S + 'The module was loaded from a nonstandard location,' + CHAR_NEWLINE +
-					'indicating a broken or non-module file.' + CHAR_NEWLINE;
-			ModalDialog.MultiLineMessage('Module loaded',
-				S + 'See the Message Log for more info.');
-			//ChangeScreen(TCWEScreen(LogScreen))
-		end;
-
-		Module.Warnings := False;
+		if (ImportedModule <> nil) and (ImportedModule.Conversion.TotalChannels > AMOUNT_CHANNELS) then
+			ImportedModule.ShowImportDialog
+		else
+		if Filename <> '' then
+			FinishModuleLoad(AltMethod);
 	end;
+end;
+
+procedure TWindow.FinishModuleLoad(AltMethod: Boolean = False);
+var
+	S: AnsiString;
+begin
+	S := '';
+
+	if ImportedModule <> nil then
+	begin
+		FreeAndNil(ImportedModule);
+		Editor.Reset;
+		Editor.Paint;
+	end;
+
+	if (Module.Warnings) or (AltMethod) then
+	begin
+		if Module.Warnings then
+			S := 'Module loaded with errors/warnings.' + CHAR_NEWLINE;
+		if AltMethod then
+			S := S + 'The module was loaded from a nonstandard offset,' + CHAR_NEWLINE +
+				'indicating a broken or non-module file.' + CHAR_NEWLINE;
+	end;
+
+	if not Module.Warnings then
+		Log(TEXT_SUCCESS + 'Load success.')
+	else
+		Log(TEXT_FAILURE + 'Loaded with errors/warnings.');
+	Log('-');
+
+	Module.Warnings := False;
+
+	if S <> '' then
+		ModalDialog.MultiLineMessage('Module loaded',
+			S + 'See the Message Log for more info.');
+	//ChangeScreen(TCWEScreen(LogScreen))
 end;
 
 function TWindow.SetupVideo: Boolean;

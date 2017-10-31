@@ -1124,7 +1124,6 @@ var
 	bytes: array [0..3] of Byte;
 	sFile, WarnText: AnsiString;
 	Origin: Cardinal;
-	Importer: TImportedModule;
 
 	// powerpacker decrunch
 	ppPackLen, ppUnpackLen: uint32;
@@ -1150,7 +1149,8 @@ begin
 	Warnings := False;
 	lateVerSTKFlag := False;
 	mightBeIT := False;
-	Importer := nil;
+
+	FreeAndNil(ImportedModule);
 
 	// Read file data
 	//
@@ -1279,7 +1279,7 @@ begin
 		if mightBeIT then
 		begin
 			// import IT
-			Importer := TITModule.Create(Self, ModFile, SamplesOnly);
+			ImportedModule := TITModule.Create(Self, ModFile, SamplesOnly);
 			goto Done;
 		end
 		else
@@ -1304,7 +1304,7 @@ begin
 			ModFile.Read(TempFilename[1], 4);
 			if TempFilename = 'SCRM' then
 			begin
-				Importer := TS3MModule.Create(Self, ModFile, SamplesOnly);
+				ImportedModule := TS3MModule.Create(Self, ModFile, SamplesOnly);
 				goto Done;
 			end;
 		end;
@@ -1677,9 +1677,6 @@ begin
 // ======================================================================
 Done:
 // ======================================================================
-
-	if Importer <> nil then
-		Importer.Free;
 
 	ModFile.Free;
 	Modified := False;
