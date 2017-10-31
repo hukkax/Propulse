@@ -482,7 +482,7 @@ var
 	iospec:  soxr_io_spec_t;
 	quality: soxr_quality_spec_t;
 	runtime: soxr_runtime_spec_t;
-//	sb: ShortInt;
+	loopL, loopR: Single;
 begin
 	if not SOXRLoaded then Exit;
 
@@ -492,6 +492,14 @@ begin
 	olen := ilen; //Round(ilen * (DestHz / OrigHz) + 0.5);
 	odone := ilen;
 	SetLength(obuf, olen + 1);
+
+	if IsLooped then
+	begin
+		loopL := LoopStart / Length;
+		loopR := (LoopStart + LoopLength) / Length;
+	end
+	else
+		loopL := -1.0;
 
 	if DoHighBoost then
 	begin
@@ -533,22 +541,23 @@ begin
 //	odone := Min(odone, $1FFFF+1); // limit sample length to 128KB
 	Length := odone div 2;
 	SetLength(Data, Length*2 + 1);
-	LoopStart := 0;
-	LoopLength := 1;
+
+	if loopL >= 0.0 then
+	begin
+		LoopStart  := Trunc(Length * loopL);
+		LoopLength := Trunc((Length * loopR) - LoopStart);
+	end
+	else
+	begin
+		LoopStart  := 0;
+		LoopLength := 1;
+	end;
 
 	if DoNormalize then
 		FloatSampleEffects.Normalize(obuf);
 
 	for i := 0 to odone-1 do
-	begin
-		//sb := ShortInt(Trunc(obuf[i] * 127));
-		//if (sb < -128) then
-		//	sb := -128;
-		{else
-		if (sb > 127) then
-			sb := 127;}
 		ShortInt(Data[i]) := ShortInt(Trunc(obuf[i] * 127));
-	end;
 
 	ZeroFirstWord;
 end;
