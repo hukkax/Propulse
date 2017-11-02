@@ -99,6 +99,7 @@ type
 			MousePointer: 			Byte;
 			VSyncMode:				Byte;
 			ShowSplashScreen: 		Boolean;
+			ScopePerChannel:		Boolean;
 			SampleAsBytes: 			Boolean;	// False = show sizes as words like ProTracker
 			SizesAsDecimal: 		Boolean;	// False = show sizes in hex like ProTracker
 			//ShowVolumeColumn: 	Boolean;	// show Cxx command in its own column?

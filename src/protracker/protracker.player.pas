@@ -154,7 +154,8 @@ type
 
 		procedure 	ClearRowVisitTable;
 
-		procedure	MixSampleBlock(streamOut: Pointer; numSamples: Cardinal);
+		procedure	MixSampleBlock(streamOut: Pointer; numSamples: Cardinal;
+					scopesOffset: Integer = -1);
 		procedure 	CalculatePans(percentage: Byte);
 
 		procedure	UpdateFunk(var ch: TPTChannel);
@@ -245,7 +246,6 @@ type
 
 		FilterHighPass: 	Boolean; 	// 5.2Hz high-pass filter present in all Amigas
 		FilterLowPass: 		Boolean; 	// 4.4kHz low-pass filter in all Amigas except A1200
-		UseBlep: 			Boolean; 	// Reduces some unwanted aliasing (closer to real Amiga)
 		PreventClipping: 	Boolean; 	// Clamps the audio output to prevent clipping
 		NormFactor: 		Single; 	// Sound amplification factor
 
@@ -337,6 +337,7 @@ var
 	Module: 		TPTModule;
 	Stream: 		HSTREAM;
 	VUbuffer: 		array of SmallInt;
+	ScopeBuffer: 	array[0..AMOUNT_CHANNELS-1] of array of SmallInt;
 	VUhandled: 		Boolean;
 	EmptyNote: 		TNote;
 
@@ -430,11 +431,17 @@ begin
 	Mixing := True;
 
 	if Length(VUbuffer) <= Len then
+	begin
 		SetLength(VUbuffer, Len + 1024);
+		for pos := 0 to AMOUNT_CHANNELS-1 do
+			SetLength(ScopeBuffer[pos], Len div 2 + 1024);
+	end;
 
 	if Module.DisableMixer then
 	begin
 		ZeroMemory(VUbuffer, Len);
+		for pos := 0 to AMOUNT_CHANNELS-1 do
+			ZeroMemory(ScopeBuffer[pos], Length(ScopeBuffer[pos]));
 		Mixing := False;
 		Exit;
 	end;
@@ -451,8 +458,8 @@ begin
 
 		if samplesTodo > 0 then
 		begin
-			Module.MixSampleBlock(@outStream[pos], samplesTodo);
-			pos := pos + (2 * samplesTodo);
+			Module.MixSampleBlock(@outStream[pos], samplesTodo, pos div 2);
+			Inc(pos, samplesTodo * 2);
 
 			Dec(sampleBlock, samplesTodo);
 			Dec(samplesLeft, samplesTodo);
@@ -892,6 +899,7 @@ begin
 	Log(TEXT_LIGHT + 'Module saved: ' + Filename + '.');
 	Log('-');
 
+	Warnings := False;
 	Result := True;
 end;
 
@@ -1745,7 +1753,6 @@ begin
 	Modified := False;
 
 	PreventClipping := True;
-	UseBlep := True;
 	RenderMode := RENDER_NONE;
 
 	Info.Filename := '';
@@ -3120,7 +3127,9 @@ begin
 	DisableMixer := False;
 end;
 
-procedure TPTModule.MixSampleBlock(streamOut: Pointer; numSamples: Cardinal);
+{$R-}
+procedure TPTModule.MixSampleBlock(streamOut: Pointer; numSamples: Cardinal;
+	scopesOffset: Integer = -1);
 var
 	i: Integer;
 	j: Word;
@@ -3128,32 +3137,26 @@ var
 	Amp, tempSample, tempVolume: Single;
 	outSample: array [0..1] of Single;
 	masterBufferL, masterBufferR: array of Single;
+	TempScopeBuffer: array[0..AMOUNT_CHANNELS-1] of array of Single;
 	v: TPaulaVoice;
 	bSmp, bVol: PBlep;
 	Sam: TSample;
 const
 	SCALER = 1.0 / 128.0;
 begin
+	Amp := -32767.0 / NormFactor; // negative because signal phase is flipped on Amiga
 	ClippedSamples := 0;
-	Amp := -32767.0 / NormFactor;
 
-	if Length(masterBufferL) < (numSamples + 2) then
-	begin
-		SetLength(masterBufferL, numSamples + 2);
-		SetLength(masterBufferR, numSamples + 2);
-	end;
-
-	{$R-}
+	SetLength(masterBufferL, numSamples + 2);
+	SetLength(masterBufferR, numSamples + 2);
 
 	for i := 0 to AMOUNT_CHANNELS-1 do
 	begin
-		v := Channel[i].Paula;
+		SetLength(TempScopeBuffer[i], numSamples + 2);
 
-		//if UseBlep then
-		begin
-			bSmp := @Blep[i];
-			bVol := @BlepVol[i];
-		end;
+		bSmp := @Blep[i];
+		bVol := @BlepVol[i];
+		v := Channel[i].Paula;
 
 		if (Channel[i].Enabled) and (v.DELTA > 0.0) then
 		begin
@@ -3170,28 +3173,27 @@ begin
 					tempVolume := v.SRC_VOL;
 				end;
 
-				if UseBlep then
+				// Blep reduces some unwanted aliasing (closer to real Amiga)
+				if (tempSample <> bSmp.lastValue) then
 				begin
-					if (tempSample <> bSmp.lastValue) then
-					begin
-						if ((v.LASTDELTA > 0.0) and (v.LASTDELTA > v.LASTFRAC)) then
-							BlepAdd(bSmp, v.LASTFRAC / v.LASTDELTA, bSmp.lastValue - tempSample);
-						bSmp.lastValue := tempSample;
-					end;
-
-					if (tempVolume <> bVol.lastValue) then
-					begin
-						BlepAdd(bVol, 0.0, bVol.lastValue - tempVolume);
-						bVol.lastValue := tempVolume;
-					end;
-
-					if (bSmp.samplesLeft > 0) then
-						tempSample := tempSample + BlepRun(bSmp);
-					if (bVol.samplesLeft > 0) then
-						tempVolume := tempVolume + BlepRun(bVol);
+					if ((v.LASTDELTA > 0.0) and (v.LASTDELTA > v.LASTFRAC)) then
+						BlepAdd(bSmp, v.LASTFRAC / v.LASTDELTA, bSmp.lastValue - tempSample);
+					bSmp.lastValue := tempSample;
 				end;
 
+				if (tempVolume <> bVol.lastValue) then
+				begin
+					BlepAdd(bVol, 0.0, bVol.lastValue - tempVolume);
+					bVol.lastValue := tempVolume;
+				end;
+
+				if (bSmp.samplesLeft > 0) then
+					tempSample := tempSample + BlepRun(bSmp);
+				if (bVol.samplesLeft > 0) then
+					tempVolume := tempVolume + BlepRun(bVol);
+
 				tempSample := tempSample * tempVolume;
+				TempScopeBuffer[i,j] := tempSample;
 				masterBufferL[j] := masterBufferL[j] + (tempSample * v.PANL);
 				masterBufferR[j] := masterBufferR[j] + (tempSample * v.PANR);
 
@@ -3207,17 +3209,11 @@ begin
 					Inc(v.DMA_POS);
 					if v.DMA_POS >= v.DMA_LEN then
 					begin
-						v.DMA_POS := 0;
-
 						// re-fetch Paula register values now
+						v.DMA_POS := 0;
 						v.DMA_LEN := v.SRC_LEN;
 						v.DMA_DAT := @v.SRC_DAT[0];
-
-						{if v.Sample <> v.QueuedSample then
-						begin}
-							v.Sample := v.QueuedSample;
-							//Samples[v.Sample].Age := 5;
-						//end;
+						v.Sample  := v.QueuedSample;
 
 						if Sam.LoopLength <= 2 then
 							v.PlayPos := -1
@@ -3227,7 +3223,6 @@ begin
 					else
 					if v.PlayPos >= 0 then
 						Inc(v.PlayPos);
-
 				end;
 			end;
 		end;
@@ -3247,20 +3242,20 @@ begin
 		if FilterHighPass then
 			LossyIntegratorHighPass(@FilterHi, @outSample[0], @outSample[0]);
 
-		// negative because signal phase is flipped on A500/A1200 for some reason
 		outSample[0] := outSample[0] * Amp;
 		outSample[1] := outSample[1] * Amp;
 
-		{if PreventClipping then
-		begin}
-			sndOut[j*2]   := CLAMP2(Trunc(outSample[0]), -32768, 32767, ClippedSamples);
-			sndOut[j*2+1] := CLAMP2(Trunc(outSample[1]), -32768, 32767, ClippedSamples);
-		{end
-		else
-		begin
-			sndOut[j*2]   := Trunc(outSample[0]);
-			sndOut[j*2+1] := Trunc(outSample[1]);
-		end;}
+		sndOut[j*2]   := CLAMP2(Trunc(outSample[0]), -32768, 32767, ClippedSamples);
+		sndOut[j*2+1] := CLAMP2(Trunc(outSample[1]), -32768, 32767, ClippedSamples);
+	end;
+
+	if scopesOffset >= 0 then
+	begin
+		Amp := -32767.0 / 1.0;
+		for i := 0 to AMOUNT_CHANNELS-1 do
+			for j := 0 to numSamples-1 do
+				ScopeBuffer[i, j+scopesOffset] :=
+					CLAMP(Trunc(TempScopeBuffer[i,j] * Amp), -32768, 32767);
 	end;
 end;
 

@@ -1348,6 +1348,8 @@ begin
 		Cfg.AddByte(Sect, 'Mouse', @Display.MousePointer, CURSOR_CUSTOM)
 		.SetInfo('Mouse pointer', CURSOR_SYSTEM, CURSOR_NONE,
 		['System', 'Software', 'Hidden'], ChangeMousePointer);
+		Cfg.AddBoolean(Sect, 'ScopePerChannel', @Display.ScopePerChannel, True)
+		.SetInfo('Scope displays', 0, 1, ['Master output', 'Channels']);
 		Cfg.AddBoolean(Sect, 'SampleAsBytes', @Display.SampleAsBytes, True)
 		.SetInfo('Show sample sizes/offsets in', 0, 1, ['Words', 'Bytes']);
 		Cfg.AddBoolean(Sect, 'SampleAsDecimal', @Display.SizesAsDecimal, True)
