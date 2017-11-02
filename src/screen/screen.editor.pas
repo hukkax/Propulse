@@ -27,7 +27,7 @@ const
 		'Slide to note + Volume slide',
 		'Vibrato + Volume slide',
 		'Tremolo',
-		'Unused',
+		'Karplus-Strong',
 		'Set sample offset',
 		'Volume slide',
 		'Jump to order',
@@ -113,6 +113,7 @@ type
 		procedure 	SetSample(i: Integer = -1);
 		procedure 	SelectPattern(i: Integer);
 		procedure 	SeekTo(Order, Row: Byte);
+		function 	ShowCommandHelp: Boolean;
 
 		function	OnContextMenu: Boolean; override;
 		procedure 	HandleCommand(const Cmd: Cardinal); override;
@@ -137,10 +138,11 @@ var
 implementation
 
 uses
-	MainWindow, BuildInfo, ShortcutManager, Layout, CWE.MainMenu,
+	MainWindow, BuildInfo, ShortcutManager, Layout,
+	CWE.MainMenu, CWE.Dialogs,
 	SDL.Api.Types, Graphics32,
 	ProTracker.Sample, ProTracker.Util,
-	Screen.Samples;
+	Screen.Samples, Screen.Help;
 
 type
 	OrderListKeyNames = (
@@ -334,6 +336,65 @@ begin
 	lblMessage.SetCaption(DefaultMessage);
 
 	AppStartedTime := Now;
+end;
+
+function TEditorScreen.ShowCommandHelp: Boolean;
+var
+	Capt, S: AnsiString;
+	Sl: TStringList;
+	i, l: Integer;
+	B: Boolean;
+begin
+	with PatternEditor.Cursor do
+	begin
+		Result := (Column >= COL_COMMAND);
+		if not Result then Exit;
+
+		if (Note.Command = 0) and (Note.Parameter = 0) then
+			Capt := 'No effect'
+		else
+			Capt := EffectHints[Note.Command];
+		if Note.Command = $E then
+			Capt := Capt + ExtEffectHints[Note.Parameter and $F];
+
+		if Window.MessageTextTimer <= 0 then
+		begin
+			MessageText(Format('%x%.2x %s', [Note.Command, Note.Parameter, Capt]));
+		end
+		else
+		if (Note.Command <> 0) or (Note.Parameter <> 0) then
+		begin
+			S := IntToHex(Note.Command, 1);
+			if Note.Command = $E then
+				S := S + IntToHex(Note.Parameter and $F, 1);
+
+			// Sl gets created by GetSection, freed by MultiLineMessage()
+			Sl := Help.Memo.GetSection(Trim(S));
+
+			l := 0;
+			B := False;
+			for i := 0 to Sl.Count-1 do
+			begin
+				if i <> 1 then
+					l := Max(l, Length(Sl[i]));
+				if not B then
+					B := Pos('Example:', Sl[i]) > 0;
+
+				if B then
+					Sl[i] := '<f6>' + Sl[i] + ' '	// Example lines
+				else
+				if i > 3 then
+					Sl[i] := '<f3>' + Sl[i] + ' ';	// Main text
+			end;
+			Sl[1] := Copy(Sl[1], 1, l);
+			Sl[0] := '<f5>' + Sl[0]; // Title line
+			Sl[1] := '<fF>' + Sl[1]; // Separator line
+			Sl[3] := '<f2>' + Sl[3]; // Usage line
+			Sl.Insert(0, ' ');
+
+			ModalDialog.MultiLineMessage(Capt, Sl, False, False, l+1);
+		end;
+	end;
 end;
 
 procedure TEditorScreen.AmplificationChange(Sender: TCWEControl);

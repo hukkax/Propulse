@@ -795,7 +795,6 @@ end;
 
 procedure TWindow.OnKeyDown(var Key: Integer; Shift: TShiftState);
 var
-	S: AnsiString;
 	InModal: Boolean;
 begin
 	if (CurrentScreen = nil) then Exit;
@@ -828,18 +827,7 @@ begin
 
 		keyScreenHelp:
 			if not InModal then
-			with PatternEditor.Cursor do
-				if Column >= COL_COMMAND then
-				begin
-					if (Note.Command = 0) and (Note.Parameter = 0) then
-						S := 'No effect'
-					else
-						S := EffectHints[Note.Command];
-					if Note.Command = $E then
-						S := S + ExtEffectHints[Note.Parameter shr 4];
-					Editor.MessageText(Format('%x%.2x %s', [Note.Command, Note.Parameter, S]));
-				end
-				else
+				if not Editor.ShowCommandHelp then
 					Help.Show(CurrentScreen.ID);
 
 		keyScreenPatternEditor:
