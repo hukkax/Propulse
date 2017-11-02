@@ -846,6 +846,7 @@ var
 	CI: TConfigItem;
 	LI: TCWEListItem;
 	Modifier: Integer;
+	Sl: TStringList;
 begin
 	Result := False;
 
@@ -888,8 +889,10 @@ begin
 		ctrlkeyHELP:
 		begin
 			if CI <> nil then
-				ModalDialog.MultiLineMessage(CI.Caption,
-					Help.Memo.GetSection(CI.Section + '.' + CI.Name), True, True)
+			begin
+				Sl := Help.Memo.GetSection(CI.Section + '.' + CI.Name);
+				ModalDialog.MultiLineMessage(CI.Caption, Sl, True, True);
+			end
 			else
 				Help.Show(LI.Captions[0] + ' Settings'); // heading -> jump to help anchor
 

@@ -68,7 +68,7 @@ type
 					MoreData: Variant);
 		procedure	ShowMessage(const Caption, Text: AnsiString);
 		procedure 	MultiLineMessage(const Caption, Text: AnsiString); overload;
-		procedure 	MultiLineMessage(const Caption: AnsiString; const Lines: TStrings;
+		procedure 	MultiLineMessage(const Caption: AnsiString; var Lines: TStringList;
 					Rewrap: Boolean = False; SkipFirstLine: Boolean = False; MaxWidth: Byte = 50);
 	end;
 
@@ -106,7 +106,7 @@ begin
 	P := PAnsiChar(S);
 	LastLineEnding := 0;
 	i := 1;
-	while {P^ <> #0} i <= Length(S) do
+	while i <= Length(S) do
 	begin
 		C := Copy(P, 1, 1);
 		Result := Result + C;
@@ -403,10 +403,11 @@ begin
 	sl.Delimiter := CHAR_NEWLINE;
 	sl.DelimitedText := Text;
 	MultiLineMessage(Caption, sl);
-	sl.Free;
 end;
 
-procedure TCWEDialog.MultiLineMessage(const Caption: AnsiString; const Lines: TStrings;
+// Note: Lines is freed before displaying the dialog!
+//
+procedure TCWEDialog.MultiLineMessage(const Caption: AnsiString; var Lines: TStringList;
 	Rewrap: Boolean = False; SkipFirstLine: Boolean = False; MaxWidth: Byte = 50);
 var
 	Memo: TCWEMemo;
@@ -431,7 +432,12 @@ begin
 		else
 			x := 0;
 		for i := x to Lines.Count-1 do
-			S := S + Trim(Lines[i]) + ' ';
+		begin
+			DS := Trim(Lines[i]);
+			if (Length(DS) >= WrapWidth) and (Pos(' ', DS) < 1) then
+				DS := DS.Insert(WrapWidth-1, ' ');
+			S := S + DS + ' ';
+		end;
 
 		S := MyWrapText(S, WrapWidth) + LINEEND;
 		DS := '';
@@ -475,11 +481,13 @@ begin
 
 	Memo := TCWEMemo.Create(Dialog, '', '', Types.Rect(1, 2, W-3, H-3), True);
 	Memo.Border.Pixel := True;
+	Memo.Scrollbar.Visible := (sl.Count-1 > Memo.Height);
 
 	for i := 0 to sl.Count-1 do
 		Memo.Add(sl[i]);
 
 	sl.Free;
+	Lines.Free; // !!!
 
 	Memo.ScrollTo(0);
 

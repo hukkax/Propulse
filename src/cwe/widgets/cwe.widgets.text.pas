@@ -251,7 +251,7 @@ type
 
 		procedure 	Add(const S: AnsiString; Color: ShortInt = -1; Center: Boolean = False); virtual;
 
-		function 	GetSection(const AnchorName: AnsiString): TStrings;
+		function 	GetSection(const AnchorName: AnsiString): TStringList;
 		function	FindSection(const AnchorName: AnsiString): Integer;
 		function	JumpToSection(const AnchorName: AnsiString): Integer;
 
@@ -1482,10 +1482,9 @@ begin
 	Result := FindSection(AnchorName);
 	if Result >= 0 then
 		ScrollTo(Result);
-//log('JumpToSection "%s" -> %d', [AnchorName, Result]);
 end;
 
-function TCWEMemo.GetSection(const AnchorName: AnsiString): TStrings;
+function TCWEMemo.GetSection(const AnchorName: AnsiString): TStringList;
 var
 	A: TTextAnchor;
 	i, y, line, last: Integer;
