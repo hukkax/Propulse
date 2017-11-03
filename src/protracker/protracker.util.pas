@@ -105,6 +105,13 @@ type
 			//ShowVolumeColumn: 	Boolean;	// show Cxx command in its own column?
 			Font: 					String;
 			Palette: 				String;		// default = Camouflage
+			Colors: record
+				Scope: record
+					Background,
+					Foreground,
+					Clipped:		Byte;
+				end;
+			end;
 		end;
 
 		Audio: packed record
@@ -564,7 +571,6 @@ begin
 	Result := Power(10.0, dB / 20.0);
 end;
 
-
 // Returns True if clamped
 function CLAMP2(x, low, high: Integer; var clipcount: Integer): Integer;
 begin
@@ -618,7 +624,8 @@ begin
 end;
 
 
-var i: Integer;
+var
+	i: Integer;
 
 initialization
 

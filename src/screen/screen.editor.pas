@@ -148,14 +148,14 @@ uses
 	Screen.Samples, Screen.Help;
 
 type
-	OrderListKeyNames = (
+	OrderListKeyNames = {%H-}(
 		keyNONE,
 		keySetLength,
 		keyEditPattern
 	);
 
 var
-	OrderlistKeys: TKeyBindings;
+	{%H-}OrderlistKeys: TKeyBindings;
 
 
 // ==========================================================================
@@ -265,10 +265,9 @@ begin
 		Bounds(i, 7, 13, 1), True);
 
 	Scope := TCWEControl.Create(Self, '', 'Scope', Bounds(52, 5, 12, 3), True);
-	Scope.SetData(0, 13, 'Clipped color');
 	EnableMouseOn(Scope);
 	Scope.OnMouseWheel := ScopeWheel;
-	Scope.OnMouseDown := ScopeClicked;
+	Scope.OnMouseDown  := ScopeClicked;
 	Scope.WantHover := False;
 	Scope.WantMouse := True;
 	RegisterLayoutControl(Scope, CTRLKIND_BOX, False, True, True);
@@ -451,15 +450,15 @@ begin
 	if VUClippedCounter > 0 then
 	begin
 		// C := Color32(VUClippedCounter*16, 0, 0);
-		C := Console.Palette[Editor.Scope.Data[0].Value];
+		C := Console.Palette[Options.Display.Colors.Scope.Clipped];
 		Dec(VUClippedCounter);
 	end
 	else
-		C := Console.Palette[Editor.Scope.ColorBack];
+		C := Console.Palette[Options.Display.Colors.Scope.Background];
 
 	Console.Bitmap.FillRect(R, C);
 
-	C := Console.Palette[Editor.Scope.ColorFore];
+	C := Console.Palette[Options.Display.Colors.Scope.Foreground];
 
 	ox := R.Left;
 	oy := R.Top;
@@ -520,11 +519,10 @@ var
 	B: PByte;
 begin
 	Result := True;
-	if ssShift in Shift then
-		B := @Scope.ColorBack
+	if ssShift in GetShiftState then
+		B := @Options.Display.Colors.Scope.Background
 	else
-		B := @Scope.ColorFore;
-
+		B := @Options.Display.Colors.Scope.Foreground;
 	if (not DirDown) and (B^ > 0) then
 		Dec(B^)
 	else
@@ -536,6 +534,7 @@ function TEditorScreen.ScopeClicked(Sender: TCWEControl; Button: TMouseButton;
 	X, Y: Integer; P: TPoint): Boolean;
 begin
 	Options.Display.ScopePerChannel := not Options.Display.ScopePerChannel;
+	Result := True;
 end;
 
 procedure TEditorScreen.MessageText(const S: String; LogIt: Boolean = False);

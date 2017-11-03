@@ -395,6 +395,22 @@ begin
 
 	// ==============================================================
 
+	S := 'Scopes';
+
+	PaletteConfig.AddByte(S, 'Foreground',
+		@Options.Display.Colors.Scope.Foreground, 5).
+		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
+
+	PaletteConfig.AddByte(S, 'Background',
+		@Options.Display.Colors.Scope.Background, 0).
+		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
+
+	PaletteConfig.AddByte(S, 'Clipped bg',
+		@Options.Display.Colors.Scope.Clipped, 13).
+		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
+
+	// ==============================================================
+
 	S := 'Waveform';
 
 	PaletteConfig.AddByte(S, 'Background',
