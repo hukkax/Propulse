@@ -543,7 +543,7 @@ begin
 			@DialogBooleans[SAMPLES_REMOVE], (UnusedSamples > 0)).
 			SetInfo('Remove unused samples', 0, 1, CN_YESNO);
 		ConfigManager.AddBoolean(Sect, '',
-			@DialogBooleans[SAMPLES_DUPLICATES], (DuplicatedSamples > 0)).
+			@DialogBooleans[SAMPLES_DUPLICATES], {(DuplicatedSamples > 0)}False).
 			SetInfo('Remove duplicate samples', 0, 1, CN_YESNO);
 		ConfigManager.AddBoolean(Sect, '',
 			@DialogBooleans[SAMPLES_REARRANGE], False).
