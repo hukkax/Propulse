@@ -74,3 +74,5 @@ src/include/lazsdl2/java_templates/
 src/include/generics\.collections/
 src/include/_generics\.collections/
 Propulse\.app/
+
+*.log

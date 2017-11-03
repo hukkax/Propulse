@@ -1,29 +1,37 @@
 unit ProTracker.Format.IT;
 
-// Impulse Tracker loader for PoroTracker
-// TODO: select IT channels to convert if >4
+// Impulse Tracker loader for Propulse Tracker
+// TODO: select channels to convert if >4
 
 interface
 
 uses
 	FileStreamEx, hkaFileUtils,
-	ProTracker.Util, ProTracker.Player, ProTracker.Sample;
+	ProTracker.Util, ProTracker.Import,
+	ProTracker.Player, ProTracker.Sample;
 
-	procedure	LoadImpulseTracker(var Moduli: TPTModule; var ModFile: TFileStreamEx;
-				SamplesOnly: Boolean = False);
-	procedure	ReadITSample(var Moduli: TPTModule; var ModFile: TFileStreamEx;
-				i: Byte; var ips: TImportedSample);
-	function 	ReadbitsIT(var ModFile: TFileStreamEx;
-				n: ShortInt; var srcpos, bitbuf, bitnum: Cardinal): Cardinal;
-	function 	DecompressIT(var ModFile: TFileStreamEx; dest: PArrayOfShortInt;
-				len: Cardinal; it215, sixteenbit: Boolean; channels, index: Byte): Cardinal;
+type
+	TITModule = class(TImportedModule)
+	public
+		procedure	LoadFromFile; override;
+		procedure	ReadSample(i: Byte; var ips: TImportedSample); override;
+		procedure	ConvertCommand(var Note: TExtNote); override;
+	end;
+
+	function ReadbitsIT(var ModFile: TFileStreamEx;
+		n: Byte; var srcpos, bitbuf, bitnum: Cardinal): Cardinal;
+	function DecompressIT(var ModFile: TFileStreamEx; dest: PArrayOfShortInt; len: Cardinal;
+		it215, sixteenbit: Boolean; channels, index: Byte): Cardinal;
+	procedure ReadITSample(var Module: TPTModule; var ModFile: TFileStreamEx;
+		i: Byte; var ips: TImportedSample);
+
 
 implementation
 
 uses
 	SysUtils, Math,
 	CWE.Core, Screen.Log,
-	soxr, ProTracker.Import;
+	soxr;
 
 const
 	// Pattern unpacking
@@ -53,13 +61,10 @@ const
 	CMD_W = 23;	CMD_X = 24;
 	CMD_Y = 25;	CMD_Z = 26;
 
-var
-	PrevParam: array[0..255] of Byte;
 
-
-procedure ConvertITCommand(var Note: TExtNote; var Conversion: TConversion);
+procedure TITModule.ConvertCommand(var Note: TExtNote);
 const
-	NOTETRANSPOSE = -48;
+	NOTETRANSPOSE = -47;
 	ProtectedEffects = [$B, $D, $F];
 	VolumeOverridesEffects = [$0, $A, $B, $E];
 var
@@ -92,22 +97,19 @@ begin
 	// convert pitch
 	V := Note.Pitch;
 
-	if V in [1..119] then
+	if InRange(V, 1, 119) then
 	begin
-		V := V + NOTETRANSPOSE;
-		if (V < 0) or (V > High(PeriodTable)) then
-			V := 0
-		else
-			V := PeriodTable[V];
-		if V = 0 then
+		Inc(V, NOTETRANSPOSE);
+		if not InRange(V, 1, 36) then
 		begin
-			//Inc(Conversion.Missed.Notes);
-			V := $FFFE;
+			Inc(Conversion.Missed.Notes);
+			if V < 1 then
+				V := High(NoteText);
 		end;
 	end
 	else
 	if V >= 254 then
-		V := $FFFF // note off/note cut
+		V := $FF // note off/note cut
 	else
 		V := 0;
 
@@ -213,7 +215,7 @@ begin
 	end;
 
 	// emulate note cut/note off by setting volume to 0
-	if Note.Pitch = $FFFF then
+	if Note.Pitch = $FF then
 	begin
 		Note.Pitch := 0;
 		if C in ProtectedEffects then // don't discard important fx!
@@ -229,8 +231,13 @@ begin
 	Note.Parameter := P;
 end;
 
+procedure TITModule.ReadSample(i: Byte; var ips: TImportedSample);
+begin
+	ReadITSample(Module, ModFile, i, ips);
+end;
+
 // ModFile must be located just after 'IMPS'!
-procedure ReadITSample(var Moduli: TPTModule; var ModFile: TFileStreamEx;
+procedure ReadITSample(var Module: TPTModule; var ModFile: TFileStreamEx;
 	i: Byte; var ips: TImportedSample);
 var
 	s: TSample;
@@ -244,11 +251,11 @@ begin
 
 	//0010: 00h GvL Flg Vol Sample Name, max 26 bytes
 	if ips = nil then
-		s := Moduli.Samples[i]
+		s := Module.Samples[i]
 	else
 	begin
 		s := ips;
-		//Moduli.ImportInfo.Samples.Add(ips);
+		//Module.ImportInfo.Samples.Add(ips);
 	end;
 
 	ModFile.Read16; // zero byte, global volume
@@ -382,12 +389,9 @@ begin
 	end;
 end;
 
-procedure LoadImpulseTracker(var Moduli: TPTModule; var ModFile: TFileStreamEx;
-	SamplesOnly: Boolean = False);
+procedure TITModule.LoadFromFile;
 var
 	os, i, j, V, pattend, row, channel, rowcount: Integer;
-	p: PWordArray;
-	s: TSample;
 	ips: TImportedSample;
 	Note: PExtNote;
 
@@ -401,42 +405,28 @@ var
 	Done: Boolean;
 
 	Pattern: TExtPattern;
-	Patterns: TExtPatternList;
-
-	Conversion: TConversion;
 begin
 	for i := 0 to 255 do
 		PrevParam[i] := 0;
-
-	ZeroMemory(@Conversion, SizeOf(Conversion));
-
-	with Conversion.Want do
-	begin
-		InsertTempo := True;		// insert tempo effect to first pattern?
-		InsertPattBreak := True;	// add pattern breaks to patterns < 64 rows?
-		FillParams := True;			// compensate for PT's lack of effect memory in some fx?
-	end;
 
 	if not SamplesOnly then
 	begin
 		ChangeScreen(TCWEScreen(LogScreen));
 		Log('$6Importing Impulse Tracker Module.');
 
-		Patterns := TExtPatternList.Create(True);
-
 		ModFile.SeekTo($04);
-		ModFile.Read(Moduli.Info.Title[0], 20);
+		ModFile.Read(Module.Info.Title[0], 20);
 	end;
 
 	ModFile.SeekTo($20); // 0020: OrdNum InsNum SmpNum PatNum Cwt/v Cmwt Flags Special
 
-	Moduli.Info.OrderCount := ModFile.Read16 - 1; // # of Orders
+	Module.Info.OrderCount := ModFile.Read16 - 1; // # of Orders
 	j  := ModFile.Read16; // # of Instruments
 	os := ModFile.Read16; // # of Samples
-	Moduli.Info.PatternCount := Min(ModFile.Read16-1, MAX_PATTERNS-1); // # of Patterns
+	Module.Info.PatternCount := Min(ModFile.Read16-1, MAX_PATTERNS-1); // # of Patterns
 
 	if not SamplesOnly then
-		Log('%d samples and %d patterns.', [os, Moduli.Info.PatternCount+1]);
+		Log('%d samples and %d patterns.', [os, Module.Info.PatternCount+1]);
 
 	ModFile.Read16; // Cwt:  Created with tracker. Impulse Tracker y.xx = 0yxxh
 	ModFile.Read16; // Cmwt: Compatible with tracker version > value. (ie. format version)
@@ -451,21 +441,21 @@ begin
 	// read orderlist
 	//
 	for i := 0 to 127 do
-		Moduli.OrderList[i] := 0;
+		Module.OrderList[i] := 0;
 
 	ModFile.SeekTo($C0);
 
 	row := 0;
-	for i := 0 to Moduli.Info.OrderCount-1 do
+	for i := 0 to Module.Info.OrderCount-1 do
 	begin
 		channel := ModFile.Read8;
 		if channel < MAX_PATTERNS then
 		begin
-			Moduli.OrderList[row] := channel;
+			Module.OrderList[row] := channel;
 			Inc(row);
 		end;
 	end;
-//	Moduli.Info.OrderCount := row;
+//	Module.Info.OrderCount := row;
 	ModFile.Read8;
 
 	// skip instrument pointers
@@ -482,11 +472,11 @@ begin
 
 	// read pattern offsets
 	//
-	for i := 0 to Min(Moduli.Info.PatternCount, MAX_PATTERNS-1) do
+	for i := 0 to Min(Module.Info.PatternCount, MAX_PATTERNS-1) do
 		PattPtrs[i] := ModFile.Read32;
 
 	if SamplesOnly then
-		Moduli.ImportInfo.Samples.Clear
+		Module.ImportInfo.Samples.Clear
 	else
 		channel := Min(channel, 30);
 
@@ -508,12 +498,12 @@ begin
 		if SamplesOnly then
 		begin
 			ips := TImportedSample.Create;
-			Moduli.ImportInfo.Samples.Add(ips);
+			Module.ImportInfo.Samples.Add(ips);
 		end
 		else
 			ips := nil;
 
-		ReadITSample(Moduli, ModFile, i, ips);
+		ReadSample(i, ips);
 	end;
 
 	if SamplesOnly then
@@ -521,7 +511,7 @@ begin
 
 	// read and convert pattern data
 	//
-	for i := 0 to Min(Moduli.Info.PatternCount, MAX_PATTERNS-1) do
+	for i := 0 to Min(Module.Info.PatternCount, MAX_PATTERNS-1) do
 	begin
 		if PattPtrs[i] = 0 then
 		begin
@@ -637,43 +627,28 @@ begin
 			Inc(row);
 			if (row >= rowcount) or (ModFile.Position >= pattend) then // pattern done
 			begin
-				// convert note pitches and effects from IT to PT before additional processing
-				for channel := 0 to Pattern.UsedChannels-1 do
-					for row := 0 to Pattern.Rows-1 do
-					begin
-						Note := @Pattern.Notes[channel, row];
-						ConvertITCommand(Note^, Conversion);
-					end;
-
 				channel := 0; row := 0; // shut up compiler
-
 				Done := True;
 			end;
 
 		end; // pattern unpacking
 	end;
 
-	// insert speed/tempo command at first pattern in orderlist if required
-	if (Conversion.Want.InsertTempo) and (Patterns.Count >= Moduli.OrderList[0]) then
-	begin
-		ModFile.SeekTo($32);
-		Patterns[Moduli.OrderList[0]].InsertTempoEffect(Moduli, ModFile.Read8, ModFile.Read8);
-	end;
+	ModFile.SeekTo($32);
+	Conversion.Info.OrigTempo := ModFile.Read8;
+	Conversion.Info.OrigSpeed := ModFile.Read8;
 
-	// convert intermediate format patterns to ProTracker format
-	ProcessConvertedPatterns(Moduli, Patterns, Conversion);
-
-	Patterns.Free;
+	CountChannels;
 end;
 
 // ==========================================================================
 // Impulse Tracker packed sample decompression
 // ==========================================================================
 
-//{$R+}
+{$R-}
 
 function ReadbitsIT(var ModFile: TFileStreamEx;
-	n: ShortInt; var srcpos, bitbuf, bitnum: Cardinal): Cardinal;
+	n: Byte; var srcpos, bitbuf, bitnum: Cardinal): Cardinal;
 var
 	i: Integer;
 	value: Cardinal;
@@ -681,11 +656,13 @@ begin
 	value := 0;
 	i := n;
 
+	ModFile.Bytes.SeekTo(ModFile.Position);
+
 	while (i > 0) do
 	begin
 		if bitnum = 0 then
 		begin
-			bitbuf := ModFile.Read8;
+			bitbuf := ModFile.Bytes.Read8;
 			Inc(srcpos);
 			bitnum := 8;
 		end;
@@ -697,11 +674,12 @@ begin
 		Dec(i);
 	end;
 
+	ModFile.SeekTo(ModFile.Bytes.Position);
 	Result := value shr (32 - n);
 end;
 
-function DecompressIT(var ModFile: TFileStreamEx; dest: PArrayOfShortInt;
-	len: Cardinal; it215, sixteenbit: Boolean; channels, index: Byte): Cardinal;
+function DecompressIT(var ModFile: TFileStreamEx; dest: PArrayOfShortInt; len: Cardinal;
+	it215, sixteenbit: Boolean; channels, index: Byte): Cardinal;
 var
 	filelen: Cardinal;
 	srcpos: Cardinal;
@@ -709,7 +687,7 @@ var
 	blklen: uint16;                // length of compressed data block in samples
 	blkpos: uint16;                // position in block
 	width: uint8;                  // actual "bit width"
-	value: uint32;                 // value read from file to be processed
+	value: Cardinal;               // value read from file to be processed
 	d1, d2: int8;                  // integrator buffers (d2 for it2.15) (8-bit)
 	d1x, d2x: int16;               // integrator buffers (16-bit)
 	v: int8;                       // sample value (8-bit)
@@ -720,10 +698,10 @@ var
 	borderx: uint16;
 	maxlen: Cardinal;
 begin
-	if sixteenbit then
+{	if sixteenbit then
 		Log('Decompressing sample %d (16-bit)', [index])
 	else
-		Log('Decompressing sample %d (8-bit)', [index]);
+		Log('Decompressing sample %d (8-bit)', [index]);}
 
 	destpos := 0;
 	maxlen := len;
@@ -731,6 +709,8 @@ begin
 	srcpos := ModFile.Position-1;
 	filelen := ModFile.Size;
 	Result := srcpos;
+
+	ModFile.ReadData;
 
 	// unpack data till the dest buffer is full
 	while len > 0 do
@@ -756,7 +736,7 @@ begin
 		bitnum := 0;
 		blkpos := 0;
 		d1x := 0; d2x := 0; // reset integrator buffers
-		d1 := 0; d2 := 0; // reset integrator buffers
+		d1  := 0; d2  := 0;
 
 		//Log('  Reading block (blocksize=%d, width=%d)', [blklen, width]);
 
@@ -770,7 +750,6 @@ begin
 			blklen := Min($8000, len);
 			width := 9;
 		end;
-
 
 		// now uncompress the data block
 		while blkpos < blklen do
@@ -790,7 +769,7 @@ begin
 				if width < 7 then
 				begin
 					// check for "100..."
-					if (value = Cardinal(1 shl (width - 1))) then
+					if (int32(value) = (1 shl (width - 1))) then
 					begin // yes!
 						value := ReadbitsIT(ModFile, 4, srcpos, bitbuf, bitnum) + 1; // read new width
 						if value < width then // and expand it
@@ -805,7 +784,8 @@ begin
 				if width < 17 then
 				begin
 					borderx := ($FFFF shr (17 - width)) - 8; // lower border for width chg
-					if (value > borderx) and (value <= Cardinal(borderx) + 16) then
+					//if (value > borderx) and (value <= borderx + 16) then
+					if (int32(value) > int32(borderx)) and (int32(value) <= int32(borderx) + 16) then
 					begin
 						Dec(value, borderx); // convert width to 1-8
 						if value < width then // and expand it
@@ -827,8 +807,8 @@ begin
 				if width < 16 then
 				begin
 					shift := 16 - width;
-					vx := int16(value shl shift);
-					vx := int16(vx shr shift);
+					vx := Word(value shl shift);
+					vx := Word(vx shr shift);
 				end
 				else
 					vx := int16(value);
@@ -864,7 +844,7 @@ begin
 				if width < 7 then
 				begin
 					// check for "100..."
-					if (value = 1 shl (width - 1)) then
+					if (value = (1 shl (width - 1))) then
 					begin // yes!
 						value := ReadbitsIT(ModFile, 3, srcpos, bitbuf, bitnum) + 1; // read new width
 						if value < width then // and expand it
@@ -891,21 +871,24 @@ begin
 				end
 				else
 				// method 3 (9 bits)
-				if (value and $100) <> 0 then // bit 8 set?
+				if width = 9 then
 				begin
-					width := (value + 1) and $FF; // new width...
-					Continue; // ... and next value
+					if (value and $100) <> 0 then // bit 8 set?
+					begin
+						width := (value + 1) and $FF; // new width...
+						Continue; // ... and next value
+					end;
 				end;
 
 				// now expand value to signed byte
 				if width < 8 then
 				begin
 					shift := 8 - width;
-					v := ShortInt(value shl shift);
-					v := ShortInt(v shr shift);
+					Byte(v) := ShortInt(value shl shift);
+					Byte(v) := ShortInt(v shr shift);
 				end
 				else
-					v := int8(value);
+					v := ShortInt(value);
 
 				// integrate upon the sample values
 				Inc(d1, v);
@@ -932,7 +915,7 @@ begin
 		Dec(len, blklen);
 	end;
 
-//	Log('Done, pos=%d, destpos=%d', [srcpos, destpos] );
+	//Log('Done, pos=%d, destpos=%d', [srcpos, destpos] );
 	Result := srcpos;
 end;
 

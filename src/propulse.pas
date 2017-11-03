@@ -31,7 +31,6 @@ uses
 	{$ENDIF}
 	MainWindow;
 
-
 	{$IFDEF UNIX}
 	// on Unix we need to initialize the threading system before
 	// using custom callbacks with BASS or we crash!
@@ -54,10 +53,10 @@ begin
 	end;
 	{$ENDIF}
 
-	{$if declared(UseHeapTrace)}
+	{$IF declared(UseHeapTrace)}
 	GlobalSkipIfNoLeaks := True;
-	//SetHeapTraceOutput('trace.log');
-	{$endif}
+	SetHeapTraceOutput('trace.log');
+	{$ENDIF}
 
 	{$IFDEF BASS_DYNAMIC}
 		// load the BASS library dynamically at runtime

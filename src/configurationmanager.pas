@@ -28,13 +28,20 @@ type
 						const aValueNames: array of AnsiString;
 						const aCallback: TSettingChangeCallback = nil;
 						const aFormatString: AnsiString = '';
-						aStep: Integer = 1; aLargeStep: Integer = 5);
+						aStep: Integer = 1; aLargeStep: Integer = 5); overload;
+		procedure 		SetInfo(const aCaption: AnsiString; aMin, aMax: Integer;
+						const aValueNames: TStrings;
+						const aCallback: TSettingChangeCallback = nil;
+						const aFormatString: AnsiString = '';
+						aStep: Integer = 1; aLargeStep: Integer = 5); overload;
 		procedure 		SetInfoFromDir(const aCaption: AnsiString;
 						const Dir, Extensions: String;
 						const aCallback: TSettingChangeCallback = nil);
 		procedure		ModifyValue(Amount: Integer); virtual;
+		procedure		SetValue(NewValue: Integer); virtual;
 		function		ValueToString: AnsiString; virtual;
 		function 		GetValueName(i: Integer): AnsiString;
+		function		ListValues(const sl: TStrings): Integer; virtual;
 
 		procedure		Load(const Ini: TIniFile); virtual;
 		procedure		Save(const Ini: TIniFile); virtual;
@@ -48,8 +55,10 @@ type
 		Value:			PBoolean;
 		DefaultValue:	Boolean;
 		procedure		ModifyValue(Amount: Integer); override;
+		procedure		SetValue(NewValue: Integer); override;
 		function		GetValue: Boolean;
 		function		ValueToString: AnsiString; override;
+		function		ListValues(const sl: TStrings): Integer; override;
 		procedure		Load(const Ini: TIniFile); override;
 		procedure		Save(const Ini: TIniFile); override;
 	end;
@@ -59,8 +68,10 @@ type
 		Value:			PByte;
 		DefaultValue:	Byte;
 		procedure		ModifyValue(Amount: Integer); override;
+		procedure		SetValue(NewValue: Integer); override;
 		function		GetValue: Byte;
 		function		ValueToString: AnsiString; override;
+		function		ListValues(const sl: TStrings): Integer; override;
 		procedure		Load(const Ini: TIniFile); override;
 		procedure		Save(const Ini: TIniFile); override;
 	end;
@@ -70,8 +81,10 @@ type
 		Value:			PInteger;
 		DefaultValue:	Integer;
 		procedure		ModifyValue(Amount: Integer); override;
+		procedure		SetValue(NewValue: Integer); override;
 		function		GetValue: Integer;
 		function		ValueToString: AnsiString; override;
+		function		ListValues(const sl: TStrings): Integer; override;
 		procedure		Load(const Ini: TIniFile); override;
 		procedure		Save(const Ini: TIniFile); override;
 	end;
@@ -99,15 +112,16 @@ type
 	end;
 
 	TConfigItemString = class(TConfigItem)
-	private
-		CurrentIndex:	Integer;
 	public
+		CurrentIndex:	Integer;
 		Value:			PString;
 		DefaultValue:	String;
 		AllowEmpty:		Boolean;
 		procedure		ModifyValue(Amount: Integer); override;
+		procedure		SetValue(NewValue: Integer); override;
 		function		GetValue: String;
 		function		ValueToString: AnsiString; override;
+		function		ListValues(const sl: TStrings): Integer; override;
 		procedure		Load(const Ini: TIniFile); override;
 		procedure		Save(const Ini: TIniFile); override;
 
@@ -272,9 +286,12 @@ begin
 	inherited Destroy;
 end;
 
-procedure TConfigItem.SetInfo;
+procedure TConfigItem.SetInfo(const aCaption: AnsiString; aMin, aMax: Integer;
+	const aValueNames: array of AnsiString;
+	const aCallback: TSettingChangeCallback; const aFormatString: AnsiString;
+	aStep: Integer; aLargeStep: Integer);
 var
-	i: Integer;
+	i, os: Integer;
 begin
 	if aCaption = '§' then
 		Caption := Name
@@ -282,13 +299,29 @@ begin
 		Caption := aCaption;
 	FormatString := aFormatString;
 	SetLength(ValueNames, Length(aValueNames));
+	os := Low(aValueNames);
 	for i := Low(aValueNames) to High(aValueNames) do
-		ValueNames[i] := aValueNames[i];
+		ValueNames[i-os] := aValueNames[i];
 	Min := aMin;
 	Max := aMax;
 	Step := aStep;
 	LargeStep := aLargeStep;
 	Callback := aCallback;
+end;
+
+procedure TConfigItem.SetInfo(const aCaption: AnsiString; aMin, aMax: Integer;
+	const aValueNames: TStrings;
+	const aCallback: TSettingChangeCallback; const aFormatString: AnsiString;
+	aStep: Integer; aLargeStep: Integer);
+var
+	i: Integer;
+	NameArr: array of AnsiString;
+begin
+	SetLength(NameArr, aValueNames.Count);
+	for i := 0 to aValueNames.Count-1 do
+		NameArr[i] := aValueNames[i];
+	SetInfo(aCaption, aMin, aMax, NameArr,
+	aCallback, aFormatString, aStep, aLargeStep);
 end;
 
 procedure TConfigItem.SetInfoFromDir(const aCaption: AnsiString;
@@ -341,10 +374,19 @@ begin
 	Result := ValueNames[i];
 end;
 
+function TConfigItem.ListValues(const sl: TStrings): Integer;
+begin
+	Result := -1;
+end;
+
 procedure TConfigItem.ModifyValue(Amount: Integer);
 begin
 {	if Assigned(Callback) then
 		Callback;}
+end;
+
+procedure TConfigItem.SetValue(NewValue: Integer);
+begin
 end;
 
 { TConfigItemString }
@@ -358,10 +400,17 @@ end;
 procedure TConfigItemString.Load(const Ini: TIniFile);
 var
 	S: String;
+	i: Integer;
 begin
 	S := Ini.ReadString(Section, Name, PString(Value)^);
 	if (AllowEmpty) or (S <> '') then
 		PString(Value)^ := S;
+	for i := 0 to High(ValueNames) do
+		if ValueNames[i] = S then
+		begin
+			CurrentIndex := i;
+			Break;
+		end;
 end;
 
 procedure TConfigItemString.Save(const Ini: TIniFile);
@@ -389,9 +438,25 @@ begin
 	inherited;
 end;
 
+procedure TConfigItemString.SetValue(NewValue: Integer);
+begin
+	if (NewValue >= Low(ValueNames)) and (NewValue <= High(ValueNames)) then
+	begin
+		Value^ := Self.ValueNames[NewValue];
+		CurrentIndex := NewValue;
+	end;
+end;
+
 function TConfigItemString.ValueToString: AnsiString;
 begin
 	Result := Value^;
+end;
+
+function TConfigItemString.ListValues(const sl: TStrings): Integer;
+begin
+	if not Assigned(sl) then Exit(-1);
+	sl.AddStrings(ValueNames);
+	Result := CurrentIndex;
 end;
 
 { TConfigItemFloat }
@@ -429,8 +494,26 @@ begin
 	inherited;
 end;
 
+{function TConfigItemFloat.ValueToString(V: Single): AnsiString;
+begin
+	if (V < Min) or (V > Max) then Exit('');
+
+	if FormatString <> '' then
+		Result := Format(FormatString, [V])
+	else
+		Result := Format('%f', [Max - V]);
+
+	if (Value^ = Min) and (Length(ValueNames) > 0) then
+		Result := ValueNames[0]
+	else
+	if (Value^ = Max) and (High(ValueNames) >= 1) then
+		Result := ValueNames[1];
+end;}
+
 function TConfigItemFloat.ValueToString: AnsiString;
 begin
+//	Result := ValueToString(Value^);
+
 	if FormatString <> '' then
 		Result := Format(FormatString, [Value^])
 	else
@@ -538,6 +621,12 @@ begin
 	inherited;
 end;
 
+procedure TConfigItemInteger.SetValue(NewValue: Integer);
+begin
+	if (NewValue >= Min) and (NewValue <= Max) then
+		Value^ := NewValue;
+end;
+
 function TConfigItemInteger.ValueToString: AnsiString;
 begin
 	if Value = nil then Exit('NIL');
@@ -552,6 +641,11 @@ begin
 	else
 	if (Value^ = Max) and (High(ValueNames) >= 1) then
 		Result := ValueNames[1];
+end;
+
+function TConfigItemInteger.ListValues(const sl: TStrings): Integer;
+begin
+	if not Assigned(sl) then Exit(-1);
 end;
 
 { TConfigItemByte }
@@ -591,6 +685,12 @@ begin
 	inherited;
 end;
 
+procedure TConfigItemByte.SetValue(NewValue: Integer);
+begin
+	if (NewValue >= Min) and (NewValue <= Max) then
+		PByte(Value)^ := Byte(NewValue);
+end;
+
 function TConfigItemByte.ValueToString: AnsiString;
 begin
 	if Value = nil then Exit('NIL');
@@ -608,6 +708,31 @@ begin
 		Result := Format(FormatString, [Value^])
 	else
 		Result := IntToStr(Value^);
+end;
+
+function TConfigItemByte.ListValues(const sl: TStrings): Integer;
+var
+	i: Integer;
+begin
+	if not Assigned(sl) then Exit(-1);
+
+	for i := Min to Max do
+	begin
+		if (Max - Min) <= Length(ValueNames) then
+			sl.Add(GetValueName(i-Min))
+		else
+		if (i = Min) and (Length(ValueNames) > 0) then
+			sl.Add(GetValueName(Min))
+		else
+		if (i = Max) and (High(ValueNames) >= 1) then
+			sl.Add(GetValueName(1))
+		else
+		if FormatString <> '' then
+			sl.Add(Format(FormatString, [i]))
+		else
+			sl.Add(IntToStr(i));
+	end;
+	Result := Value^ - Min;
 end;
 
 { TConfigItemBoolean }
@@ -637,6 +762,15 @@ begin
 	inherited;
 end;
 
+procedure TConfigItemBoolean.SetValue(NewValue: Integer);
+begin
+	if NewValue > 0 then
+		Value^ := True
+	else
+	if NewValue <= 0 then
+		Value^ := False;
+end;
+
 function TConfigItemBoolean.ValueToString: AnsiString;
 begin
 	if Value^ = True then
@@ -652,6 +786,18 @@ begin
 			Result := ValueNames[0]
 		else
 			Result := 'False';
+	end;
+end;
+
+function TConfigItemBoolean.ListValues(const sl: TStrings): Integer;
+begin
+	if not Assigned(sl) then Exit(-1);
+
+	sl.Add(ValueNames[0]);
+	sl.Add(ValueNames[1]);
+	case Value^ of
+		False: Result := 0;
+		True:  Result := 1;
 	end;
 end;
 

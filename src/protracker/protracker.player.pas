@@ -74,8 +74,8 @@ type
 		Sample:			Byte;	// 8 bits
 		Command:		Byte;	// 4 bits
 		Parameter:		Byte;	// 8 bits
-		Text:			Byte;	// index to NoteText[]
-		Period:			Word;	// 12 bits (Period)
+		Pitch:			Byte;	// index to NoteText[]
+		//Period:		Word;	// 12 bits (Period)
 	end;
 	PNote = ^TNote;
 
@@ -154,7 +154,8 @@ type
 
 		procedure 	ClearRowVisitTable;
 
-		procedure	MixSampleBlock(streamOut: Pointer; numSamples: Cardinal);
+		procedure	MixSampleBlock(streamOut: Pointer; numSamples: Cardinal;
+					scopesOffset: Integer = -1);
 		procedure 	CalculatePans(percentage: Byte);
 
 		procedure	UpdateFunk(var ch: TPTChannel);
@@ -240,11 +241,11 @@ type
 			Samples: TObjectList<TImportedSample>;
 		end;
 
+		IsMaster,
 		SamplesOnly:		Boolean;
 
 		FilterHighPass: 	Boolean; 	// 5.2Hz high-pass filter present in all Amigas
 		FilterLowPass: 		Boolean; 	// 4.4kHz low-pass filter in all Amigas except A1200
-		UseBlep: 			Boolean; 	// Reduces some unwanted aliasing (closer to real Amiga)
 		PreventClipping: 	Boolean; 	// Clamps the audio output to prevent clipping
 		NormFactor: 		Single; 	// Sound amplification factor
 
@@ -282,8 +283,9 @@ type
 		procedure 	RepostChanges;
 		procedure 	SetModified(B: Boolean = True; Force: Boolean = False);
 
-		function 	LoadFromFile(const Filename: String): Boolean;
+		function 	LoadFromFile(const Filename: String; Force: Boolean = False): Boolean;
 		function 	SaveToFile(const Filename: String): Boolean;
+		function 	MergeWithFile(const Filename: String): Boolean;
 
 		function 	RenderPatternFloat(var FloatBuf: TFloatArray; Rows: Byte;
 					Mono, Normalize, BoostHighs: Boolean): Cardinal;
@@ -322,7 +324,7 @@ type
 
 		procedure 	ApplyAudioSettings;
 
-		constructor	Create(aSamplesOnly: Boolean);
+		constructor	Create(aIsMaster, aSamplesOnly: Boolean);
 		destructor	Destroy; override;
 	end;
 
@@ -335,6 +337,7 @@ var
 	Module: 		TPTModule;
 	Stream: 		HSTREAM;
 	VUbuffer: 		array of SmallInt;
+	ScopeBuffer: 	array[0..AMOUNT_CHANNELS-1] of array of SmallInt;
 	VUhandled: 		Boolean;
 	EmptyNote: 		TNote;
 
@@ -348,7 +351,8 @@ uses
 	MainWindow,
 	FileStreamEx, fpwavwriter, fpwavformat,
 	ProTracker.Editor,
-	ProTracker.Format.IT, ProTracker.Format.P61;
+	ProTracker.Import, ProTracker.Format.IT, ProTracker.Format.S3M, ProTracker.Format.P61,
+	CWE.Dialogs;
 
 var
 	Mixing: Boolean;
@@ -427,7 +431,14 @@ begin
 	Mixing := True;
 
 	if Length(VUbuffer) <= Len then
+	begin
 		SetLength(VUbuffer, Len + 1024);
+		for pos := 0 to AMOUNT_CHANNELS-1 do
+			SetLength(ScopeBuffer[pos], Len div 2 + 1024);
+	end;
+
+	for pos := 0 to AMOUNT_CHANNELS-1 do
+		ZeroMemory(ScopeBuffer[pos], Length(ScopeBuffer[pos]));
 
 	if Module.DisableMixer then
 	begin
@@ -448,8 +459,8 @@ begin
 
 		if samplesTodo > 0 then
 		begin
-			Module.MixSampleBlock(@outStream[pos], samplesTodo);
-			pos := pos + (2 * samplesTodo);
+			Module.MixSampleBlock(@outStream[pos], samplesTodo, pos div 2);
+			Inc(pos, samplesTodo * 2);
 
 			Dec(sampleBlock, samplesTodo);
 			Dec(samplesLeft, samplesTodo);
@@ -476,11 +487,23 @@ end;
 
 function AudioInit(Frequency: Cardinal): Boolean;
 var
-	info: BASS_INFO;
 	device: BASS_DEVICEINFO;
+
+	function GetAudioDevice(Devname: AnsiString): Integer;
+	var
+		i: Integer;
+	begin
+		Result := -1;
+		if (DevName = '') or (DevName = 'Default') then Exit;
+		for i := 1 to 99 do
+			if (BASS_GetDeviceInfo(i, device)) and (device.name = Devname) then
+				Exit(i);
+	end;
+
+var
+	info: BASS_INFO;
 	ver, flags: DWord;
 	Minbuf: Integer;
-	S: AnsiString;
 	WindowHandle: Cardinal = 0;
 begin
 	Result := False;
@@ -499,7 +522,7 @@ begin
 	BASS_SetConfig(BASS_CONFIG_VISTA_TRUEPOS, 0); // Speeds up initialization
 	{$ENDIF}
 
-	if not BASS_Init(Options.Audio.Device, outputFreq, flags, WindowHandle, nil) then
+	if not BASS_Init(GetAudioDevice(Options.Audio.Device), outputFreq, flags, WindowHandle, nil) then
 	begin
 		if not BASS_Init(-1, outputFreq, flags, WindowHandle, nil) then
 		begin
@@ -689,7 +712,7 @@ begin
 		begin
 			Note := @Notes[i, x, y];
 			if (Note.Sample > 0) or (Note.Command > 0)   or
-			   (Note.Period > 0) or (Note.Parameter > 0) then
+			   (Note.Pitch > 0) or (Note.Parameter > 0) then
 					Exit(False);
 		end;
 end;
@@ -760,6 +783,7 @@ end;
 function TPTModule.SaveToFile(const Filename: String): Boolean;
 var
 	i, j, k, l: Integer;
+	B: Word;
 	c: Cardinal;
 	Stream: TFileStreamEx;
 begin
@@ -837,8 +861,12 @@ begin
 			for k := 0 to AMOUNT_CHANNELS-1 do
 			with Notes[i,k,l] do
 			begin
-				Stream.Write8(((Period shr 8) and $0F) or (Sample and $10));
-				Stream.Write8(Period and $FF);
+				if Pitch = 0 then
+					B := 0
+				else
+					B := PeriodTable[Pitch-1];
+				Stream.Write8(((B shr 8) and $0F) or (Sample and $10));
+				Stream.Write8(B and $FF);
 				Stream.Write8((Sample shl 4) or (Command and $0F));
 				Stream.Write8(Parameter);
 			end;
@@ -872,6 +900,7 @@ begin
 	Log(TEXT_LIGHT + 'Module saved: ' + Filename + '.');
 	Log('-');
 
+	Warnings := False;
 	Result := True;
 end;
 
@@ -979,19 +1008,131 @@ begin
 	Result := True;
 end;
 
-function TPTModule.LoadFromFile(const Filename: String): Boolean;
-const
-	TEXT_INVALIDMOD = 'Invalid .MOD file!' ;
+function TPTModule.MergeWithFile(const Filename: String): Boolean;
 var
-	os, i, j, patt, row, ch, pattNum: Integer;
-	p: PWordArray;
+	Temp: TPTModule;
+	i, p, c, patt, ch, row: Integer;
+	FreeSlots: array[0..30] of Boolean;
+	DestSlot: array[0..30] of ShortInt;
+	TN: PNote;
+	S: AnsiString;
+begin
+	Log(TEXT_ACTION + 'Merging into current: ' + Filename);
+	Temp := TPTModule.Create(False, False);
+
+	if Temp.LoadFromFile(Filename) then
+	begin
+		// merge samples
+		//
+		for c := 0 to 30 do // Temp.Samples[]
+		begin
+			DestSlot[c] := -1;
+			if not Temp.Samples[c].IsEmpty then
+				for p := 0 to 30 do // Module.Samples[]
+				begin
+					if (not Samples[p].IsEmpty) and
+						(Temp.Samples[c].IsDuplicateOf(Samples[p])) then
+						begin
+							DestSlot[c] := p;
+							Log('Merging duplicate sample %.2d -> %.2d', [c+1, p+1]);
+							Break;
+						end;
+				end;
+		end;
+
+		for p := 0 to 30 do
+			FreeSlots[p] := Samples[p].IsEmpty;
+		for p := 0 to 30 do
+			FreeSlots[DestSlot[p]] := False;
+
+		c := 0; // count samples to be added
+		for p := 0 to 30 do
+		begin
+			if (DestSlot[p] < 0) and (not Temp.Samples[p].IsEmpty) then
+			begin
+				Inc(c);
+				for i := 0 to 30 do // find slot to put this sample
+					if FreeSlots[i] then
+					begin
+						DestSlot[p] := i;
+						FreeSlots[i] := False;
+						Break;
+					end;
+				if DestSlot[p] < 0 then
+					Log(TEXT_WARNING + 'Could not find free slot for sample %d!', [p+1]);
+			end;
+		end;
+
+		Log('Added %d new samples.', [c]);
+
+		// replace samples in pattern data of module to merge with the
+		// corresponding sample numbers in the current module
+		//
+		for p := 30 downto 0 do
+			if DestSlot[p] >= 0 then
+			begin
+				i := DestSlot[p];
+				if Samples[i].IsEmpty then
+					Samples[i].Assign(Temp.Samples[p]);
+			end;
+
+		// merge pattern data
+		//
+		p := CountUsedPatterns + 1;
+		c := Temp.CountUsedPatterns + 1;
+		i := Info.OrderCount;
+		if (p + c) > MAX_PATTERNS then
+			Log(TEXT_WARNING + 'Cannot fit all patterns!');
+
+		for patt := 0 to Min(c-1, MAX_PATTERNS) do
+			for ch := 0 to AMOUNT_CHANNELS-1 do
+				for row := 0 to 63 do
+				begin
+					TN := @Temp.Notes[patt, ch, row];
+					if TN^.Sample > 0 then
+						TN^.Sample := DestSlot[TN^.Sample - 1] + 1; // 0-based vs. 1-based
+					if TN^.Command = $B then // fix order jumps
+						TN^.Parameter := TN^.Parameter + i;
+					Notes[patt+p, ch, row] := TN^;
+				end;
+
+		S := Format('Inserted %d new patterns starting at pattern %d, order %d.', [c, p, i]);
+		Log(S);
+
+		// merge orderlist
+		//
+		c := Max(Temp.Info.OrderCount-1, 0);
+		for ch := 0 to c do
+			OrderList[ch+i] := Temp.OrderList[ch] + p;
+		Info.OrderCount := i + c + 1;
+
+		CountUsedPatterns;
+
+		//Warnings := True; // show log
+		SetModified(True, True);
+
+		SwitchToEditor;
+		ModalDialog.ShowMessage('Merge complete', S);
+	end;
+
+	Log('-');
+	Warnings := False;
+
+	Temp.Free;
+end;
+
+function TPTModule.LoadFromFile(const Filename: String; Force: Boolean = False): Boolean;
+const
+	TEXT_INVALIDMOD = 'Invalid .MOD file: ';
+var
+	os, i, j, patt, row, ch, loopOverflow: Integer;
 	s: TSample;
 	Note: PNote;
 	mightBeSTK, mightBeIT, lateVerSTKFlag: Boolean;
 	ModFile: TFileStreamEx;
-	nd: Cardinal;
 	bytes: array [0..3] of Byte;
-	sFile: AnsiString;
+	sFile, WarnText: AnsiString;
+	Origin: Cardinal;
 
 	// powerpacker decrunch
 	ppPackLen, ppUnpackLen: uint32;
@@ -1006,7 +1147,8 @@ var
 		if ModFile <> nil then
 			ModFile.Free;
 		Log(TEXT_FAILURE + 'Load failed: ' + Msg, Args);
-		Log('-');
+		if Force then
+			Log('-');
 	end;
 
 label
@@ -1014,16 +1156,47 @@ label
 begin
 	Result := False;
 	Warnings := False;
-
 	lateVerSTKFlag := False;
 	mightBeIT := False;
 
+	FreeAndNil(ImportedModule);
+
 	// Read file data
 	//
-	if not SamplesOnly then
+	if IsMaster then
 	begin
-		Log('-');
-		Log(TEXT_ACTION + 'Loading module: ' + Filename);
+		if not Force then
+		begin
+			Log('-');
+			Log(TEXT_ACTION + 'Loading module: ' + Filename);
+		end
+		else
+			Log(TEXT_INFO + 'Retrying using alternate method.');
+	end;
+
+	Origin := 0;
+
+	// if Force flag implies that the previous load attempt failed to recognize a valid
+	// module; try a more forceful method
+	//
+	if Force then
+	begin
+		sFile := FileToString(Filename);
+		Origin := Pos('M.K.', sFile);
+		if Origin <= 0 then
+			Origin := Pos('M!K!', sFile);
+		if Origin >= 1080 then
+		begin
+			Dec(Origin);
+			Log(TEXT_SUCCESS + 'Found MK tag at $%x; loading module at file offset $%x.', [Origin, Origin-1080]);
+			Dec(Origin, 1080);
+		end
+		else
+		begin
+			Log(TEXT_FAILURE + 'Load failed: Could not locate MK tag.');
+			Log('-');
+			Exit;
+		end;
 	end;
 
 	Reset;
@@ -1037,8 +1210,11 @@ begin
 	Info.Filename := '';
 	TempFilename := '';
 
+	// ======================================================================
 	// Determine module type
+	// ======================================================================
 	//
+	ModFile.SeekTo(Origin);
 	sFile := ModFile.ReadString(False, 4);
 
 	if sFile = 'IMPM' then
@@ -1052,7 +1228,8 @@ begin
 	else
 	if sFile = 'PP20' then
 	begin
-		// decrunch powerpacker module
+		// decrunch PowerPacker module
+		//
 		if not SamplesOnly then
 			Log(TEXT_INFO + 'File is packed with PowerPacker.');
 
@@ -1063,7 +1240,7 @@ begin
 			Exit;
 		end;
 
-		ModFile.SeekTo(ppPackLen - 4);
+		ModFile.SeekTo(Origin + ppPackLen - 4);
 		ModFile.Read(ppCrunchData[0], 4);
 
 		ppUnpackLen := (ppCrunchData[0] shl 16) or (ppCrunchData[1] shl 8) or ppCrunchData[2];
@@ -1076,7 +1253,7 @@ begin
 		end;
 
 		SetLength(modBuffer, ppUnpackLen+1);
-		ModFile.SeekTo(0);
+		ModFile.SeekTo(Origin);
 
 		i := ModFile.Size;
 		SetLength(ppBuffer, i+1);
@@ -1096,24 +1273,28 @@ begin
 
 	// get normal mod ID
 	//
-	ModFile.SeekTo(OFFSET_ID);
+	ModFile.SeekTo(Origin + OFFSET_ID);
 	ModFile.Read(Info.ID[0], 4);
 	Info.Format := CheckModType(Info.ID);
 	mightBeSTK := (Info.Format = FORMAT_UNKNOWN);
 
+	// ======================================================================
 	// Import Impulse Tracker module
+	// ======================================================================
 	// (this will break if a ST module's title begins with "IMPM"!)
 	//
 	if (Info.Format = FORMAT_UNKNOWN) then
 	begin
 		if mightBeIT then
 		begin
-			LoadImpulseTracker(Self, ModFile, SamplesOnly);
+			// import IT
+			ImportedModule := TITModule.Create(Self, ModFile, SamplesOnly);
 			goto Done;
 		end
 		else
 		if Pos('p61', LowerCase(Filename)) > 0 then
 		begin
+			// import P61
 			if not SamplesOnly then
 			begin
 				sFile := ExtractFileName(Filename);
@@ -1123,6 +1304,18 @@ begin
 			end;
 			LoadThePlayer(Self, ModFile, SamplesOnly);
 			goto Done;
+		end
+		else
+		begin
+			// import S3M
+			ModFile.SeekTo(Origin + $2C);
+			TempFilename := 'xxxx';
+			ModFile.Read(TempFilename[1], 4);
+			if TempFilename = 'SCRM' then
+			begin
+				ImportedModule := TS3MModule.Create(Self, ModFile, SamplesOnly);
+				goto Done;
+			end;
 		end;
 	end
 	else
@@ -1134,12 +1327,16 @@ begin
 
 	// Read song title
 	//
-	ModFile.SeekTo(OFFSET_SONGTITLE);
+	ModFile.SeekTo(Origin + OFFSET_SONGTITLE);
 	ModFile.Read(Info.Title[0], 20);
 
-	//ModFile.SeekTo(OFFSET_SAMPLEINFO);
+	//ModFile.SeekTo(Origin + OFFSET_SAMPLEINFO);
 
-	for i := 0 to 30 {High(Samples)-1} do
+	// ======================================================================
+	// Read sample headers
+	// ======================================================================
+	//
+	for i := 0 to 30 do
 	begin
 		if SamplesOnly then
 		begin
@@ -1154,6 +1351,8 @@ begin
 			s.LoopLength := 1;
 			Continue;
 		end;
+
+		WarnText := '';
 
 		// index 23 of s.text is already zeroed
 		//ModFile.ReadBytes(PByte(@s.Name[0]), 22);
@@ -1173,33 +1372,25 @@ begin
 		s.Volume := Min(64, ModFile.ReadByte);
 
 		s.LoopStart  := ModFile.Read16R; // repeat
-		s.LoopLength := ModFile.Read16R; // replen
+		s.LoopLength := Max(ModFile.Read16R, 2); // replen
 
 		if (mightBeSTK) and (s.LoopStart > 0) then
 			s.LoopStart := s.LoopStart div 2;
-		if s.LoopLength < 2 then
-			s.LoopLength := 2;
 
 		// fix for poorly converted STK.PTMOD modules.
-		if (not mightBeSTK) and ((s.LoopStart + s.LoopLength) > s.Length) then
+		if (not mightBeSTK) and
+			(s.LoopLength > 2) and ((s.LoopStart + s.LoopLength) > s.Length) then
 		begin
+			WarnText := Format('Sample %d has illegal loop.', [i+1]);
 			if ((s.LoopStart div 2) + s.LoopLength) <= s.Length then
 			begin
-				//Debug('%d: fixing illegal sample loop.', [i+1]);
 				s.LoopStart := s.LoopStart div 2;
-			end
-			else
-			begin
-				// loop points are still illegal, deactivate loop
-				//Debug('%d: disabling illegal sample loop.', [i+1]);
-				s.LoopStart  := 0;
-				s.LoopLength := 2;
+				WarnText := WarnText + ' Loop start adjusted.';
 			end;
 		end;
 
 		if mightBeSTK then
 		begin
-			//Debug('%d might be STK.', [i+1]);
 			if s.LoopLength > 2 then
 			begin
 				j := s.LoopStart;
@@ -1211,9 +1402,31 @@ begin
 			// No finetune in STK/UST
 			s.Finetune := 0;
 		end;
+
+		// some modules are broken like this, adjust sample length if possible
+		if (s.LoopLength > 2) and ((s.LoopStart + s.LoopLength) > s.Length) then
+		begin
+			loopOverflow := (s.LoopStart + s.LoopLength) - s.Length;
+			if (s.Length + loopOverflow) <= 131070 then
+			begin
+				Inc(s.Length, loopOverflow);
+				WarnText := WarnText + ' Sample length adjusted.';
+			end
+			else
+			begin
+				// loop points are still illegal, deactivate loop
+				WarnText := WarnText + ' Loop deactivated.';
+				s.LoopStart  := 0;
+				s.LoopLength := 2;
+			end;
+		end;
+
+		if WarnText <> '' then
+			Log(TEXT_WARNING + WarnText);
 	end;
 
 	// STK 2.5 had loopStart in words, not bytes. Convert if late version STK.
+	//
 	if mightBeSTK and lateVerSTKFlag then
 	begin
 		//Debug('%d Converting sample loops from STK.', [i+1]);
@@ -1232,16 +1445,18 @@ begin
 		end;
 	end;
 
+	// ======================================================================
 	// Read orderlist and find amount of patterns in file
+	// ======================================================================
 	//
-	//ModFile.SeekTo(950);
+	//ModFile.SeekTo(Origin + 950);
 	Info.OrderCount := Integer(ModFile.ReadByte);
 
 	if Info.OrderCount > 127 then // fixes beatwave.mod (129 orders) and other weird MODs
 	begin
 		if Info.OrderCount > 129 then
 		begin
-			ExitError(TEXT_INVALIDMOD + '(Orderlist too long)', []);
+			ExitError(TEXT_INVALIDMOD + 'Orderlist too long! (%d)', [Info.OrderCount]);
 			Exit;
 		end
 		else
@@ -1250,7 +1465,7 @@ begin
 	else
 	if Info.OrderCount = 0 then
 	begin
-		ExitError(TEXT_INVALIDMOD + '(Zero-length orderlist)', []);
+		ExitError(TEXT_INVALIDMOD + 'Invalid ID or Zero-length orderlist!', []);
 		Exit;
 	end;
 
@@ -1258,14 +1473,15 @@ begin
 
 	if (mightBeSTK) and ((Info.RestartPos = 0) or (Info.RestartPos > 220)) then
 	begin
-		ExitError(TEXT_INVALIDMOD + '(Invalid restart pos.)', []);
+		ExitError(TEXT_INVALIDMOD + 'Invalid restart pos. (%d)', [Info.RestartPos]);
 		Exit;
 	end;
 
+	// If we're still here at this point and the mightBeSTK flag is set,
+	// then it's definitely a proper The Ultimate SoundTracker (STK) module.
+	//
 	if mightBeSTK then
 	begin
-		// If we're still here at this point and the mightBeSTK flag is set,
-		// then it's definitely a proper The Ultimate SoundTracker (STK) module.
 		Info.Format := FORMAT_STK;
 		if not SamplesOnly then
 			Log(TEXT_FORMAT + 'Ultimate SoundTracker');
@@ -1313,17 +1529,18 @@ begin
 			Info.PatternCount := OrderList[i];
 	end;
 
-//	Inc(Info.PatternCount);
 	if Info.PatternCount > MAX_PATTERNS then
 	begin
-		ExitError(TEXT_INVALIDMOD + '(Too many patterns)', []);
+		ExitError(TEXT_INVALIDMOD + 'Too many patterns! (%d)', [Info.PatternCount]);
 		Exit;
 	end;
 
-	if Info.Format <> FORMAT_STK then // The Ultimate SoundTracker MODs doesn't have this tag
-		ModFile.Skip(4); // We already read/tested the tag earlier, skip it
+	if Info.Format <> FORMAT_STK then	// The Ultimate SoundTracker MODs doesn't have this tag
+		ModFile.Skip(4); 				// We already read/tested the tag earlier, skip it
 
-	// Load pattern data
+	// ======================================================================
+	// Read pattern data
+	// ======================================================================
 	//
 	Warnings := False;
 
@@ -1336,15 +1553,16 @@ begin
 				note := @Notes[patt, ch, row];
 				ModFile.Read(bytes[0], 4);
 
-				note.Period    := ((bytes[0] and $0F) shl 8) or bytes[1];
-				note.Sample    :=  (bytes[0] and $F0) or (bytes[2] shr 4); // Don't (!) clamp, the player checks for invalid samples
+				note.Pitch     := PeriodToNote(((bytes[0] and $0F) shl 8) or bytes[1]);
+				// Don't (!) clamp, the player checks for invalid samples
+				note.Sample    :=  (bytes[0] and $F0) or (bytes[2] shr 4);
 				note.Command   := bytes[2] and $0F;
 				note.Parameter := bytes[3];
 				if note.Command = $C then
-					note.Parameter := Min(note.Parameter, 64); // todo warn
-				note.Text      := GetNoteText(note.Period);
+					note.Parameter := Min(note.Parameter, 64);
+				//Note.Note      := PeriodToNote(note.Period);
 
-				if Note.Text = High(NoteText) then
+				if Note.Pitch >= 37 { = High(NoteText)} then
 					Warnings := True;
 
 				if Info.Format = FORMAT_FEST then
@@ -1394,22 +1612,10 @@ begin
 				if Info.Format = FORMAT_4CHN then // 4CHN != PT MOD
 				begin
 					// Remove FastTracker II 8xx/E8x panning commands if present
-					if note.Command = $08 then
-					begin
-						// 8xx
-						note.Command   := 0;
-						note.Parameter := 0;
-					end
-					else
-					if (note.Command = $0E) and ((note.Parameter shr 4) = $08) then
-					begin
-						// E8x
-						note.Command   := 0;
-						note.Parameter := 0;
-					end;
-
+					if (note.Command = $08) or
+					   ((note.Command = $0E) and ((note.Parameter shr 4) = $08)) or
 					// Remove F00, FastTracker II didn't use F00 as STOP in .MOD
-					if (note.Command = $0F) and (note.Parameter = $00) then
+					   ((note.Command = $0F) and (note.Parameter = $00)) then
 					begin
 						note.Command   := 0;
 						note.Parameter := 0;
@@ -1423,15 +1629,15 @@ begin
 	if (Warnings) and (not SamplesOnly) then
 		Log(TEXT_WARNING + 'Module contains notes above B-3!');
 
-	// Load sample data
+	// ======================================================================
+	// Read sampledata
+	// ======================================================================
 	//
-	//	ModFile.SeekTo(OFFSET_PATTERNS + (Info.PatternCount * 1024));
+	//	ModFile.SeekTo(Origin + OFFSET_PATTERNS + (Info.PatternCount * 1024));
 	if Info.Format = FORMAT_STK then
 		os := 15
 	else
 		os := 31;
-
-	//Log('%d samples and %d patterns.', [os, Info.PatternCount+1]);
 
 	for i := 0 to os-1 do
 	begin
@@ -1469,7 +1675,18 @@ begin
 
 	end;
 
+	if (not IsMaster) and (not SamplesOnly) then
+	begin
+		j := 0;
+		for i := 0 to os-1 do
+			if not Samples[i].IsEmpty then Inc(j);
+		Log(TEXT_INFO + '%d samples and %d patterns.', [j, Info.PatternCount+1]);
+	end;
+
+// ======================================================================
 Done:
+// ======================================================================
+
 	ModFile.Free;
 	Modified := False;
 
@@ -1488,18 +1705,6 @@ Done:
 
 	Result := True;
 	Info.Filename := Filename;
-
-	if not SamplesOnly then
-	begin
-		if not Warnings then
-			Log(TEXT_SUCCESS + 'Load success.')
-		else
-			Log(TEXT_FAILURE + 'Loaded with errors/warnings.');
-		Log('-');
-	end;
-
-	if Stream <> 0 then
-		BASS_ChannelPlay(Stream, True);
 end;
 
 procedure TPTModule.RepostChanges;
@@ -1518,7 +1723,7 @@ begin
 	Modified := B;
 end;
 
-constructor TPTModule.Create(aSamplesOnly: Boolean);
+constructor TPTModule.Create(aIsMaster, aSamplesOnly: Boolean);
 var
 	i: Integer;
 begin
@@ -1531,13 +1736,17 @@ begin
 	with EmptyNote do
 	begin
 		Sample := 0;
-		Period := 0;
+		Pitch := 0;
 		Command := 0;
 		Parameter := 0;
-		Text := 0;
 	end;
 
 	SamplesOnly := aSamplesOnly;
+	if SamplesOnly then
+		IsMaster := False
+	else
+		IsMaster := aIsMaster;
+
 	ImportInfo.Samples := TObjectList<TImportedSample>.Create(True);
 	Samples := TObjectList<TSample>.Create(True);
 
@@ -1545,13 +1754,14 @@ begin
 	Modified := False;
 
 	PreventClipping := True;
-	UseBlep := True;
 	RenderMode := RENDER_NONE;
 
+	Info.Filename := '';
 	Info.OrderCount := 1;
 	Info.PatternCount := 0;
 	Info.Tempo := 6;
-	Info.Filename := '';
+	Info.BPM := 125;
+	CurrentSpeed := 6;
 	SetBPMFlag := 0;
 
 	DisableMixer := True;
@@ -1563,13 +1773,9 @@ begin
 	for i := 0 to AMOUNT_CHANNELS-1 do
 		Channel[i] := TPTChannel.Create(i);
 
-	if not SamplesOnly then
+	if isMaster then
 	begin
-		Info.BPM := 125;
-		CurrentSpeed := 6;
-
 		SetOutputFreq(outputFreq);
-
 		CalculatePans(StereoSeparation);
 	end;
 
@@ -1631,7 +1837,7 @@ begin
 	Samples.Free;
 	ImportInfo.Samples.Free;
 
-	if not SamplesOnly then
+	if Self = Module then
 		Module := nil;
 
 	inherited Destroy;
@@ -1640,11 +1846,12 @@ end;
 procedure TPTModule.Close;
 begin
 	DisableMixer := True;
-	while Mixing do;
+	if IsMaster then
+		while Mixing do;
 
 	PlayMode := PLAY_STOPPED;
 
-	if Stream <> 0 then
+	if (Self = Module) and (IsMaster) and (Stream <> 0) then
 		BASS_ChannelStop(Stream);
 end;
 
@@ -2404,7 +2611,11 @@ begin
 		ch.Paula.SetPeriod(Word(ch.n_period));
 
 	ch.Note := @Notes[PlayPos.Pattern, ch.n_index, PlayPos.Row];
-	ch.n_note := ch.Note.Period and $0FFF;
+
+	if ch.Note.Pitch > 0 then
+		ch.n_note := PeriodTable[ch.Note.Pitch-1] and $0FFF
+	else
+		ch.n_note := 0;
 
 	// SAFETY BUG FIX: don't handle sample-numbers >31
 	sample := ch.Note.Sample;
@@ -2793,11 +3004,11 @@ begin
 	DisableMixer := True;
 
 	ch.Note := Note;
-	ch.n_note := Note.Period and $0FFF;
+	ch.n_note := PeriodTable[Note.Pitch-1 mod 37] and $0FFF;
 
 	ch.n_sample   := Note.Sample-1;
 	ch.n_start    := 0; // Data[0]
-	ch.n_period   := PeriodTable[(37 * sample.Finetune) + GetPeriodTableOffset(Note.Period)];
+	ch.n_period   := PeriodTable[(37 * sample.Finetune) + Note.Pitch - 1];
 	ch.n_finetune := sample.Finetune;
 	if Vol > 64 then
 		ch.n_volume   := sample.Volume
@@ -2857,7 +3068,7 @@ begin
 
 		DisableMixer := True;
 
-		n_period   := PeriodTable[(37 * S.Finetune) + _note];
+		n_period   := PeriodTable[(37 * S.Finetune) + _note - 1];
 		n_sample   := _sample;
 		n_start    := _start;
 		n_finetune := S.Finetune;
@@ -2917,7 +3128,9 @@ begin
 	DisableMixer := False;
 end;
 
-procedure TPTModule.MixSampleBlock(streamOut: Pointer; numSamples: Cardinal);
+{$R-}
+procedure TPTModule.MixSampleBlock(streamOut: Pointer; numSamples: Cardinal;
+	scopesOffset: Integer = -1);
 var
 	i: Integer;
 	j: Word;
@@ -2930,27 +3143,19 @@ var
 	Sam: TSample;
 const
 	SCALER = 1.0 / 128.0;
+	Amp2   = -32767.0 / 1.0;
 begin
+	Amp := -32767.0 / NormFactor; // negative because signal phase is flipped on Amiga
 	ClippedSamples := 0;
-	Amp := -32767.0 / NormFactor;
 
-	if Length(masterBufferL) < (numSamples + 2) then
-	begin
-		SetLength(masterBufferL, numSamples + 2);
-		SetLength(masterBufferR, numSamples + 2);
-	end;
-
-	{$R-}
+	SetLength(masterBufferL, numSamples + 2);
+	SetLength(masterBufferR, numSamples + 2);
 
 	for i := 0 to AMOUNT_CHANNELS-1 do
 	begin
+		bSmp := @Blep[i];
+		bVol := @BlepVol[i];
 		v := Channel[i].Paula;
-
-		//if UseBlep then
-		begin
-			bSmp := @Blep[i];
-			bVol := @BlepVol[i];
-		end;
 
 		if (Channel[i].Enabled) and (v.DELTA > 0.0) then
 		begin
@@ -2967,28 +3172,32 @@ begin
 					tempVolume := v.SRC_VOL;
 				end;
 
-				if UseBlep then
+				// Blep reduces some unwanted aliasing (closer to real Amiga)
+				if (tempSample <> bSmp.lastValue) then
 				begin
-					if (tempSample <> bSmp.lastValue) then
-					begin
-						if ((v.LASTDELTA > 0.0) and (v.LASTDELTA > v.LASTFRAC)) then
-							BlepAdd(bSmp, v.LASTFRAC / v.LASTDELTA, bSmp.lastValue - tempSample);
-						bSmp.lastValue := tempSample;
-					end;
-
-					if (tempVolume <> bVol.lastValue) then
-					begin
-						BlepAdd(bVol, 0.0, bVol.lastValue - tempVolume);
-						bVol.lastValue := tempVolume;
-					end;
-
-					if (bSmp.samplesLeft > 0) then
-						tempSample := tempSample + BlepRun(bSmp);
-					if (bVol.samplesLeft > 0) then
-						tempVolume := tempVolume + BlepRun(bVol);
+					if ((v.LASTDELTA > 0.0) and (v.LASTDELTA > v.LASTFRAC)) then
+						BlepAdd(bSmp, v.LASTFRAC / v.LASTDELTA, bSmp.lastValue - tempSample);
+					bSmp.lastValue := tempSample;
 				end;
 
+				if (tempVolume <> bVol.lastValue) then
+				begin
+					BlepAdd(bVol, 0.0, bVol.lastValue - tempVolume);
+					bVol.lastValue := tempVolume;
+				end;
+
+				if (bSmp.samplesLeft > 0) then
+					tempSample := tempSample + BlepRun(bSmp);
+				if (bVol.samplesLeft > 0) then
+					tempVolume := tempVolume + BlepRun(bVol);
+
 				tempSample := tempSample * tempVolume;
+
+				// feed data into channel scopes
+				if scopesOffset >= 0 then
+					ScopeBuffer[i, j+scopesOffset] :=
+						CLAMP(Trunc(tempSample * Amp2), -32768, 32767);
+
 				masterBufferL[j] := masterBufferL[j] + (tempSample * v.PANL);
 				masterBufferR[j] := masterBufferR[j] + (tempSample * v.PANR);
 
@@ -3004,17 +3213,11 @@ begin
 					Inc(v.DMA_POS);
 					if v.DMA_POS >= v.DMA_LEN then
 					begin
-						v.DMA_POS := 0;
-
 						// re-fetch Paula register values now
+						v.DMA_POS := 0;
 						v.DMA_LEN := v.SRC_LEN;
 						v.DMA_DAT := @v.SRC_DAT[0];
-
-						{if v.Sample <> v.QueuedSample then
-						begin}
-							v.Sample := v.QueuedSample;
-							//Samples[v.Sample].Age := 5;
-						//end;
+						v.Sample  := v.QueuedSample;
 
 						if Sam.LoopLength <= 2 then
 							v.PlayPos := -1
@@ -3024,7 +3227,6 @@ begin
 					else
 					if v.PlayPos >= 0 then
 						Inc(v.PlayPos);
-
 				end;
 			end;
 		end;
@@ -3044,20 +3246,11 @@ begin
 		if FilterHighPass then
 			LossyIntegratorHighPass(@FilterHi, @outSample[0], @outSample[0]);
 
-		// negative because signal phase is flipped on A500/A1200 for some reason
 		outSample[0] := outSample[0] * Amp;
 		outSample[1] := outSample[1] * Amp;
 
-		{if PreventClipping then
-		begin}
-			sndOut[j*2]   := CLAMP2(Trunc(outSample[0]), -32768, 32767, ClippedSamples);
-			sndOut[j*2+1] := CLAMP2(Trunc(outSample[1]), -32768, 32767, ClippedSamples);
-		{end
-		else
-		begin
-			sndOut[j*2]   := Trunc(outSample[0]);
-			sndOut[j*2+1] := Trunc(outSample[1]);
-		end;}
+		sndOut[j*2]   := CLAMP2(Trunc(outSample[0]), -32768, 32767, ClippedSamples);
+		sndOut[j*2+1] := CLAMP2(Trunc(outSample[1]), -32768, 32767, ClippedSamples);
 	end;
 end;
 

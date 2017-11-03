@@ -19,6 +19,9 @@ uses
 		const Items: array of AnsiString;
 		Callback: TButtonClickedEvent);
 
+	function GetAskedValue(var V: Integer): Boolean;
+
+
 implementation
 
 uses
@@ -100,6 +103,21 @@ begin
 	end;
 end;
 
+function GetAskedValue(var V: Integer): Boolean;
+var
+	ctrl: TCWEControl;
+begin
+	Result := False;
+	if (ModalDialog = nil) or (ModalDialog.Dialog = nil) then Exit;
+
+	ctrl := ModalDialog.Dialog.FindControl('Slider'); // ugh
+	if ctrl <> nil then
+	begin
+		V := TCWESlider(ctrl).Position;
+		Result := True;
+	end;
+end;
+
 procedure AskList;
 const
 	Margin = 2;
@@ -125,9 +143,10 @@ begin
 		(Console.Height div 2) - (H div 2), W, H),
 		 Caption);
 
-	List := TCWEList.Create(Dlg, '', 'List',
-		Bounds(Margin, 3, LW, LH), True);
+	List := TCWEList.Create(Dlg, '', 'List', Bounds(Margin, 3, LW, LH), True);
+	List.CanCloseDialog := True;
 	List.Scrollbar.Visible := (List.Items.Count > List.Height);
+
 	for LH := 0 to High(Items) do
 		List.AddItem(Items[LH]);
 	if Index in [0..List.Items.Count-1] then

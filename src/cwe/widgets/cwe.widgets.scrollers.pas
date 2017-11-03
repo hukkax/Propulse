@@ -476,7 +476,7 @@ begin
 		X2 := R.Right - Console.Font.Width;
 		Y1 := R.Top;
 		Y2 := R.Bottom;
-		GH := X2 - X1;						// pixel width of the gutter area
+		GH := X2 - X1;							// pixel width of the gutter area
 	end
 	else
 	begin
@@ -484,26 +484,29 @@ begin
 		X2 := R.Right;
 		Y1 := R.Top    + Console.Font.Height;
 		Y2 := R.Bottom - Console.Font.Height + 1;
-		GH := Y2 - Y1; 						// pixel height of the gutter area
+		GH := Y2 - Y1; 							// pixel height of the gutter area
 	end;
 
 	// all content visible?
 	if ItemsVisible < ItemCount then
 	begin
-		IH := GH / ItemCount;				// pixel height of one item
-		H  := Round(IH * ItemsVisible);		// scale by visible items
-		if H < 6 then H := 6;				// minimum size of thumb
+		IH := GH / ItemCount;					// pixel size of one item
+		H  := Round(IH * ItemsVisible);			// scale by visible items
 		GH := Round(IH * Parent.Offset);
 
 		if Horizontal then
 		begin
+			H := Max(H, Console.Font.Width);	// minimum width of thumb
 			X2 := Min(X1 + H + GH, X2);
-			Inc(X1, GH);
+			//Inc(X1, GH);
+			X1 := X2 - H;
 		end
 		else
 		begin
+			H := Max(H, Console.Font.Height);	// minimum height of thumb
 			Y2 := Min(Y1 + H + GH, Y2);
-			Inc(Y1, GH);
+			//Inc(Y1, GH);
+			Y1 := Y2 - H;
 		end;
 
 		Rects[SB_RECT_THUMB] := Types.Rect(X1, Y1, X2, Y2);

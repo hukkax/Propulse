@@ -396,7 +396,7 @@ begin
 	InitApi(TSDLAssertApi, FAssert);
 	InitApi(TSDLAtomicApi, FAtomic);
 //	InitApi(TSDLAudioApi, FAudio);
-//	InitApi(TSDLClipboardApi, FClipboard);
+	InitApi(TSDLClipboardApi, FClipboard);
 	InitApi(TSDLCPUInfoApi, FCPUInfo);
 	InitApi(TSDLEventsApi, FEvents);
 	InitApi(TSDLFileSystemApi, FFileSystem);

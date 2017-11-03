@@ -81,7 +81,7 @@ begin
 	with Module.Samples[Sample] do
 	begin
 		PlayPos := QueuedOffset;
-		Age := 3;
+		Age := 6;//Trunc(6 * SRC_VOL) + 2;
 	end;
 
 	QueuedOffset := 0;

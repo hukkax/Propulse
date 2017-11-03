@@ -83,11 +83,12 @@ type
 		procedure	Close;
 
 		procedure	ProcessFrame;
-
 		procedure	SetTitle(const Title: AnsiString);
-		procedure 	DoLoadModule(const Filename: String);
-		procedure 	PlayModeChanged;
 
+		procedure 	DoLoadModule(const Filename: String);
+		procedure 	FinishModuleLoad(AltMethod: Boolean = False);
+
+		procedure 	PlayModeChanged;
 		procedure 	DialogCallback(ID: Word; Button: TDialogButton;
 					ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
 		procedure	OnKeyDown(var Key: Integer; Shift: TShiftState);
@@ -120,7 +121,7 @@ uses
 	BASS,
 	{$ENDIF}
     BuildInfo, Math, soxr,
-	ProTracker.Messaging,
+	ProTracker.Messaging, ProTracker.Import,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
 	Dialog.Cleanup, Dialog.ModuleInfo, Dialog.NewModule, Dialog.RenderAudio, Dialog.JumpToTime,
@@ -156,6 +157,9 @@ begin
 
 		ACTION_LOADMODULE:
 			DoLoadModule(Data);
+
+		ACTION_MODULEIMPORTED:
+			FinishModuleLoad;
 
 		ACTION_NEWMODULE:
 			with Editor do
@@ -367,42 +371,61 @@ end;
 
 procedure TWindow.DoLoadModule(const Filename: String);
 
-	procedure ResetModule;
+	function ResetModule: TPTModule;
 	begin
-		if Assigned(Module) then
-			Module.Free;
+		Result := TPTModule.Create(True, False);
 
-		Module := TPTModule.Create(False);
-
-		Module.OnSpeedChange := ModuleSpeedChanged;
-		Module.OnPlayModeChange := PlayModeChanged;
-		Module.OnModified := PatternEditor.SetModified;
+		Result.OnSpeedChange := ModuleSpeedChanged;
+		Result.OnPlayModeChange := PlayModeChanged;
+		Result.OnModified := PatternEditor.SetModified;
 	end;
 
 var
-	OK: Boolean;
+	OK, AltMethod: Boolean;
+	TempModule: TPTModule;
 begin
-	ResetModule;
+	TempModule := ResetModule;
+	AltMethod := False;
 
 	if Filename <> '' then
-		OK := Module.LoadFromFile(Filename)
+	begin
+		OK := TempModule.LoadFromFile(Filename);
+		if not OK then // try again in case file is broken
+		begin
+			TempModule.Warnings := False;
+			AltMethod := True;
+			OK := TempModule.LoadFromFile(Filename, True);
+		end;
+	end
 	else
 		OK := True;
 
-	Module.PlayPos.Order := 0;
-	CurrentPattern := Module.OrderList[0];
-	CurrentSample := 1;
-	Editor.Reset;
-	Module.SetModified(False, True);
-
 	if not OK then
 	begin
+		TempModule.Free;
 		Log('');
 		ChangeScreen(TCWEScreen(LogScreen));
-		ResetModule;
+		Exit;
 	end
 	else
 	begin
+		if Assigned(Module) then
+		begin
+			if not TempModule.Warnings then
+				TempModule.Warnings := Module.Warnings;
+			Module.Free;
+		end;
+		Module := TempModule;
+
+		if Stream <> 0 then
+			BASS_ChannelPlay(Stream, True);
+
+		Module.PlayPos.Order := 0;
+		CurrentPattern := Module.OrderList[0];
+		CurrentSample := 1;
+		Editor.Reset;
+		Module.SetModified(False, True);
+
 		ChangeScreen(TCWEScreen(Editor));
 
 		Editor.SetSample(1);
@@ -411,9 +434,48 @@ begin
 
 		Editor.Paint;
 
-		if Module.Warnings then
-			ChangeScreen(TCWEScreen(LogScreen))
+		if (ImportedModule <> nil) and (ImportedModule.Conversion.TotalChannels > AMOUNT_CHANNELS) then
+			ImportedModule.ShowImportDialog
+		else
+		if Filename <> '' then
+			FinishModuleLoad(AltMethod);
 	end;
+end;
+
+procedure TWindow.FinishModuleLoad(AltMethod: Boolean = False);
+var
+	S: AnsiString;
+begin
+	S := '';
+
+	if ImportedModule <> nil then
+	begin
+		FreeAndNil(ImportedModule);
+		Editor.Reset;
+		Editor.Paint;
+	end;
+
+	if (Module.Warnings) or (AltMethod) then
+	begin
+		if Module.Warnings then
+			S := 'Module loaded with errors/warnings.' + CHAR_NEWLINE;
+		if AltMethod then
+			S := S + 'The module was loaded from a nonstandard offset,' + CHAR_NEWLINE +
+				'indicating a broken or non-module file.' + CHAR_NEWLINE;
+	end;
+
+	if not Module.Warnings then
+		Log(TEXT_SUCCESS + 'Load success.')
+	else
+		Log(TEXT_FAILURE + 'Loaded with errors/warnings.');
+	Log('-');
+
+	Module.Warnings := False;
+
+	if S <> '' then
+		ModalDialog.MultiLineMessage('Module loaded',
+			S + 'See the Message Log for more info.');
+	//ChangeScreen(TCWEScreen(LogScreen))
 end;
 
 function TWindow.SetupVideo: Boolean;
@@ -733,8 +795,7 @@ end;
 
 procedure TWindow.OnKeyDown(var Key: Integer; Shift: TShiftState);
 var
-	S: AnsiString;
-	InModalDialog: Boolean;
+	InModal: Boolean;
 begin
 	if (CurrentScreen = nil) then Exit;
 
@@ -744,7 +805,7 @@ begin
 		Exit;
 	end;
 
-	InModalDialog := (ModalDialog.Dialog <> nil);
+	InModal := InModalDialog;
 
 	case GlobalKeyNames(Shortcuts.Find(GlobalKeys, Key, Shift))
 	of
@@ -765,23 +826,12 @@ begin
 			ChangeScreen(TCWEScreen(SplashScreen));
 
 		keyScreenHelp:
-			if not InModalDialog then
-			with PatternEditor.Cursor do
-				if Column >= COL_COMMAND then
-				begin
-					if (Note.Command = 0) and (Note.Parameter = 0) then
-						S := 'No effect'
-					else
-						S := EffectHints[Note.Command];
-					if Note.Command = $E then
-						S := S + ExtEffectHints[Note.Parameter shr 4];
-					Editor.MessageText(Format('%x%.2x %s', [Note.Command, Note.Parameter, S]));
-				end
-				else
+			if not InModal then
+				if not Editor.ShowCommandHelp then
 					Help.Show(CurrentScreen.ID);
 
 		keyScreenPatternEditor:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				FollowPlayback := False;
 				Editor.ActiveControl := PatternEditor;
@@ -789,14 +839,14 @@ begin
 			end;
 
 		keyScreenOrderList:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				Editor.ActiveControl := OrderList;
 				ChangeScreen(TCWEScreen(Editor));
 			end;
 
 		keyScreenSamples:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				SampleScreen.Waveform.Sample := Module.Samples[CurrentSample-1];
 				ChangeScreen(TCWEScreen(SampleScreen));
@@ -804,7 +854,7 @@ begin
 			end;
 
 		keyPlaybackSong:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				if Module.PlayMode = PLAY_STOPPED then
 					Module.Play;
@@ -814,7 +864,7 @@ begin
 			end;
 
 		keyPlaybackPattern:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				FollowPlayback := False;
 				Module.PlayPattern(CurrentPattern);
@@ -822,7 +872,7 @@ begin
 			end;
 
 		keyPlaybackPlayFrom:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				Key := Integer(SDLK_F7); // dumb hack
 				CurrentScreen.KeyDown(Key, Shift);
@@ -830,21 +880,21 @@ begin
 			end;
 
 		keyPlaybackStop:
-			if not InModalDialog then
+			if not InModal then
 			begin
 				Module.Stop;
 				PlayTimeCounter := 0;
 			end;
 
 		keyScreenLoad:
-			if not InModalDialog then
+			if not InModal then
 				FileRequester.Show(False, Options.Dirs.Modules);
 
 		keyScreenSave:
 			FileRequester.Show(True, Options.Dirs.Modules);
 
 		keySaveCurrent:
-			if not InModalDialog then
+			if not InModal then
 				PatternEditor.SaveModule;
 
 		// toggle fullscreen with alt-enter
@@ -855,31 +905,31 @@ begin
 			ChangeScreen(TCWEScreen(LogScreen));
 
 		keyPlaybackPrevPattern:
-			if not InModalDialog then
+			if not InModal then
 				Editor.SelectPattern(SELECT_PREV);
 
 		keyPlaybackNextPattern:
-			if not InModalDialog then
+			if not InModal then
 				Editor.SelectPattern(SELECT_NEXT);
 
 		keySongNew:
-			if not InModalDialog then
+			if not InModal then
 				NewModule(True);
 
 		keyCleanup:
-			if not InModalDialog then
+			if not InModal then
 				Dialog_Cleanup;
 
 		keySongLength:
-			if not InModalDialog then
+			if not InModal then
 				Dialog_ModuleInfo;
 
 		keyJumpToTime:
-			if not InModalDialog then
+			if not InModal then
 				Dialog_JumpToTime;
 
 		keyRenderToSample:
-			if not InModalDialog then
+			if not InModal then
 				Dialog_Render(True);
 
 		keyToggleChannel1:	Editor.ToggleChannel(0);
@@ -1247,19 +1297,20 @@ var
 	Cfg: TConfigurationManager;
 	Sect: AnsiString;
 	i: Integer;
-	AudioDeviceList: array[1..10] of AnsiString;
+	AudioDeviceList: TStringList;
 	device: BASS_DEVICEINFO;
 begin
 	// Init list of audio devices
 	//
 	BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
-	for i := Low(AudioDeviceList) to High(AudioDeviceList) do
-	begin
+
+	AudioDeviceList := TStringList.Create;
+
+	for i := 1 to 99 do
 		if BASS_GetDeviceInfo(i, device) then
-			AudioDeviceList[i] := device.name
+			AudioDeviceList.Add(device.name)
 		else
-			AudioDeviceList[i] := Format('%d: None', [i]);
-	end;
+			Break;
 
 	// Init configuration
 	//
@@ -1297,6 +1348,8 @@ begin
 		Cfg.AddByte(Sect, 'Mouse', @Display.MousePointer, CURSOR_CUSTOM)
 		.SetInfo('Mouse pointer', CURSOR_SYSTEM, CURSOR_NONE,
 		['System', 'Software', 'Hidden'], ChangeMousePointer);
+		Cfg.AddBoolean(Sect, 'ScopePerChannel', @Display.ScopePerChannel, True)
+		.SetInfo('Scope displays', 0, 1, ['Master output', 'Channels']);
 		Cfg.AddBoolean(Sect, 'SampleAsBytes', @Display.SampleAsBytes, True)
 		.SetInfo('Show sample sizes/offsets in', 0, 1, ['Words', 'Bytes']);
 		Cfg.AddBoolean(Sect, 'SampleAsDecimal', @Display.SizesAsDecimal, True)
@@ -1310,8 +1363,10 @@ begin
 		.SetInfo('Splash screen', 0, 1, ['Disabled', 'Enabled']);
 
 		Sect := 'Audio';
-		Cfg.AddByte(Sect, 'Device', @Audio.Device, 1)
-		.SetInfo('Audio device', 1, 10, AudioDeviceList);
+{		Cfg.AddByte(Sect, 'Device', @Audio.Device, 1)
+		.SetInfo('Audio device', 1, 10, AudioDeviceList);}
+		Cfg.AddString(Sect, 'Device', @Audio.Device, 'Default')
+		.SetInfo('Audio device', 0, AudioDeviceList.Count-1, AudioDeviceList);
 		Cfg.AddByte(Sect, 'Frequency', @Audio.Frequency, 1)
 		.SetInfo('Sampling rate (Hz)', 0, 2, ['32000', '44100', '48000'], nil);
 		Cfg.AddInteger(Sect, 'Buffer', @Audio.Buffer, 0)
@@ -1347,13 +1402,13 @@ begin
 		Sect := 'Directory';
 		Cfg.AddString	(Sect, 'Modules', 		@Dirs.Modules, 			AppPath);
 		Cfg.AddString	(Sect, 'Samples', 		@Dirs.Samples, 			AppPath);
-		Cfg.AddByte		(Sect, 'SortMode',		@Dirs.FileSortMode,   	FILESORT_NAME).Max := FILESORT_DATE;
-		Cfg.AddByte		(Sect, 'SortModeS',		@Dirs.SampleSortMode, 	FILESORT_NAME).Max := FILESORT_DATE;
+		Cfg.AddByte		(Sect, 'SortMode',		@Dirs.FileSortMode,   	FILESORT_NAME).Max := FILESORT_EXT;
+		Cfg.AddByte		(Sect, 'SortModeS',		@Dirs.SampleSortMode, 	FILESORT_NAME).Max := FILESORT_EXT;
 
 		Sect := 'Resampling';
 		Cfg.AddBoolean(Sect, 'Resample.Automatic', @Import.Resampling.Enable, True)
 		.SetInfo('Automatic resampling on import', 0, 1, ['Disabled', 'Enabled']);
-		Cfg.AddInteger(Sect, 'Resample.From', @Import.Resampling.ResampleFrom, 29556)
+		Cfg.AddCardinal(Sect, 'Resample.From', @Import.Resampling.ResampleFrom, 29556)
 		.SetInfo('Resample if sample rate exceeds', 0, 44100, []);
 		Cfg.AddByte(Sect, 'Resample.To', @Import.Resampling.ResampleTo, 24)
 		.SetInfo('Resample to note', 0, 35, NoteNames);
@@ -1365,6 +1420,8 @@ begin
 		Cfg.AddBoolean(Sect, 'Resample.HighBoost', @Import.Resampling.HighBoost, True)
 		.SetInfo('Boost highs', 0, 1, ['No', 'Yes']);
 	end;
+
+	AudioDeviceList.Free;
 
 	LogIfDebug('Loading configuration...');
 
@@ -1551,6 +1608,7 @@ begin
 		Bind(filekeyMove,				'File.Move',				'Shift+F6');
 		Bind(filekeyDelete,				'File.Delete',				['Shift+F8', 'Delete']);
 		Bind(filekeyCreate,				'File.CreateDir',			'Shift+F7');
+		Bind(filekeyModMerge,			'File.MergeModule',			'Shift+Return');
 	end;
 
 	{$IFDEF MIDI}

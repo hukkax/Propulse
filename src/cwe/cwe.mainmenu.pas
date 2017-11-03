@@ -164,14 +164,19 @@ begin
 end;
 
 function TCWEMainMenuList.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
+var
+	Sc: ControlKeyNames;
 begin
-	if Key = SDLK_ESCAPE then
-	begin
-		Result := True;
-		ModalDialog.Close;
-	end
-	else
-		Result := inherited;
+	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, Shift));
+	Result := True;
+	case Sc of
+		ctrlkeyRETURN:
+			ContextMenu.MainMenuCommand(Self);
+		ctrlkeyESCAPE:
+			ModalDialog.Close;
+		else
+			Result := inherited;
+	end;
 end;
 
 

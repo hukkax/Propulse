@@ -71,6 +71,9 @@ type
 	end;
 
 	TCWEEdit = class(TCWEControl)
+	private
+		FOnClipboardCopy:  TCWENotifyEvent;
+		FOnClipboardPaste: TCWENotifyEvent;
 	public
 		Cursor: 	TPoint;
 		Offset,
@@ -142,6 +145,7 @@ type
 		ItemIndex:		Integer;
 		Items:			TObjectList<TCWEListItem>;
 		Selection3D:	Boolean;
+		CanCloseDialog:	Boolean;
 
 		constructor	Create(Owner: TCWEControl;
 					const sCaption, sID: AnsiString; const Bounds: TRect;
@@ -246,7 +250,8 @@ type
 		destructor  Destroy; override;
 
 		procedure 	Add(const S: AnsiString; Color: ShortInt = -1; Center: Boolean = False); virtual;
-		function 	GetSection(const AnchorName: AnsiString): TStrings;
+
+		function 	GetSection(const AnchorName: AnsiString): TStringList;
 		function	FindSection(const AnchorName: AnsiString): Integer;
 		function	JumpToSection(const AnchorName: AnsiString): Integer;
 
@@ -264,7 +269,7 @@ implementation
 uses
 	{$IFDEF WINDOWS}Windows, ShellAPI,{$ENDIF}
 	MainWindow, DateUtils,
-	SDL.Api.Types,
+	CWE.ExternalAPI, CWE.Dialogs,
 	TextMode, Math,
 	ProTracker.Util;
 
@@ -819,6 +824,7 @@ begin
 
 	ColorBack := TConsole.COLOR_BLANK; //COL_LIST_BACK;
 	Selection3D := False;
+	CanCloseDialog := False;
 
 	SetData(0, TConsole.COLOR_TEXT,  'Selection background');
 	SetData(1, TConsole.COLOR_LIGHT, 'Selection foreground');
@@ -1029,8 +1035,13 @@ begin
 			end
 			else
 			begin
-				Key := SDLK_RETURN;
-				KeyDown(Key, []);
+				if (CanCloseDialog) and (InModalDialog) then
+					ModalDialog.Dialog.Dismiss(True)
+				else
+				begin
+					Key := KEY_RETURN;
+					KeyDown(Key, []);
+				end;
 			end;
 			Exit(True);
 		end
@@ -1451,7 +1462,7 @@ begin
 
 	i := Lines.Count;
 	if i >= (Offset + Height) then
-		Offset := Max(i - Height, 0); // +1->0 2016-12-01
+		Offset := Max(i - Height - 1, 0);
 
 	AdjustScrollbar;
 end;
@@ -1471,10 +1482,9 @@ begin
 	Result := FindSection(AnchorName);
 	if Result >= 0 then
 		ScrollTo(Result);
-//log('JumpToSection "%s" -> %d', [AnchorName, Result]);
 end;
 
-function TCWEMemo.GetSection(const AnchorName: AnsiString): TStrings;
+function TCWEMemo.GetSection(const AnchorName: AnsiString): TStringList;
 var
 	A: TTextAnchor;
 	i, y, line, last: Integer;
@@ -1538,7 +1548,8 @@ end;
 { TCWEEdit }
 // ==========================================================================
 
-constructor TCWEEdit.Create;
+constructor TCWEEdit.Create(Owner: TCWEControl; const sCaption,
+	sID: AnsiString; const Bounds: TRect; IsProtected: Boolean);
 begin
 	inherited;
 
@@ -1560,7 +1571,7 @@ begin
 	Cursor.X := -1;
 end;
 
-function TCWEEdit.KeyDown;
+function TCWEEdit.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
 var
 	AtEnd: Boolean;
 	Sc: ControlKeyNames;
@@ -1570,7 +1581,7 @@ begin
 
 	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, Shift));
 
-	if (ssCtrl in Shift) and (Key = SDLK_BACKSPACE) then
+	if (ssCtrl in Shift) and (Key = KEY_BACKSPACE) then
 	begin
 		Caption := '';
 		Cursor.X := 0;
@@ -1618,6 +1629,18 @@ begin
 		ctrlkeyRETURN:
 			Change(True); // trigger change notify event
 
+		ctrlkeyCOPY:
+			if Assigned(FOnClipboardCopy) then
+				FOnClipboardCopy(Self)
+			else
+				ClipboardCopy(Self);
+
+		ctrlkeyPASTE:
+			if Assigned(FOnClipboardPaste) then
+				FOnClipboardPaste(Self)
+			else
+				ClipboardPaste(Self);
+
 	else
 		begin
 			{if not (Key in [32..127]) then
@@ -1633,7 +1656,7 @@ end;
 function TCWEEdit.TextInput(var Key: Char): Boolean;
 begin
 	Result := False;
-	if (Ord(Key) < 32) or (ModKeys(ssCtrl)) then Exit;
+	if (Ord(Key) < 32) {or (ModKeys(ssCtrl))} then Exit;
 	if (AllowedChars <> '') and (Pos(Key, AllowedChars) < 1) then Exit;
 	if Length(Caption) >= 255 then Exit;
 

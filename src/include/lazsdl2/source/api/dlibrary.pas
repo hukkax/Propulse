@@ -256,7 +256,7 @@ procedure TNULLLoger.Log(Priority: TLogPriority; LogMsg: String);
 begin
 	{$IFDEF DEBUG}
 	DebugLn(LogMsg);
-	writeln(LogMsg);
+//	writeln(LogMsg);
 	{$ELSE}
 	if Priority in [lgWarn, lgError, lgFatal] then
 		DebugLn(LogMsg);

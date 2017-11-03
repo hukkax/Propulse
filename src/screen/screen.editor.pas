@@ -27,7 +27,7 @@ const
 		'Slide to note + Volume slide',
 		'Vibrato + Volume slide',
 		'Tremolo',
-		'Unused',
+		'Karplus-Strong',
 		'Set sample offset',
 		'Volume slide',
 		'Jump to order',
@@ -80,6 +80,9 @@ type
 
 		function 	ScopeWheel(Sender: TCWEControl; Shift: TShiftState;
 					DirDown: Boolean; P: TPoint): Boolean;
+		function 	ScopeClicked(Sender: TCWEControl; Button: TMouseButton;
+					X, Y: Integer; P: TPoint): Boolean;
+
 	public
 		lblAmp,
 		lblMessage,
@@ -100,6 +103,7 @@ type
 		lblChannels:	array [0..AMOUNT_CHANNELS-1] of TCWELabel;
 
 		procedure 	Reset;
+		procedure 	SwitchTo;
 		procedure 	Paint; override;
 
 		procedure	UpdateVUMeter(Len: Integer);
@@ -112,6 +116,7 @@ type
 		procedure 	SetSample(i: Integer = -1);
 		procedure 	SelectPattern(i: Integer);
 		procedure 	SeekTo(Order, Row: Byte);
+		function 	ShowCommandHelp: Boolean;
 
 		function	OnContextMenu: Boolean; override;
 		procedure 	HandleCommand(const Cmd: Cardinal); override;
@@ -136,27 +141,29 @@ var
 implementation
 
 uses
-	MainWindow, BuildInfo, ShortcutManager, Layout, CWE.MainMenu,
+	MainWindow, BuildInfo, ShortcutManager, Layout,
+	CWE.MainMenu, CWE.Dialogs,
 	SDL.Api.Types, Graphics32,
 	ProTracker.Sample, ProTracker.Util,
-	Screen.Samples;
+	Screen.Samples, Screen.Help;
 
 type
-	OrderListKeyNames = (
+	OrderListKeyNames = {%H-}(
 		keyNONE,
 		keySetLength,
 		keyEditPattern
 	);
 
 var
-	OrderlistKeys: TKeyBindings;
+	{%H-}OrderlistKeys: TKeyBindings;
 
 
 // ==========================================================================
 // TEditorScreen
 // ==========================================================================
 
-constructor TEditorScreen.Create;
+constructor TEditorScreen.Create(var Con: TConsole; const sCaption,
+	sID: AnsiString);
 
 	procedure EnableMouseOn(const lbl: TCWEControl);
 	begin
@@ -258,9 +265,9 @@ begin
 		Bounds(i, 7, 13, 1), True);
 
 	Scope := TCWEControl.Create(Self, '', 'Scope', Bounds(52, 5, 12, 3), True);
-	Scope.SetData(0, 13, 'Clipped color');
 	EnableMouseOn(Scope);
 	Scope.OnMouseWheel := ScopeWheel;
+	Scope.OnMouseDown  := ScopeClicked;
 	Scope.WantHover := False;
 	Scope.WantMouse := True;
 	RegisterLayoutControl(Scope, CTRLKIND_BOX, False, True, True);
@@ -335,6 +342,65 @@ begin
 	AppStartedTime := Now;
 end;
 
+function TEditorScreen.ShowCommandHelp: Boolean;
+var
+	Capt, S: AnsiString;
+	Sl: TStringList;
+	i, l: Integer;
+	B: Boolean;
+begin
+	with PatternEditor.Cursor do
+	begin
+		Result := (Column >= COL_COMMAND);
+		if not Result then Exit;
+
+		if (Note.Command = 0) and (Note.Parameter = 0) then
+			Capt := 'No effect'
+		else
+			Capt := EffectHints[Note.Command];
+		if Note.Command = $E then
+			Capt := Capt + ExtEffectHints[Note.Parameter shr 4];
+
+		if Window.MessageTextTimer <= 0 then
+		begin
+			MessageText(Format('%x%.2x %s', [Note.Command, Note.Parameter, Capt]));
+		end
+		else
+		if (Note.Command <> 0) or (Note.Parameter <> 0) then
+		begin
+			S := IntToHex(Note.Command, 1);
+			if Note.Command = $E then
+				S := S + IntToHex(Note.Parameter shr 4, 1);
+
+			// Sl gets created by GetSection, freed by MultiLineMessage()
+			Sl := Help.Memo.GetSection(Trim(S));
+
+			l := 0;
+			B := False;
+			for i := 0 to Sl.Count-1 do
+			begin
+				if i <> 1 then
+					l := Max(l, Length(Sl[i]));
+				if not B then
+					B := Pos('Example:', Sl[i]) > 0;
+
+				if B then
+					Sl[i] := '<f6>' + Sl[i] + ' '	// Example lines
+				else
+				if i > 3 then
+					Sl[i] := '<f3>' + Sl[i] + ' ';	// Main text
+			end;
+			Sl[1] := Copy(Sl[1], 1, l);
+			Sl[0] := '<f5>' + Sl[0]; // Title line
+			Sl[1] := '<fF>' + Sl[1]; // Separator line
+			Sl[3] := '<f2>' + Sl[3]; // Usage line
+			Sl.Insert(0, ' ');
+
+			ModalDialog.MultiLineMessage(Capt, Sl, False, False, l+1);
+		end;
+	end;
+end;
+
 procedure TEditorScreen.AmplificationChange(Sender: TCWEControl);
 var
 	amp: Single;
@@ -349,7 +415,7 @@ procedure TEditorScreen.UpdateVUMeter(Len: Integer);
 var
 	p: Single;
 	C: TColor32;
-	X, Y, ox, oy, w, h, hh: Integer;
+	pos, X, Y, ox, oy, w, h, hh, wh: Integer;
 	R: TRect;
 begin
 	// Channel VUmeters
@@ -384,25 +450,58 @@ begin
 	if VUClippedCounter > 0 then
 	begin
 		// C := Color32(VUClippedCounter*16, 0, 0);
-		C := Console.Palette[Editor.Scope.Data[0].Value];
+		C := Console.Palette[Options.Display.Colors.Scope.Clipped];
 		Dec(VUClippedCounter);
 	end
 	else
-		C := Console.Palette[Editor.Scope.ColorBack];
+		C := Console.Palette[Options.Display.Colors.Scope.Background];
 
 	Console.Bitmap.FillRect(R, C);
 
-	C := Console.Palette[Editor.Scope.ColorFore];
+	C := Console.Palette[Options.Display.Colors.Scope.Foreground];
 
 	ox := R.Left;
 	oy := R.Top;
 	w := R.Right - R.Left - 1;
 	h := R.Bottom - R.Top - 1;
 	hh := h div 2;
+	wh := w div 4 + 1;
 
-	if Len = 0 then
-		Console.Bitmap.HorzLine(ox, oy + hh, ox + w, C)
+	if Len <= 0 then
+		Console.Bitmap.HorzLine(ox, oy + hh, ox + w, C);
+
+	if Options.Display.ScopePerChannel then
+	begin
+		if Len > 0 then
+		begin
+			p := (Len div 4 - 1) / wh; // step
+			for X := 0 to wh-1 do
+			begin
+				pos := Trunc(p * X);
+
+				Y := Trunc(ScopeBuffer[0, pos] / 65536 * h);
+				Console.Bitmap.Pixel[ox + X, oy + Y + hh] := C;
+
+				Y := Trunc(ScopeBuffer[1, pos] / 65536 * h);
+				Console.Bitmap.Pixel[ox + X + wh, oy + Y + hh] := C;
+
+				Y := Trunc(ScopeBuffer[2, pos] / 65536 * h);
+				Console.Bitmap.Pixel[ox + X + (wh*2), oy + Y + hh] := C;
+
+				Y := Trunc(ScopeBuffer[3, pos] / 65536 * h);
+				Console.Bitmap.Pixel[ox + X + (wh*3), oy + Y + hh] := C;
+			end;
+		end;
+		hh := R.Bottom-1; Dec(oy);
+		for pos := 1 to 3 do
+		begin
+			X := ox + (pos * wh);
+			Console.Bitmap.VertLine(X-1, oy, hh, Console.Palette[Console.COLOR_3DLIGHT]);
+			Console.Bitmap.VertLine(X,   oy, hh, Console.Palette[Console.COLOR_3DDARK]);
+		end;
+	end
 	else
+	if Len > 0 then
 	begin
 		p := (Len div 2 - 1) / w; // step
 		for X := 0 to w do
@@ -420,16 +519,22 @@ var
 	B: PByte;
 begin
 	Result := True;
-	if ssShift in Shift then
-		B := @Scope.ColorBack
+	if ssShift in GetShiftState then
+		B := @Options.Display.Colors.Scope.Background
 	else
-		B := @Scope.ColorFore;
-
+		B := @Options.Display.Colors.Scope.Foreground;
 	if (not DirDown) and (B^ > 0) then
 		Dec(B^)
 	else
 	if (DirDown) and (B^ < 15) then
 		Inc(B^);
+end;
+
+function TEditorScreen.ScopeClicked(Sender: TCWEControl; Button: TMouseButton;
+	X, Y: Integer; P: TPoint): Boolean;
+begin
+	Options.Display.ScopePerChannel := not Options.Display.ScopePerChannel;
+	Result := True;
 end;
 
 procedure TEditorScreen.MessageText(const S: String; LogIt: Boolean = False);
@@ -592,7 +697,7 @@ begin
 	end;
 end;
 
-function TEditorScreen.KeyDown;
+function TEditorScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
 var
 	Sc: EditorKeyNames;
 begin
@@ -628,6 +733,12 @@ begin
 
 	if (not Result) and (ActiveControl <> nil) then
 		Result := ActiveControl.KeyDown(Key, Shift);
+end;
+
+procedure TEditorScreen.SwitchTo;
+begin
+	ChangeScreen(TCWEScreen(Editor));
+	Paint;
 end;
 
 procedure TEditorScreen.Paint;

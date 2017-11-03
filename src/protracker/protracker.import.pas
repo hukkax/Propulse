@@ -3,9 +3,8 @@ unit ProTracker.Import;
 interface
 
 uses
-	Generics.Collections,
-	ProTracker.Util,
-	ProTracker.Player;
+	Generics.Collections, FileStreamEx,
+	ProTracker.Util, ProTracker.Player, ProTracker.Sample;
 
 const
 	OW_NONE				= 0; // don't overwrite any effects
@@ -14,24 +13,35 @@ const
 
 type
 	TConversion = record
+
+		ChannelAssignments: array[0..AMOUNT_CHANNELS-1] of Byte;
+		VolEffects:         Cardinal;
+		TotalChannels:      Byte;
+
 		Missed: record
 			Notes,
 			Effects,
 			Volumes,
 			VolEffects,
-			Tracks:		Cardinal;
+			Tracks:         Cardinal;
 		end;
+
 		Want: record
 			InsertTempo,
 			InsertPattBreak,
-			FillParams:		Boolean;
+			FillParams:     Boolean;
 		end;
-		VolEffects: 	Cardinal;
+
+		Info: record
+			OrigSpeed,
+			OrigTempo:      Byte;
+		end;
+
 	end;
 
 	TExtNote = record
 		Instrument:		Byte;
-		Pitch:			Word;
+		Pitch:			Byte;
 		Volume:			Byte;
 		Command:		Byte;
 		Parameter:		Byte;
@@ -59,15 +69,292 @@ type
 
 	TExtPatternList = TObjectList<TExtPattern>;
 
-	procedure ProcessConvertedPatterns(var Module: TPTModule;
-		var Patterns: TExtPatternList; var Conversion: TConversion);
+
+	TImportedModule = class
+	protected
+		Module:      TPTModule;
+		Patterns:    TExtPatternList;
+		ModFile:     TFileStreamEx;
+		SamplesOnly: Boolean;
+		PrevParam:   array[0..255] of Byte;
+
+		procedure	CountChannels;
+	public
+		Conversion:  TConversion;
+
+		procedure	LoadFromFile; virtual; abstract;
+		procedure	ReadSample(i: Byte; var ips: TImportedSample); virtual; abstract;
+		procedure	ProcessConvertedPatterns;
+		procedure	ConvertCommand(var Note: TExtNote); virtual; abstract;
+		procedure	Finish;
+		procedure	ShowImportDialog;
+
+		constructor	Create(var aModule: TPTModule; var aModFile: TFileStreamEx;
+			aSamplesOnly: Boolean = False); virtual;
+		destructor	Destroy; override;
+	end;
+
+var
+	ImportedModule: TImportedModule;
 
 
 implementation
 
 uses
-	Math, SysUtils;
+	Math, SysUtils, Types, Classes, MainWindow,
+	CWE.Core, CWE.Dialogs, CWE.Widgets.Text, Screen.Config;
 
+{ TImportedModule }
+
+constructor TImportedModule.Create(var aModule: TPTModule;
+	var aModFile: TFileStreamEx; aSamplesOnly: Boolean);
+var
+	i: Integer;
+begin
+	inherited Create;
+
+	Module := aModule;
+	ModFile := aModFile;
+	SamplesOnly := aSamplesOnly;
+
+	ZeroMemory(@Conversion, SizeOf(Conversion));
+
+	for i := 0 to High(Conversion.ChannelAssignments) do
+		Conversion.ChannelAssignments[i] := i+1;
+
+	with Conversion.Want do
+	begin
+		InsertTempo := True;		// insert tempo effect to first pattern?
+		InsertPattBreak := True;	// add pattern breaks to patterns < 64 rows?
+		FillParams := True;			// compensate for PT's lack of effect memory in some fx?
+	end;
+
+	Patterns := TExtPatternList.Create(True);
+
+	LoadFromFile;
+end;
+
+destructor TImportedModule.Destroy;
+begin
+	Finish;
+	Patterns.Free;
+	inherited Destroy;
+end;
+
+procedure TImportedModule.CountChannels;
+var
+	Pattern: TExtPattern;
+begin
+	Conversion.TotalChannels := 0; // count channels in original file
+
+	// convert note pitches and effects from IT to PT
+	for Pattern in Patterns do
+		Conversion.TotalChannels := Max(Conversion.TotalChannels, Pattern.UsedChannels);
+end;
+
+// Splits long patterns into ProTracker sizes and updates orderlist;
+// inserts pattern break fx as appropriate; fills in effect values for
+// effects that don't have memory in PT.
+// Notedata in input should already use ProTracker effects and limitations.
+//
+procedure TImportedModule.ProcessConvertedPatterns;
+var
+	i, PC, patt, chan, row, c: Integer;
+	Pattern, NewPattern: TExtPattern;
+	SrcNote: PExtNote;
+	DstNote: PNote;
+	S: String;
+begin
+	patt := 0;
+
+	while patt < Patterns.Count do
+	begin
+		Pattern := Patterns[patt];
+
+		// split long pattern into multiple
+		if (Pattern.Rows > 64) and (Pattern.UsedChannels > 0) then
+		begin
+			i := Pattern.Rows;
+			c := 0;
+			S := Format('Splitting pattern %d', [patt]);
+
+			while i > 64 do
+			begin
+				Dec(i, 64);
+				Inc(c, 64);
+
+				NewPattern := TExtPattern.Create(Pattern.UsedChannels, Min(i, 64));
+				NewPattern.UsedChannels := Pattern.UsedChannels;
+				S := S + Format(' -> %d (%d rows)', [patt+1, NewPattern.Rows]);
+
+				for chan := 0 to Min(3, Pattern.UsedChannels-1) do
+					for row := 0 to Min(63, i-1) do
+						NewPattern.Notes[chan, row] := Pattern.Notes[chan, row+c];
+
+				for row := 0 to 127 do
+					if Module.OrderList[row] > patt then
+						Module.OrderList[row] := Module.OrderList[row] + 1;
+
+				for row := Module.Info.OrderCount-1 downto 0 do
+					if Module.OrderList[row] = patt then
+					begin
+						Module.OrderList.Insert(row+1, patt+1);
+						Inc(Module.Info.OrderCount);
+					end;
+
+				Inc(patt);
+				Patterns.Insert(patt, NewPattern);
+				Inc(Module.Info.PatternCount);
+			end;
+
+			Log(S);
+			S := '';
+		end;
+
+		Inc(patt);
+	end;
+
+	PC := Patterns.Count;
+
+	if PC > MAX_PATTERNS then
+	begin
+		Log('Patterns above 100 will be lost.');
+		PC := MAX_PATTERNS;
+	end;
+
+	for patt := 0 to PC-1 do
+	begin
+		Pattern := Patterns[patt];
+		//Log(' -Pattern %d len=%d chans=%d', [patt, Pattern.Rows, Pattern.UsedChannels]);
+
+		// if pattern has less than 64 rows, try to insert pattern break command
+		if Pattern.Rows < 64 then
+		begin
+			if Pattern.FindFreeEffectSlot(Pattern.Rows-1, SrcNote, OW_VOLUME_NONZERO) then
+			begin
+				SrcNote.Command := $D;
+				SrcNote.Parameter := $00;
+				Log('Inserted pattern break at pattern %2d, row %2d.', [patt, Pattern.Rows]);
+			end
+			else
+				Log(TEXT_WARNING + 'Pattern %2d has %3d rows, ' +
+				'but couldn''t find slot for pattern break!', [patt, Pattern.Rows]);
+		end;
+
+		for chan := 0 to AMOUNT_CHANNELS-1 do
+		begin
+			for row := 0 to Min(63, Pattern.Rows-1) do
+			begin
+				SrcNote := @Pattern.Notes[Conversion.ChannelAssignments[chan]-1, row];
+				DstNote := @Module.Notes[patt, chan, row];
+
+				DstNote.Pitch     := SrcNote.Pitch;
+				DstNote.Command   := SrcNote.Command;
+				DstNote.Parameter := SrcNote.Parameter;
+				DstNote.Sample    := SrcNote.Instrument;
+			end;
+		end;
+
+	end;
+
+	{if Conversion.Missed.Notes > 0 then
+		Log(TEXT_WARNING + 'Module contains notes above B-3!');}
+
+	S := '';
+
+	with Conversion do
+	begin
+		Missed.Tracks := Max(Conversion.TotalChannels - AMOUNT_CHANNELS, 0);
+
+		if Missed.Notes > 0 then
+			S := S + Format('%d notes, ', [Missed.Notes]);
+		if Missed.Effects > 0 then
+			S := S + Format('%d effects, ', [Missed.Effects]);
+		if Missed.Volumes > 0 then
+			S := S + Format('%d volumes, ', [Missed.Volumes]);
+		if Missed.VolEffects > 0 then
+			S := S + Format('%d voleffects, ', [Missed.VolEffects]);
+		if Missed.Tracks > 0 then
+			S := S + Format('%d channels, ', [Missed.Tracks]);
+
+		if S <> '' then
+		begin
+			S := Copy(S, 1, Length(S)-2);
+			Log(TEXT_WARNING + S + ' lost in conversion.');
+		end;
+
+		if VolEffects > 0 then
+			Log('%d volume column effects converted.', [VolEffects]);
+	end;
+end;
+
+// Process imported data after showing import options dialog
+procedure TImportedModule.Finish;
+var
+	Pattern: TExtPattern;
+	c, r: Integer;
+	Note: PExtNote;
+begin
+	// convert note pitches and effects from IT to PT
+	for Pattern in Patterns do
+	begin
+		for c := 0 to Pattern.UsedChannels-1 do
+		for r := 0 to Pattern.Rows-1 do
+		begin
+			Note := @Pattern.Notes[c, r];
+			ConvertCommand(Note^);
+		end;
+	end;
+
+	// insert speed/tempo command at first pattern in orderlist if required
+	if (Conversion.Want.InsertTempo) and (Patterns.Count >= Module.OrderList[0]) then
+		Patterns[Module.OrderList[0]].InsertTempoEffect(Module,
+			Conversion.Info.OrigTempo, Conversion.Info.OrigSpeed);
+
+	// convert intermediate format patterns to ProTracker format
+	ProcessConvertedPatterns;
+end;
+
+procedure TImportedModule.ShowImportDialog;
+var
+	Dlg: TCWEScreen;
+	List: TCWEConfigList;
+	H, Y: Byte;
+const
+	W = 35;
+	LH = 4;
+begin
+	H := LH + 4;
+
+	Dlg := ModalDialog.CreateDialog(ACTION_MODULEIMPORTED, Bounds(
+		(Console.Width  div 2) - (W div 2),
+		(Console.Height div 2) - ((H+1) div 2), W, H+1),
+		'Channel assignment');
+
+	List := TCWEConfigList.Create(Dlg, '', '',
+		Types.Rect(1, 2, W-1, 2+LH), True);
+	List.ColumnWidth[1] := 2;
+
+	with ModalDialog do
+	begin
+		CreateConfigManager;
+
+		for Y := 0 to AMOUNT_CHANNELS-1 do
+			ConfigManager.AddByte('CA', '', @Conversion.ChannelAssignments[Y], Y+1)
+			.SetInfo( Format('Import channel %d from channel', [Y+1]),
+				1, Conversion.TotalChannels, [], nil, '%.2d');
+
+		List.Init(ConfigManager);
+		List.Scrollbar.Visible := False;
+		List.Border.Pixel := True;
+
+		AddResultButton(btnOK, 'OK', W div 2 - 4, H-1, True);
+		ButtonCallback := Window.DialogCallback;
+
+		Dialog.ActiveControl := List;
+		Show;
+	end;
+end;
 
 { TExtPattern }
 
@@ -183,156 +470,6 @@ begin
 		end
 		else
 			Log(TEXT_WARNING + 'Couldn''t find slot to insert speed command!');
-	end;
-end;
-
-{ Processing }
-
-// Splits long patterns into ProTracker sizes and updates orderlist;
-// inserts pattern break fx as appropriate; fills in effect values for
-// effects that don't have memory in PT.
-// Notedata in input should already use ProTracker effects and limitations.
-//
-procedure ProcessConvertedPatterns(var Module: TPTModule; var Patterns: TExtPatternList;
-	var Conversion: TConversion);
-var
-	i, PC, patt, chan, row, totalchannels: Integer;
-	Pattern, NewPattern: TExtPattern;
-	SrcNote: PExtNote;
-	DstNote: PNote;
-	S: String;
-begin
-	patt := 0;
-
-	while patt < Patterns.Count do
-	begin
-		Pattern := Patterns[patt];
-
-		// split long pattern into multiple
-		if (Pattern.Rows > 64) and (Pattern.UsedChannels > 0) then
-		begin
-			i := Pattern.Rows;
-			totalchannels := 0;
-			S := Format('Splitting pattern %d', [patt]);
-
-			while i > 64 do
-			begin
-				Dec(i, 64);
-				Inc(totalchannels, 64);
-
-				NewPattern := TExtPattern.Create(Pattern.UsedChannels, Min(i, 64));
-				NewPattern.UsedChannels := Pattern.UsedChannels;
-				S := S + Format(' -> %d (%d rows)', [patt+1, NewPattern.Rows]);
-
-				for chan := 0 to Min(3, Pattern.UsedChannels-1) do
-					for row := 0 to Min(63, i-1) do
-						NewPattern.Notes[chan, row] := Pattern.Notes[chan, row+totalchannels];
-
-				for row := 0 to 127 do
-					if Module.OrderList[row] > patt then
-						Module.OrderList[row] := Module.OrderList[row] + 1;
-
-				for row := Module.Info.OrderCount-1 downto 0 do
-					if Module.OrderList[row] = patt then
-					begin
-						Module.OrderList.Insert(row+1, patt+1);
-						Inc(Module.Info.OrderCount);
-					end;
-
-				Inc(patt);
-				Patterns.Insert(patt, NewPattern);
-				Inc(Module.Info.PatternCount);
-			end;
-
-			Log(S);
-			S := '';
-		end;
-
-		Inc(patt);
-	end;
-
-	totalchannels := 0;
-	PC := Patterns.Count;
-
-	if PC > MAX_PATTERNS then
-	begin
-		Log('Patterns above 100 will be lost.');
-		PC := MAX_PATTERNS;
-	end;
-
-	for patt := 0 to PC-1 do
-	begin
-		Pattern := Patterns[patt];
-		//Log(' -Pattern %d len=%d chans=%d', [patt, Pattern.Rows, Pattern.UsedChannels]);
-
-		totalchannels := Max(Pattern.UsedChannels, totalchannels);
-
-		// if pattern has less than 64 rows, try to insert pattern break command
-		if Pattern.Rows < 64 then
-		begin
-			if Pattern.FindFreeEffectSlot(Pattern.Rows-1, SrcNote, OW_VOLUME_NONZERO) then
-			begin
-				SrcNote.Command := $D;
-				SrcNote.Parameter := $00;
-				Log('Inserted pattern break at pattern %2d, row %2d.', [patt, Pattern.Rows]);
-			end
-			else
-				Log(TEXT_WARNING + 'Pattern %2d has %3d rows, ' +
-				'but couldn''t find slot for pattern break!', [patt, Pattern.Rows]);
-		end;
-
-
-		for chan := 0 to AMOUNT_CHANNELS-1 {Min(3, Pattern.UsedChannels-1)} do
-		begin
-			for row := 0 to Min(63, Pattern.Rows-1) do
-			begin
-				SrcNote := @Pattern.Notes[chan, row];
-				DstNote := @Module.Notes[patt, chan, row];
-
-				DstNote.Period    := SrcNote.Pitch;
-				DstNote.Command   := SrcNote.Command;
-				DstNote.Parameter := SrcNote.Parameter;
-				DstNote.Sample    := SrcNote.Instrument;
-				DstNote.Text := GetNoteText(DstNote.Period);
-
-				if DstNote.Text >= High(NoteText) then
-				begin
-					Inc(Conversion.Missed.Notes);
-					//DstNote.Period := 0;
-				end;
-			end;
-		end;
-
-	end;
-
-	{if Conversion.Missed.Notes > 0 then
-		Log(TEXT_WARNING + 'Module contains notes above B-3!');}
-
-	S := '';
-
-	with Conversion do
-	begin
-		Missed.Tracks := Max(totalchannels - AMOUNT_CHANNELS, 0);
-
-		if Missed.Notes > 0 then
-			S := S + Format('%d notes, ', [Missed.Notes]);
-		if Missed.Effects > 0 then
-			S := S + Format('%d effects, ', [Missed.Effects]);
-		if Missed.Volumes > 0 then
-			S := S + Format('%d volumes, ', [Missed.Volumes]);
-		if Missed.VolEffects > 0 then
-			S := S + Format('%d voleffects, ', [Missed.VolEffects]);
-		if Missed.Tracks > 0 then
-			S := S + Format('%d channels, ', [Missed.Tracks]);
-
-		if S <> '' then
-		begin
-			S := Copy(S, 1, Length(S)-2);
-			Log(TEXT_WARNING + S + ' lost in conversion.');
-		end;
-
-		if VolEffects > 0 then
-			Log('%d volume column effects converted.', [VolEffects]);
 	end;
 end;
 

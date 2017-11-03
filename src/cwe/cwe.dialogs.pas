@@ -9,6 +9,7 @@ uses
 
 const
 	DIALOG_CONTEXTMENU = 666;
+	CHAR_NEWLINE: AnsiChar = '|';
 
 type
 	TDialogButton = ( btnCancel = 0, btnOK, btnYes, btnNo );
@@ -20,6 +21,8 @@ type
 
 	TCWEDialogScreen = class(TCWEScreen)
 	public
+		function 	Dismiss(OK: Boolean): Boolean;
+
 		function	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 		function	MouseUp(Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean; override;
 		procedure	MouseMove(X, Y: Integer; P: TPoint); override;
@@ -64,8 +67,12 @@ type
 					DefaultButton: TDialogButton; Callback: TButtonClickedEvent;
 					MoreData: Variant);
 		procedure	ShowMessage(const Caption, Text: AnsiString);
-		procedure 	MultiLineMessage(const Caption: AnsiString; const Lines: TStrings);
+		procedure 	MultiLineMessage(const Caption, Text: AnsiString); overload;
+		procedure 	MultiLineMessage(const Caption: AnsiString; var Lines: TStringList;
+					Rewrap: Boolean = False; SkipFirstLine: Boolean = False; MaxWidth: Byte = 50);
 	end;
+
+	function InModalDialog: Boolean; inline;
 
 var
 	ModalDialog: 	TCWEDialog;
@@ -77,10 +84,16 @@ var
 implementation
 
 uses
-	Math, SDL.Api.Types, StrUtils;
+	Math, StrUtils,
+	ShortcutManager;
 
 const
 	LINEEND = '|';
+
+function InModalDialog: Boolean;
+begin
+	Result := ModalDialog.Dialog <> nil;
+end;
 
 // adapted from http://forum.lazarus.freepascal.org/index.php?topic=25715.0
 function MyWrapText(const S: AnsiString; MaxCol: Integer): AnsiString;
@@ -93,7 +106,7 @@ begin
 	P := PAnsiChar(S);
 	LastLineEnding := 0;
 	i := 1;
-	while {P^ <> #0} i <= Length(S) do
+	while i <= Length(S) do
 	begin
 		C := Copy(P, 1, 1);
 		Result := Result + C;
@@ -180,40 +193,53 @@ begin
 		ModalDialog.Close;}
 end;
 
-function TCWEDialogScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
+function TCWEDialogScreen.Dismiss(OK: Boolean): Boolean;
 var
 	ctrl: TCWEControl;
 	btn: TCWEButton;
 begin
-	if Key = SDLK_ESCAPE then
+	for ctrl in Controls do
 	begin
-		for ctrl in Controls do
-			if (ctrl is TCWEButton) then
+		if not (ctrl is TCWEButton) then Continue;
+		btn := ctrl as TCWEButton;
+
+		if OK then
+		begin
+			if btn.ModalResult in [Ord(btnOK), Ord(btnYes)] then
 			begin
-				btn := ctrl as TCWEButton;
-				if btn.ModalResult = Ord(btnCancel) then
-				begin
-					ModalDialog.ButtonClickHandler(ctrl);
-					Exit(True);
-				end;
+				ModalDialog.ButtonClickHandler(ctrl);
+				Exit(True);
 			end;
-		ModalDialog.Close;
-		Exit(True);
-	end
-	else
-	if Key = SDLK_RETURN then
-	begin
+		end
+		else
+		begin
+			if btn.ModalResult = Ord(btnCancel) then
+			begin
+				ModalDialog.ButtonClickHandler(ctrl);
+				Exit(True);
+//				ModalDialog.Close;
+			end;
+		end;
+	end;
+
+	Result := False;
+end;
+
+function TCWEDialogScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
+var
+	Sc: ControlKeyNames;
+begin
+	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, Shift));
+
+	case Sc of
+
+		ctrlkeyRETURN:
 		if not (ActiveControl is TCWEButton) then
-		for ctrl in Controls do
-			if (ctrl is TCWEButton) then
-			begin
-				btn := ctrl as TCWEButton;
-				if btn.ModalResult in [Ord(btnOK), Ord(btnYes)] then
-				begin
-					ModalDialog.ButtonClickHandler(ctrl);
-					Exit(True);
-				end;
-			end;
+			if Dismiss(True) then Exit(True);
+
+		ctrlkeyESCAPE:
+			if Dismiss(False) then Exit(True);
+
 	end;
 
 	Result := inherited KeyDown(Key, Shift);
@@ -368,55 +394,104 @@ begin
 	MessageDialog(0, Caption, Text, [btnOK], btnOK, nil, 0);
 end;
 
-procedure TCWEDialog.MultiLineMessage(const Caption: AnsiString; const Lines: TStrings);
+procedure TCWEDialog.MultiLineMessage(const Caption, Text: AnsiString);
+var
+	sl: TStringList;
+begin
+	sl := TStringList.Create;
+	sl.StrictDelimiter := True; // don't newline at space, stupid!
+	sl.Delimiter := CHAR_NEWLINE;
+	sl.DelimitedText := Text;
+	MultiLineMessage(Caption, sl);
+end;
+
+// Note: Lines is freed before displaying the dialog!
+//
+procedure TCWEDialog.MultiLineMessage(const Caption: AnsiString; var Lines: TStringList;
+	Rewrap: Boolean = False; SkipFirstLine: Boolean = False; MaxWidth: Byte = 50);
 var
 	Memo: TCWEMemo;
-	WrapWidth, i, x: Integer;
+	WrapWidth, i, x, W, H: Integer;
 	S, DS: AnsiString;
-const
-	W = 49;
-	H = 13;
+	sl: TStringList;
 begin
 	if not Assigned(Lines) then Exit;
+
+	WrapWidth := 20;
+	for W := 0 to Lines.Count-1 do
+		WrapWidth := Max(WrapWidth, Length(Lines[W]));
+	WrapWidth := Min(MaxWidth, WrapWidth);
+
+	sl := TStringList.Create;
+
+	if Rewrap then
+	begin
+		S := '';
+		if SkipFirstLine then
+			x := 1
+		else
+			x := 0;
+		for i := x to Lines.Count-1 do
+		begin
+			DS := Trim(Lines[i]);
+			if (Length(DS) >= WrapWidth) and (Pos(' ', DS) < 1) then
+				DS := DS.Insert(WrapWidth-1, ' ');
+			S := S + DS + ' ';
+		end;
+
+		S := MyWrapText(S, WrapWidth) + LINEEND;
+		DS := '';
+		for x := 1 to Length(S) do
+		begin
+			if S[x] = LINEEND then
+			begin
+				sl.Add(Trim(DS));
+				DS := '';
+			end
+			else
+				DS := DS + S[x];
+		end;
+
+		W := 0;
+		for i := 0 to sl.Count-1 do
+			W := Max(W, Length(sl[i]));
+	end
+	else
+	begin
+		sl.AddStrings(Lines);
+		W := WrapWidth;
+	end;
+
+	// delete blank trailing lines
+	for i := sl.Count-1 downto 0 do
+	begin
+		if sl[i] <> '' then
+			Break
+		else
+			sl.Delete(i);
+	end;
+
+	W := Max(W + 4, 11);
+	H := Min(sl.Count+5, Console.Height - 8);
 
 	Dialog := CreateDialog(0, Bounds(
 		(Console.Width div 2) - (W div 2),
 		(Console.Height div 2) - (H div 2), W-1, H),
 		 Caption);
 
-	Memo := TCWEMemo.Create(Dialog, '', '',
-		Types.Rect(1, 2, W-3, H-3), True);
+	Memo := TCWEMemo.Create(Dialog, '', '', Types.Rect(1, 2, W-3, H-3), True);
 	Memo.Border.Pixel := True;
+	Memo.Scrollbar.Visible := (sl.Count-1 > Memo.Height);
 
-	WrapWidth := Memo.Width+2;
+	for i := 0 to sl.Count-1 do
+		Memo.Add(sl[i]);
 
-	S := '';
-	for i := 1 to Lines.Count-1 do
-		S := S + Trim(Lines[i]) + ' ';
-
-	S := MyWrapText(S, WrapWidth) + LINEEND;
-	DS := '';
-	for x := 1 to Length(S) do
-	begin
-		if S[x] = LINEEND then
-		begin
-			Memo.Add(Trim(DS));
-			DS := '';
-		end
-		else
-			DS := DS + S[x];
-	end;
-
-	// delete blank trailing lines
-	for i := Memo.Lines.Count-1 downto 0 do
-		if Memo.Lines[i].GetText <> '' then
-			Break
-		else
-			Memo.Lines.Delete(i);
+	sl.Free;
+	Lines.Free; // !!!
 
 	Memo.ScrollTo(0);
 
-	AddResultButton(btnOK, 'OK', W div 2 - 3, H-2, True);
+	AddResultButton(btnOK, 'OK', W div 2 - 4, H-2, True);
 	Show;
 end;
 

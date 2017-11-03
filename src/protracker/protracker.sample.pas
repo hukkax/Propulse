@@ -92,6 +92,7 @@ type
 
 		function 		IsEmpty: Boolean; inline;
 		function 		IsLooped: Boolean; inline;
+		function		IsDuplicateOf(const Other: TSample): Boolean;
 
 		constructor 	Create;
 		procedure 		Validate;
@@ -138,6 +139,7 @@ type
 		procedure		Normalize(NormalizationValue: Single = -100;
 						X1: Integer = 0; X2: Integer = -1);
 		procedure 		Downsample;
+		procedure		Upsample;
 
 	end;
 
@@ -207,12 +209,24 @@ end;
 
 function TSample.IsEmpty: Boolean;
 begin
-	Result := not (High(Data) >= 1);
+	Result := High(Data) <= 1;
 end;
 
 function TSample.IsLooped: Boolean;
 begin
 	Result := ((LoopLength + LoopStart) > 1);
+end;
+
+function TSample.IsDuplicateOf(const Other: TSample): Boolean;
+var
+	i: Integer;
+begin
+	Result := False;
+	if (Other.Length <> Length) or (Other.Finetune <> Finetune) or (Other.Volume <> Volume) or
+		(Other.LoopStart <> LoopStart) or (Other.LoopLength <> LoopLength) then Exit;
+	for i := 0 to High(Data) do
+		if Other.Data[i] <> Data[i] then Exit;
+	Result := True;
 end;
 
 procedure TSample.ZeroFirstWord;
@@ -229,7 +243,7 @@ var
 	L: Integer;
 begin
 	L := High(Data);
-	if (X2 < X1) or (X2 > L) then
+	if ({%H-}X2 < {%H-}X1) or (X2 > L) then
 		X2 := L;
 	if (X1 < 0) or (X1 > L) then
 		X1 := 0;
@@ -468,7 +482,7 @@ var
 	iospec:  soxr_io_spec_t;
 	quality: soxr_quality_spec_t;
 	runtime: soxr_runtime_spec_t;
-//	sb: ShortInt;
+	loopL, loopR: Single;
 begin
 	if not SOXRLoaded then Exit;
 
@@ -478,6 +492,14 @@ begin
 	olen := ilen; //Round(ilen * (DestHz / OrigHz) + 0.5);
 	odone := ilen;
 	SetLength(obuf, olen + 1);
+
+	if IsLooped then
+	begin
+		loopL := LoopStart / Length;
+		loopR := (LoopStart + LoopLength) / Length;
+	end
+	else
+		loopL := -1.0;
 
 	if DoHighBoost then
 	begin
@@ -519,22 +541,23 @@ begin
 //	odone := Min(odone, $1FFFF+1); // limit sample length to 128KB
 	Length := odone div 2;
 	SetLength(Data, Length*2 + 1);
-	LoopStart := 0;
-	LoopLength := 1;
+
+	if loopL >= 0.0 then
+	begin
+		LoopStart  := Trunc(Length * loopL);
+		LoopLength := Trunc((Length * loopR) - LoopStart);
+	end
+	else
+	begin
+		LoopStart  := 0;
+		LoopLength := 1;
+	end;
 
 	if DoNormalize then
 		FloatSampleEffects.Normalize(obuf);
 
 	for i := 0 to odone-1 do
-	begin
-		//sb := ShortInt(Trunc(obuf[i] * 127));
-		//if (sb < -128) then
-		//	sb := -128;
-		{else
-		if (sb > 127) then
-			sb := 127;}
 		ShortInt(Data[i]) := ShortInt(Trunc(obuf[i] * 127));
-	end;
 
 	ZeroFirstWord;
 end;
@@ -564,14 +587,31 @@ procedure TSample.Downsample;
 var
 	x, l: Integer;
 begin
-	l := ByteLength;
-	for x := 0 to l div 2 -1 do
+	l := ByteLength div 2;
+	for x := 0 to l-1 do
 		Data[x] := Data[x * 2];
+	Resize(l);
 
-	Length := Length div 2;
-	LoopStart := LoopStart div 2;
+	LoopStart  := LoopStart div 2;
 	LoopLength := LoopLength div 2;
-	SetLength(Data, Max(l div 2, Length * 2)+1);
+
+	Validate;
+end;
+
+procedure TSample.Upsample;
+var
+	x, l: Integer;
+begin
+	l := ByteLength;
+	Resize(l * 2);
+	for x := l-1 downto 0 do
+	begin
+		Data[x*2]   := Data[x];
+		Data[x*2+1] := Data[x];
+	end;
+
+	LoopStart  := LoopStart * 2;
+	LoopLength := LoopLength * 2;
 
 	Validate;
 end;
@@ -993,8 +1033,12 @@ begin
 
 		// 16-bit signed PCM data
 		RS_PCM16S:
-			for i := 0 to NumSamples - 1 do
-				Data[i] := (ModFile.Read16 div 256);
+		begin
+			SetLength(Data16, NumSamples);
+			ModFile.Read(Data16[0], NumSamples);
+			for i := 0 to NumSamples-1 do
+				Data[i] := Word(Data16[i]) div 256;
+		end;
 
 		// IT 2.14 compressed samples
 		RS_IT2148, RS_IT2158:
@@ -1005,7 +1049,7 @@ begin
 			SetLength(Data16, NumSamples);
 			DecompressIT(ModFile, @Data16[0], NumSamples, (Flags = RS_IT21516), True, 1, Index);
 			for i := 0 to NumSamples-1 do
-				Data[i] := Data16[i] div 256;
+				Data[i] := Word(Data16[i]) div 256;
 		end;
 
 		RS_IT2148S, RS_IT2158S:
@@ -1080,14 +1124,12 @@ begin
 			SetLength(Data, NumSamples);
 			DecompressIT(ModFile, @Data[0], NumSamples, (Flags = RS_IT21516), True, 1, Index);
 			for i := 0 to NumSamples-1 do
-				Buffer[i] := SmallInt(Data[i]) * divider;
+				Buffer[i] := ShortInt(Data[i]) * divider;
 		end;
 
-		RS_IT2148S, RS_IT2158S:
-			Log(TEXT_WARNING + 'Unhandled: Sample %d is packed stereo!', [Index]);
-
+		RS_IT2148S, RS_IT2158S,
 		RS_IT21416S, RS_IT21516S:
-			Log(TEXT_WARNING + 'Unhandled: Sample %d is packed, stereo and 16-bit!', [Index]);
+			Log(TEXT_WARNING + 'Unhandled: Sample %d is packed stereo!', [Index]);
 
 	end;
 

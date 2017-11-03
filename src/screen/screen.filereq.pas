@@ -9,7 +9,7 @@ uses
 
 const
 	AmigaExts  = '[mod][p61][stk][nst][ust][nt][m15]';
-	Extensions_Module = '[mod][it][p61]'; // [.xm][.s3m]
+	Extensions_Module = '[mod][it][s3m][p61]'; // [.xm][.s3m]
 
 	STR_DIRECTORYUP = '<Parent>';
 	STR_BOOKMARKS   = '<Bookmarks>';
@@ -20,17 +20,20 @@ const
 	LISTITEM_PARENT		= LISTITEM_HEADER;
 
 	// FileSortMode
-	FILESORT_NAME	= 0;
-	FILESORT_SIZE	= 1;
-	FILESORT_DATE	= 2;
+	FILESORT_NAME		= 0;
+	FILESORT_SIZE		= 1;
+	FILESORT_DATE		= 2;
+	FILESORT_EXT		= 3;
 
-	FILE_EXPLORE	= 3;
-	FILE_RENAME		= 4;
-	FILE_COPY		= 5;
-	FILE_MOVE		= 6;
-	FILE_DELETE		= 7;
-	FILE_CREATEDIR	= 8;
-	FILE_BOOKMARK	= 9;
+	FILE_EXPLORE		= 4;
+	FILE_RENAME			= 5;
+	FILE_COPY			= 6;
+	FILE_MOVE			= 7;
+	FILE_DELETE			= 8;
+	FILE_CREATEDIR		= 9;
+	FILE_BOOKMARK		= 10;
+	FILE_MERGEMODULE 	= 11;
+	FILE_BROWSETOMODULE = 12;
 
 type
 	FileOpKeyNames = (
@@ -39,7 +42,8 @@ type
 		filekeyCopy,
 		filekeyMove,
 		filekeyDelete,
-		filekeyCreate
+		filekeyCreate,
+		filekeyModMerge
 	);
 
 	TBookmark = class
@@ -204,6 +208,17 @@ begin
 	Result := CompareText(
 		R.Captions[FileScreen.SortMode],
 		L.Captions[FileScreen.SortMode]);
+	if Result = 0 then
+		Result := CompareText(L.Captions[0], R.Captions[0]);
+end;
+
+function SortByExtension(constref L, R: TCWEListItem): Integer;
+begin
+	Result := CompareText(
+		LowerCase(ExtractFileExt(R.Captions[0])),
+		LowerCase(ExtractFileExt(L.Captions[0])));
+	if Result = 0 then
+		Result := CompareText(L.Captions[0], R.Captions[0]);
 end;
 
 function GetParentDir(const Dir: String): String;
@@ -264,7 +279,6 @@ begin
 	RegisterLayoutControl(TCWEControl(FileList),  CTRLKIND_BOX, False, True, True);
 	RegisterLayoutControl(TCWEControl(DirList),   CTRLKIND_BOX, False, True, True);
 	RegisterLayoutControlClass(TCWEControl(Self), TCWEEdit, CTRLKIND_BOX, False, True, False);
-	//RegisterLayoutControl(TCWEControl(Ctrl),      CTRLKIND_BOX, False, True, True);
 
 	lblHeader := AddHeader('');
 	RegisterLayoutControl(TCWEControl(lblHeader), CTRLKIND_LABEL, False, True, False);
@@ -289,7 +303,8 @@ function TFileScreen.OnContextMenu: Boolean;
 	end;
 
 begin
-	inherited;
+	Result := inherited;
+
 	with ContextMenu do
 	begin
 		SetSection(EditorKeys);
@@ -303,16 +318,27 @@ begin
 				AddCmdEx(FILESORT_NAME,				'Sort by name');
 				AddCmdEx(FILESORT_SIZE,				'Sort by size');
 				AddCmdEx(FILESORT_DATE,				'Sort by date');
-				{$IFDEF WINDOWS}
-				AddCmdEx(FILE_EXPLORE,				'Show file in Explorer');
-				{$ENDIF}
+				AddCmdEx(FILESORT_EXT,				'Sort by extension');
 
 				AddSection('File operations');
 
+				{$IFDEF WINDOWS}
+				AddCmdEx(FILE_EXPLORE,				'Show file in Explorer');
+				{$ENDIF}
 				AddCmdEx(FILE_RENAME, 				'Rename file');
 				AddCmdEx(FILE_COPY,					'Copy file to directory');
 				AddCmdEx(FILE_MOVE, 				'Move file to directory');
 				AddCmdEx(FILE_DELETE, 				'Delete file');
+
+				if (Self = FileRequester) and (not InModule) then
+				begin
+					AddSection('Module');
+					if Module.Info.Filename <> '' then
+						AddCmdEx(FILE_BROWSETOMODULE,	'Browse to current module');
+					if not SaveMode then
+						AddCmdEx(FILE_MERGEMODULE,		'Merge into current');
+				end;
+
 			end
 			else
 			if DirList.Focused then
@@ -365,16 +391,22 @@ end;
 
 function TFileScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
 begin
-	Result := True;
-	case FileOpKeyNames(Shortcuts.Find(FileOpKeys, Key, Shift)) of
-		filekeyDelete:	HandleCommand(FILE_DELETE);
-		filekeyCopy:	HandleCommand(FILE_COPY);
-		filekeyMove:	HandleCommand(FILE_MOVE);
-		filekeyRename:	HandleCommand(FILE_RENAME);
-		filekeyCreate:	HandleCommand(FILE_CREATEDIR);
+	if (DirList.Focused) or (Filelist.Focused) then
+	begin
+		Result := True;
+		case FileOpKeyNames(Shortcuts.Find(FileOpKeys, Key, Shift)) of
+			filekeyDelete:		HandleCommand(FILE_DELETE);
+			filekeyCopy:		HandleCommand(FILE_COPY);
+			filekeyMove:		HandleCommand(FILE_MOVE);
+			filekeyRename:		HandleCommand(FILE_RENAME);
+			filekeyCreate:		HandleCommand(FILE_CREATEDIR);
+			filekeyModMerge:	HandleCommand(FILE_MERGEMODULE);
+		else
+			Result := inherited;
+		end;
+	end
 	else
 		Result := inherited;
-	end;
 end;
 
 function TFileScreen.GetSelectedFile(FullPath: Boolean = True;
@@ -563,10 +595,17 @@ end;
 
 procedure TFileScreen.SortFiles;
 begin
-	if SortMode = FILESORT_NAME then
-		FileList.Items.Sort(TComparer<TCWEListItem>.Construct(SortAlphabetically))
-	else
-		FileList.Items.Sort(TComparer<TCWEListItem>.Construct(SortByColumn));
+	case SortMode of
+
+		FILESORT_NAME:
+			FileList.Items.Sort(TComparer<TCWEListItem>.Construct(SortAlphabetically));
+
+		FILESORT_SIZE, FILESORT_DATE:
+			FileList.Items.Sort(TComparer<TCWEListItem>.Construct(SortByColumn));
+
+		FILESORT_EXT:
+			FileList.Items.Sort(TComparer<TCWEListItem>.Construct(SortByExtension));
+	end;
 
 	if PrevFile <> '' then
 		FileList.Select(PrevFile);
@@ -706,7 +745,7 @@ begin
 
 	case Cmd of
 
-		FILESORT_NAME, FILESORT_SIZE, FILESORT_DATE:
+		FILESORT_NAME, FILESORT_SIZE, FILESORT_DATE, FILESORT_EXT:
 		begin
 			SortMode := Cmd;
 			if InSampleReq then
@@ -786,6 +825,16 @@ begin
 					AddBookmark(Directory, DirList.ItemIndex);
 				LISTITEM_DRIVE, LISTITEM_DIR:
 					AddBookmark(DirList.GetPath(True));
+			end;
+
+		FILE_MERGEMODULE:
+			Module.MergeWithFile(GetSelectedFile);
+
+		FILE_BROWSETOMODULE:
+			if Module.Info.Filename <> '' then
+			begin
+				SetDirectory(ExtractFileDir(Module.Info.Filename));
+				Filelist.Select(ExtractFileName(Module.Info.Filename));
 			end;
 
 	end;
@@ -1158,7 +1207,7 @@ begin
 				lFilename := LowerCase(sr.Name);
 				Filename := StringReplace(lFilename, '~', '', []);
 
-				x := Pos('.', Filename);
+				x := Filename.LastIndexOf('.') + 1;
 				if x <= 1 then Continue;
 
 				ssL := Copy(Filename, 1, x-1);
@@ -1295,7 +1344,7 @@ begin
 							if SampleMod <> nil then
 								FreeAndNil(SampleMod);
 
-							SampleMod := TPTModule.Create(True);
+							SampleMod := TPTModule.Create(True, True);
 							ModFilename := GetFilename;
 
 							if SampleMod.LoadFromFile(ModFilename) then
@@ -1373,6 +1422,7 @@ end;
 
 function TDirList.GetPath(Fullpath: Boolean): String;
 begin
+	Result := '';
 	case Items[ItemIndex].Data of
 
 		LISTITEM_BOOKMARK:

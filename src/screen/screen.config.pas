@@ -5,11 +5,14 @@ interface
 uses
 	Classes, Types, SysUtils,
 	TextMode, ConfigurationManager,
-	CWE.Core, CWE.Widgets.Text;
+	CWE.Core, CWE.Widgets.Text, CWE.Dialogs;
 
 const
 	HEADER_FG = 6;
 	HEADER_BG = 15;
+
+	ACTION_SELCONFIGITEM    = 1;
+	ACTION_SLIDERCONFIGITEM = 2;
 
 type
 	TCWEConfigList = class(TCWETwoColumnList)
@@ -27,9 +30,22 @@ type
 		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
 	end;
 
+	TConfigItemSelectDialog = record
+		Dlg: TCWEScreen;
+		List: TCWEList;
+	end;
+
 	TConfigScreen = class(TCWEScreen)
 	private
 		WaitingForKeyBinding: Boolean;
+		ConfigItemSelectDialog: TConfigItemSelectDialog;
+
+		procedure 	DialogCallback(ID: Word; Button: TDialogButton;
+					ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
+		procedure 	Dialog_ConfigItemList;
+
+		function 	GetCurrentConfigItem: TConfigItem;
+		procedure 	ValueChanged;
 	public
 		ColorList,
 		List:			TCWEConfigList;
@@ -69,7 +85,7 @@ var
 implementation
 
 uses
-	SDL.Api.Types, Graphics32,
+	SDL.Api.Types, Graphics32, Math,
 	Layout,
 	ShortcutManager,
 	Screen.Editor,
@@ -77,9 +93,9 @@ uses
 	Screen.Help,
 	ProTracker.Editor,
 	ProTracker.Util,
-	CWE.Dialogs,
 	CWE.Widgets.Scrollers,
-	SampleView;
+	SampleView,
+	Dialog.ValueQuery;
 
 // ============================================================================
 // Callbacks
@@ -379,6 +395,22 @@ begin
 
 	// ==============================================================
 
+	S := 'Scopes';
+
+	PaletteConfig.AddByte(S, 'Foreground',
+		@Options.Display.Colors.Scope.Foreground, 5).
+		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
+
+	PaletteConfig.AddByte(S, 'Background',
+		@Options.Display.Colors.Scope.Background, 0).
+		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
+
+	PaletteConfig.AddByte(S, 'Clipped bg',
+		@Options.Display.Colors.Scope.Clipped, 13).
+		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
+
+	// ==============================================================
+
 	S := 'Waveform';
 
 	PaletteConfig.AddByte(S, 'Background',
@@ -507,10 +539,131 @@ begin
 	List.Paint;
 end;
 
-function TConfigScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
+function TConfigScreen.GetCurrentConfigItem: TConfigItem;
+var
+	LI: TCWEListItem;
+begin
+	LI := List.Items[List.ItemIndex];
+	if Assigned(LI) then
+		Result := TConfigItem(LI.ObjData)
+	else
+		Result := nil;
+end;
+
+procedure TConfigScreen.ValueChanged;
 var
 	LI: TCWEListItem;
 	CI: TConfigItem;
+begin
+	LI := List.Items[List.ItemIndex];
+	List.ItemFromConfig(LI);
+	Paint;
+	CI := TConfigItem(LI.ObjData);
+	if (Assigned(CI)) and (Assigned(CI.Callback)) then CI.Callback;
+end;
+
+procedure TConfigScreen.DialogCallback(ID: Word; Button: TDialogButton;
+	ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
+var
+	CI: TConfigItem;
+	i: Integer;
+begin
+	if (Dlg = nil) or (not (Button in [btnYes, btnOK])) then Exit;
+
+	CI := GetCurrentConfigItem;
+	if CI = nil then Exit;
+
+	case ID of
+
+		ACTION_SELCONFIGITEM:
+		begin
+			CI.SetValue(ConfigItemSelectDialog.List.ItemIndex + CI.Min);
+			ValueChanged;
+		end;
+
+		ACTION_SLIDERCONFIGITEM:
+		begin
+			if not GetAskedValue(i) then Exit;
+			CI.SetValue(i);
+			ValueChanged;
+		end;
+
+	end;
+end;
+
+procedure TConfigScreen.Dialog_ConfigItemList;
+var
+	CI: TConfigItem;
+	sl: TStringList;
+	Idx, i, W, H: Integer;
+	B: Boolean;
+begin
+	CI := GetCurrentConfigItem;
+	if not Assigned(CI) then Exit;
+
+	if CI is TConfigItemInteger then
+	begin
+		AskValue(ACTION_SLIDERCONFIGITEM, 'Modify value',
+			CI.Min, CI.Max, TConfigItemInteger(CI).Value^,
+			DialogCallback);
+		Exit;
+	end;
+
+	sl := TStringList.Create;
+	Idx := CI.ListValues(sl);
+
+	if sl.Count > 0 then
+	begin
+		W := 0;
+		for i := 0 to sl.Count-1 do
+		begin
+			H := Length(sl[i]);
+			if H > W then W := H;
+		end;
+
+		W := Min(W + 3, Console.Width - 4);
+		if W mod 2 <> 0 then Inc(W);
+		W := Max(W, 20);
+		H := Min(sl.Count + 5, Console.Height - 8);
+
+		with ConfigItemSelectDialog do
+		begin
+			Dlg := ModalDialog.CreateDialog(ACTION_SELCONFIGITEM, Bounds(
+				(Console.Width div 2) - (W div 2),
+				(Console.Height div 2) - (H div 2), W, H), 'Select value');
+
+			// figure out if a scrollbar is needed in the list. if it is,
+			// the scrollbar is drawn outside of the list widget so make room for it
+			B := (sl.Count > H-5);
+			i := W - 1;
+			if B then Dec(i);
+
+			List := TCWEList.Create(Dlg, '', 'Valuelist', Types.Rect(1, 2, i, H-3), True);
+			List.CanCloseDialog := True;
+			List.Scrollbar.Visible := B;
+			List.Border.Pixel := True;
+
+			for i := 0 to sl.Count-1 do
+				List.AddItem(sl[i]);
+			List.Select(Idx);
+
+			with ModalDialog do
+			begin
+				AddResultButton(btnOK,     'OK',     1,   H-2, True);
+				AddResultButton(btnCancel, 'Cancel', W-9, H-2, True);
+
+				ButtonCallback := DialogCallback;
+				Dialog.ActivateControl(List);
+				Show;
+			end;
+		end;
+
+	end;
+
+	sl.Free;
+end;
+
+function TConfigScreen.KeyDown(var Key: Integer; Shift: TShiftState): Boolean;
 begin
 	// we want to always receive Return and Delete in KeyList
 	// even if they're global bindings for something else
@@ -518,22 +671,6 @@ begin
 		Result := True
 	else
 		Result := False;
-
-	// F1 context help for config list items
-	//
-	if (Key = SDLK_F1) and (ActiveControl = List) then
-	begin
-		LI := List.Items[List.ItemIndex];
-		if LI.ObjData <> nil then
-		begin
-			CI := TConfigItem(LI.ObjData);
-			ModalDialog.MultiLineMessage(CI.Caption,
-				Help.Memo.GetSection(CI.Section + '.' + CI.Name));
-		end
-		else
-			Help.Show(LI.Captions[0] + ' Settings'); // heading -> jump to help anchor
-		Exit(True);
-	end;
 
 	if WaitingForKeyBinding then
 	begin
@@ -725,8 +862,12 @@ var
 	CI: TConfigItem;
 	LI: TCWEListItem;
 	Modifier: Integer;
+	Sl: TStringList;
 begin
 	Result := False;
+
+	LI := Items[ItemIndex];
+	CI := TConfigItem(LI.ObjData);
 
 	Sc := ControlKeyNames(Shortcuts.Find(ControlKeys, Key, []));
 	case Sc of
@@ -734,10 +875,7 @@ begin
 		ctrlkeyLEFT, ctrlkeyRIGHT,
 		ctrlkeyPLUS, ctrlkeyMINUS:
 		begin
-			LI := Items[ItemIndex];
-			if LI.ObjData = nil then Exit;
-			CI := TConfigItem(LI.ObjData);
-
+			if CI = nil then Exit;
 			Modifier := 1;
 
 			if Sc in [ctrlkeyPLUS, ctrlkeyMINUS] then
@@ -757,6 +895,24 @@ begin
 			Paint;
 
 			if Assigned(CI.Callback) then CI.Callback;
+		end;
+
+		// choose config item value from list
+		ctrlkeyRETURN:
+			ConfigScreen.Dialog_ConfigItemList;
+
+		// context help for config list items
+		ctrlkeyHELP:
+		begin
+			if CI <> nil then
+			begin
+				Sl := Help.Memo.GetSection(CI.Section + '.' + CI.Name);
+				ModalDialog.MultiLineMessage(CI.Caption, Sl, True, True);
+			end
+			else
+				Help.Show(LI.Captions[0] + ' Settings'); // heading -> jump to help anchor
+
+			Result := True;
 		end;
 
 	end;
@@ -791,8 +947,7 @@ begin
 	if WheelDelta > 0 then
 		CI.ModifyValue(+CI.Step * Modifier);
 
-	ItemFromConfig(LI);
-	Paint;
+	ConfigScreen.ValueChanged;
 	Result := True;
 end;
 

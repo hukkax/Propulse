@@ -13,7 +13,7 @@
 
 <#Main><h1>Propulse Tracker Help
 
-<c><f9>Last modified: 2017-10-04
+<c><f9>Last modified: 2017-11-02
 
 <h2>Global Keys:
 
@@ -32,8 +32,7 @@
   Ctrl-F11, F4      Message log
   F12               Program settings
 
-  Alt-F1 -> Alt-F8  Toggle channels 1->8
-  Ctrl-1..Ctrl-4    Toggle channels 1-4
+  Ctrl-1..Ctrl-4    Mute/unmute channel 1-4
 
   Ctrl-N            New song
   Ctrl-P            Calculate approximate song length
@@ -47,6 +46,16 @@
   Ctrl-M            Toggle mouse cursor
   Ctrl-Q            Quit Propulse Tracker
 
+<h1>Table of contents
+
+   <@Main=Global Keys>
+   <@Editor=Pattern Editor>
+   <@OrderList=Order List>
+   <@SampleList=Sample List>
+   <@File Requester>
+   <@Configuration=Configuration Options>
+   <@Splash=Credits>
+
 ;============================================================================
 
 <#Editor><h1>Pattern Edit
@@ -55,43 +64,46 @@
 
  PT   IT   Description
 <hr>
- 0xy  Jxy  <#0>Arpeggio with halftones x and y (if nonzero parameters)
- 1xx  Fxx  <#1>Pitch slide up by xx
- 2xx  Exx  <#2>Pitch slide down by xx
- 3xx  Gxx  <#3>Slide to note with speed xx
- 4xy  Hxy  <#4>Vibrato with speed x, depth y
- 5xy  Lxy  <#5>Dual Command: 300 + Axy
- 6xy  Kxy  <#6>Dual Command: 400 + Axy
- 7xy  Rxy  <#7>Tremolo with speed x, depth y
- 8xx  Xxx  <#8>Unused (may be used for sync)
- 9xx  Oxx  <#9>Set sample offset
- Axy  Dxy  <#A>Volume slide (x for slide up, y for slide down)
- Bxx  Bxx  <#B>Jump to order (hex)
- Cxx  ---  <#C>Volume (use the volume column)
- Dxx  Cxx  <#D>Break to row xx of next pattern
- Exx  Zxx  <#E>Extended effects (<@Exx=see below>)
- Fxx  Axx  <#F>Set song speed/tempo (1..31 = speed, >31 = beats per minute)
+ <@0=0xy>  Jxy  Arpeggio with halftones x and y (if nonzero parameters)
+ <@1=1xx>  Fxx  Pitch slide up by xx
+ <@2=2xx>  Exx  Pitch slide down by xx
+ <@3=3xx>  Gxx  Slide to note with speed xx
+ <@4=4xy>  Hxy  Vibrato with speed x, depth y
+ <@5=5xy>  Lxy  Dual Command: 300 + Axy
+ <@6=6xy>  Kxy  Dual Command: 400 + Axy
+ <@7=7xy>  Rxy  Tremolo with speed x, depth y
+ <@8=8xx>  Xxx  Unused (may be used for sync)
+ <@9=9xx>  Oxx  Set sample offset
+ <@A=Axy>  Dxy  Volume slide (x for slide up, y for slide down)
+ <@B=Bxx>  Bxx  Jump to order (hex)
+ <@C=Cxx>  ---  Volume (use the volume column)
+ <@D=Dxx>  Cxx  Break to row xx of next pattern
+ <@E=Exx>  Zxx  <@Exx=Extended effects>
+ <@F=Fxx>  Axx  Set song speed/tempo (1-31 = speed, >31 = beats per minute)
 
 <h2><#Exx>Extended effects:
 
- E0x  S0x  <#E0>Set filter on (x=0) or off (x>0)
- E1x  FFx  <#E1>Fine pitch slide up by x
- E2x  EFx  <#E2>Fine pitch slide down by x
- E3x  S1x  <#E3>Set glissando on (x=1) or off (x=0)
- E4x  S3x  <#E4>Set vibrato waveform to type x (0=sine, 1=saw, 2=square)
- E5x  S2x  <#E5>Set finetune value (F..8 = -1..-8, 7..1 = +7..+1)
- E6x  SBx  <#E6>Set/Jump to loop (0=set loop point, >0=jump x times to loop point)
- E7x  S4x  <#E7>Set tremolo waveform (0=sine, 1=saw, 2=square)
- E8x  S8x  <#E8><@Karplus-Strong> or unused
- E9x  Q0x  <#E9>Retrigger note every x ticks
- EAx  DxF  <#EA>Fine volume slide up by x
- EBx  DFx  <#EB>Fine volume slide down by x
- ECx  SCx  <#EC>Note cut after x ticks
- EDx  SDx  <#ED>Note delay for x ticks
- EEx  S6x  <#EE>Pattern delay for x ticks
- EFx  Z0x  <#EF>Invert sample at speed x (requires loop, modifies sample data!)
+ <@E0=E0x>  S0x  Set filter on (x=0) or off (x>0)
+ <@E1=E1x>  FFx  Fine pitch slide up by x
+ <@E2=E2x>  EFx  Fine pitch slide down by x
+ <@E3=E3x>  S1x  Set glissando on (x=1) or off (x=0)
+ <@E4=E4x>  S3x  Set vibrato waveform to type x (0=sine, 1=saw, 2=square)
+ <@E5=E5x>  S2x  Set finetune value (F..8 = -1..-8, 7..1 = +7..+1)
+ <@E6=E6x>  SBx  Set/Jump to loop (0=set loop point, >0=jump x times to loop point)
+ <@E7=E7x>  S4x  Set tremolo waveform (0=sine, 1=saw, 2=square)
+ <@E8=E8x>  S8x  Karplus-Strong (optional)
+ <@E9=E9x>  Q0x  Retrigger note every x ticks
+ <@EA=EAx>  DxF  Fine volume slide up by x
+ <@EB=EBx>  DFx  Fine volume slide down by x
+ <@EC=ECx>  SCx  Note cut after x ticks
+ <@ED=EDx>  SDx  Note delay for x ticks
+ <@EE=EEx>  S6x  Pattern delay for x ticks
+ <@EF=EFx>  Z0x  Invert sample at speed x (requires loop, modifies sample data!)
 
 <h2>Pattern Edit Keys:
+
+    F1               Short help message for command under cursor
+  2*F1               Show full help for command under cursor
 
     Numpad +,-       Next/Previous pattern  (*)
 ;   Ctrl +,-         Next/Previous order's pattern  (*)
@@ -119,7 +131,6 @@
     Alt-Left/Right   Move forwards/backwards one channel
     Tab/Shift-Tab    Move forwards/backwards to note column
     PgUp/PgDn        Move up/down 16 lines
-;   PgUp/PgDn        Move up/down n lines (n=Row Hilight Major)
     Ctrl-PgUp/PgDn   Move to top/bottom of pattern
     Home             Move to first visible row/top row/first channel
                      or start of column/start of line/start of pattern
@@ -399,6 +410,333 @@
  are used to draw various parts of the user interface. Color settings can
  be also saved as presets.
 
+;============================================================================
+
+<h1>Effect Descriptions
+
+ <#0><fB>Cmd 0. Arpeggio [Range:$0-$F/$0-$F]
+<f3><hr>
+ Usage: $0 + 1st halfnote add
+           + 2nd halfnote add
+
+ Arpeggio is used to simulate chords. This is done by rapidly
+ changing the pitch between 3 (or 2) different notes.
+ Commonly used with very short looping samples in chiptunes.
+
+ Example: C-3 00 047    C-major chord: (C+E+G  or C+4+7 halfnotes)
+          C-3 00 037    C-minor chord: (C+D#+G or C+3+7 halfnotes)
+
+ <#1><fB>Cmd 1. Pitch Slide Up [Speed:$00-$FF]
+<f3><hr>
+ Usage: $1 + slide speed
+
+ Slides the sample pitch up. You can not slide higher than B-3.
+ NOTE: The pitch slide will be called as many times as the speed
+ of the song. This means that you'll sometimes have trouble
+ sliding accurately. Take this into account when you change the
+ song's speed.
+
+ Example: C-3 00 103    1 is the command, 3 is the slide speed.
+
+ <#2><fB>Cmd 2. Pitch Slide Down [Speed:$00-FF]
+<f3><hr>
+ Usage: $2 + slide speed
+
+ Slides the sample pitch down. You can not slide lower than C-1.
+
+ Example: C-3 00 203    2 is the command, 3 is the slide speed.
+
+ <#3><fB>Cmd 3. Tone Portamento [Speed:$00-$FF]
+<f3><hr>
+ Usage: Dest-note + $3 + slidespeed
+
+ Automatically slides from the old note to the new. You don't have
+ to worry about which direction to slide, you need only set the
+ slide speed. To keep sliding, just select the command $3 + 00.
+
+ Example: A-2 00 000    First play a note.
+          C-3 00 305    C-3=destination note, 3=command, 5=speed.
+
+ <#4><fB>Cmd 4. Vibrato [Rate:$0-$F,Depth:$0-$F]
+<f3><hr>
+ Usage: $4 + vibratorate + vibratodepth
+ 
+ Vibrates the sample pitch with a waveform (FM synthesis).
+ To keep on vibrating, just select the command $4 + 00.
+ To change the vibrato,  you can alter the rate, depth or both.
+ Use command E4x to change the vibrato waveform.
+
+ Example: C-3 00 481    4=command, 8=speed, 1=depth.
+
+ <#5><fB>Cmd 5. Tone Portamento + Volume Slide [Speed:$0-$F/$0-$F]
+<f3><hr>
+ Usage: $5 + upspeed + downspeed
+ 
+ Continues the current toneportamento while sliding the volume.
+
+ Example: C-3 00 503    3 is the speed to turn the volume down.
+          C-3 00 540    4 is the speed to slide it up.
+
+ <#6><fB>Cmd 6. Vibrato + Volume Slide [Speed:$0-$F/$0-$F]
+<f3><hr>
+ Usage: $6 + upspeed + downspeed
+
+ Continues the current vibrato while sliding the volume.
+
+ Example: C-3 00 605    5 is the speed to turn the volume down.
+          C-3 00 640    4 is the speed to slide it up.
+
+ <#7><fB>Cmd 7. Tremolo [Rate:$0-$F,Depth:$0-$F]
+<f3><hr>
+ Usage: $7 + tremolorate + tremolodepth
+
+ Tremolo will vibrate the volume with a waveform (AM synthesis).
+ To keep on tremolo'ing, just select the command $7 + 00.
+ To change the tremolo, you can alter the rate, depth or both.
+ Use command E7- to change the tremolo waveform.
+
+ Example: C-3 00 794    7=command, 9=speed, 4=depth.
+
+ <#8><fB>Cmd 8. Unused
+<f3><hr>
+ Unused in ProTracker. Later versions of The Player 6.1A allow to
+ use this for synchronization in demos/intros.
+
+ <#9><fB>Cmd 9. Set Sample Offset [Offs:$00-$FF]
+<f3><hr>
+ Usage: $9 + sample offset
+
+ Plays the sample starting from a chosen position instead of the
+ beginning. The two numbers equal the two first numbers in the
+ length of the sample.
+ NOTE: Due to a bug in the ProTracker replayer, attempting to use
+ this command on samples longer than 65534/$FFFF will result in
+ no sound.
+
+ Example: C-3 00 923    Play sample from offset $2300.
+
+ <#A><fB>Cmd A. Volume Slide [Speed:$0-$F/$0-$F]
+<f3><hr>
+ Usage: $A + upspeed + downspeed
+
+ Slides the volume.
+ NOTE: The slide will be called as many times as the speed of
+ the song. The slower the song, the more the volume will be
+ changed on each note.
+
+ Example: C-3 00 A05    5 is the speed to turn the volume down.
+          C-3 00 A40    4 is the speed to slide it up.
+
+ <#B><fB>Cmd B. Position Jump [Pos:$00-$7F]
+<f3><hr>
+ Usage: $B + position to continue at
+
+ Immediately performs a <@D=pattern break> and jumps to another
+ position in the orderlist.
+
+ Example: C-3 00 B01    Restart song from pos 1 in the orderlist.
+
+ <#C><fB>Cmd C. Set Volume [Volume:00-64]
+<f3><hr>
+ Usage: $C + volume
+
+ Sets the volume for the current note.
+ In Propulse Tracker, use the volume column instead.
+
+ <#D><fB>Cmd D. Pattern Break [Row:00-63, decimal]
+<f3><hr>
+ Usage: $D + row
+
+ Jumps to the next song position and continues playing from the
+ row you specify.
+                        Jump to next song position and...
+ Example: C-3 00 D00    ...continue from top row.
+      Or: C-3 00 D32    ...continue from row 32.
+
+ <#F><fB>Cmd F. Set Speed [Speed:$00-$FF]
+<f3><hr>
+ Usage: $F + speed
+
+ This command will set the speed of the song (ticks per row).
+
+ Vblank: Range 01-FF - Normal timing  
+   CIA:  Range 01-1F - Set vblank speeds with CIA timing.
+   CIA:  Range 20-FF - Set BPM speeds, range 32-255.
+  Both:  Range 00    - STOP song. 
+
+<c><h3><#>Extended commands
+
+ <#E0><fB>Cmd E0. Set LED Filter [Range:$0-$F]
+<f3><hr>
+ Usage: $E0 + value (0=on, anything else=off)
+
+ Turns the LED filter on or off.
+
+ Example: C-3 00 E01    Turns LED filter off
+          C-3 00 E00    Turns LED filter on
+
+ <#E1><fB>Cmd E1. Fine Pitch Slide Up [Range:$0-$F]
+<f3><hr>
+ Usage: $E1 + value
+
+ Works just like the normal portamento up, but only slides up
+ once. It does not continue sliding during the length of the note.
+ Useful for creating chorus effects.
+
+ Example: C-3 00 E11    Slide up 1 at the beginning of the note.
+
+ <#E2><fB>Cmd E2. Fine Pitch Slide Down [Range:$0-$F]
+<f3><hr>
+ Usage: $E2 + value
+
+ Works just like the normal portamento down, but only slides down
+ once. It does not continue sliding during the length of the note.
+
+ Example: C-3 00 E26    Slide up 6 at the beginning of the note.
+
+ <#E3><fB>Cmd E3. Glissando Control [Range:$0-$1]
+<f3><hr>
+ Usage: $E3 + glissando control
+
+ Glissando must be used with the tone portamento command.
+ When glissando is activated, tone portamento will slide
+ a halfnote at a time, instead of a straight slide.
+
+ Example: C-3 00 E31    Turn Glissando on.
+          C-3 00 E30    Turn Glissando off.
+
+ <#E4><fB>Cmd E4. Set Vibrato Waveform [Range:$0-$3]
+<f3><hr>
+ Usage: $E4 + vibrato waveform
+
+ Example: C-3 00 E40    Set sine (default)
+                 E44    Don't retrig WF
+          C-3 00 E41    Set Ramp Down
+                 E45    Don't retrig WF
+          C-3 00 E42    Set Squarewave
+                 E46    Don't retrig WF
+
+ <#E5><fB>Cmd E5. Set Finetune [Range:$0-$F]
+<f3><hr>
+ Usage: $E5 + finetune value
+
+ Example: C-3 00 E5F    Set finetune to -1.
+
+ Use these tables for the finetune value:
+
+ Finetune: +7 +6 +5 +4 +3 +2 +1  0
+    Value:  7  6  5  4  3  2  1  0
+
+ Finetune: -1 -2 -3 -4 -5 -6 -7 -8
+    Value:  F  E  D  C  B  A  9  8
+
+ <#E6><fB>Cmd E6. Pattern Loop [Loops:$0-$F]
+<f3><hr>
+ Usage: $E6 + number of loops
+
+ Loops a part of the pattern before continuing onwards.
+
+ Example: C-3 00 E60    Set loop start.
+          C-3 00 E63    Jump to loop 3 times before playing on.
+
+ <#E7><fB>Cmd E7. Set Tremolo Waveform [Range:$0-$3]
+<f3><hr>
+ Usage: $E7 + tremolo waveform
+
+ Example: C-3 00 E70    Set sine (default)
+                 E74    Don't retrig WF
+          C-3 00 E71    Set Ramp Down
+                 E75    Don't retrig WF
+          C-3 00 E72    Set Squarewave
+                 E76    Don't retrig WF
+
+ <#E8><fB>Cmd E8. Karplus-Strong
+<f3><hr>
+ Usage: $E8 + any number
+
+ Rarely used for a Karplus-Strong effect. <@Audio.EnableKarplusStrong=Disabled by default.>
+ The Player 6.1A allows to use this for syncing in demos/intros.
+
+ <#E9><fB>Cmd E9. Note Retrig [Value:$0-$F]
+<f3><hr>
+ Usage: $E9 + tick to retrig note at
+
+ Retriggers the same note before playing the next.
+ Where to retrig depends on the speed of the song.
+ If you retrig with 1 in speed 6 that note will be
+ triggered 6 times in one note slot. Try on hi-hats!
+
+ Example: C-3 00 F06    Set speed to 6.
+          C-3 00 E93    Retrig at tick 3 out of 6.
+
+ <#EA><fB>Cmd EA. Fine Volume Slide Up [Range:$0-$F]
+<f3><hr>
+ Usage: $EA + value
+
+ This command works just like the normal volume slide up,
+ but only slides up once. It does not continue sliding
+ during the length of the note.
+
+ Example: C-3 00 EA3    Slide volume up 1 at the
+                        beginning of the note.
+
+ <#EB><fB>Cmd EB. Fine Volume Slide Down [Range:$0-$F]
+<f3><hr>
+ Usage: $EB + value
+
+ This command works just like the normal volume slide down,
+ but only slides up once. It does not continue sliding during
+ the length of the note.
+
+ Example: C-3 00 EB6    Slide volume down 6 at the
+                        beginning of the note.
+
+ <#EC><fB>Cmd EC. Note Cut [Value:$0-$F]
+<f3><hr>
+ Usage: $EC + tick to cut note at
+
+ Cuts the note at the selected tick, creating extremely
+ short notes. Note that the note is not really cut, the
+ volume is just turned down.
+
+ Example: C-3 00 F06    Set speed to 6.
+          C-3 00 EC3    Cut at tick 3 out of 6.
+
+ <#ED><fB>Cmd ED. Note Delay [Value:$0-$F]
+<f3><hr>
+ Usage: $ED + ticks to delay note
+
+ Delay the start of the note to the selected tick.
+ Play the same note on two channels but delay one
+ for a nice flanger effect.
+
+ Example: C-3 00 F06    Set speed to 6.
+          C-3 00 ED3    Play note at tick 3 out of 6.
+
+ <#EE><fB>Cmd EE. Pattern Delay [Notes:$0-$F]
+<f3><hr>
+ Usage: $EE + notes to delay pattern for
+
+ Pauses the playback of the pattern for the selected
+ number of notes. All other effects are still active
+ when the pattern is being delayed.
+
+ Example: C-3 00 EE8    Pause for 8 notes before resuming.
+
+ <#EF><fB>Cmd EF. Invert Loop [Speed:$0-$F]
+<f3><hr>
+ Usage: $EF + Invertspeed
+
+ This command needs a short sample loop ($10,20,40 etc. bytes)
+ to work. It will invert the loop byte by byte during playback.
+ Good for chiptunes. To stop inverting, set invspeed to 0.
+
+ NOTE: Modifies the sample data! To use this command safely,
+ enable the option <@Editor.Restoresamples=Restore samples when playback stopped>.
+
+ Example: C-3 00 EF8    Invert sample data at speed 8.
+
+<#><hr>
 ;============================================================================
 
 <#Splash><h1>Credits and acknowledgments
