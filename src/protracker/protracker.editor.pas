@@ -988,54 +988,69 @@ begin
 			Result := True;
 		end;
 
-		keyNoteC_lo..keyNoteB_hi:
+		else
 		begin
-			Marking := False;
-			// insert data into pattern
-			n := Integer(Sc) - Integer(keyNoteC_lo) + (Integer(HighOctave) * 12);
-			if n < 36 then // go no higher than B-3
+			Sht := Shift;
+			Exclude(Sht, ssShift);
+			Scs := EditorKeyNames(Shortcuts.Find(EditorKeys, Key, Sht));
+
+			if Scs in [keyNoteC_lo..keyNoteB_hi] then
 			begin
-				// only insert note if no caps lock pressed
-				if (AllowEditing) and (not ModKeys(ssShift)) then
+				Marking := False;
+				n := Integer(Scs) - Integer(keyNoteC_lo) + (Integer(HighOctave) * 12);
+				if n < 36 then // go no higher than B-3
 				begin
-					with Cursor.Note^ do
+					// only insert note data into pattern if shift not pressed
+					if AllowEditing then
 					begin
-						Pitch := n + 1;
-						if EditMask[EM_SAMPLE] then
-							Sample := CurrentSample;
-
-						if EditMask[EM_VOLUME] then
+						if ModKeys(ssShift) then
 						begin
-							if LastNote.Command = $C then
+							// just play the sample instead
+							Module.PlaySample(n+1, CurrentSample, Cursor.Channel);
+						end
+						else
+						begin
+							with Cursor.Note^ do
 							begin
-								Command   := LastNote.Command;
-								Parameter := LastNote.Parameter;
-							end
-							else
-							begin
-								Command   := $0;
-								Parameter := $0;
+								Pitch := n + 1;
+								if EditMask[EM_SAMPLE] then
+									Sample := CurrentSample;
+
+								if EditMask[EM_VOLUME] then
+								begin
+									if LastNote.Command = $C then
+									begin
+										Command   := LastNote.Command;
+										Parameter := LastNote.Parameter;
+									end
+									else
+									begin
+										Command   := $0;
+										Parameter := $0;
+									end;
+								end;
+								if EditMask[EM_EFFECT] then
+								begin
+									Command   := LastNote.Command;
+									Parameter := LastNote.Parameter;
+								end;
+
+								//LastNote.Period := Period;
+								LastNote.Pitch  := Pitch;
+								LastNote.Sample := Sample;
 							end;
-						end;
-						if EditMask[EM_EFFECT] then
-						begin
-							Command   := LastNote.Command;
-							Parameter := LastNote.Parameter;
-						end;
 
-						//LastNote.Period := Period;
-						LastNote.Pitch  := Pitch;
-						LastNote.Sample := Sample;
-					end;
+							Module.PlayNote(@LastNote, Cursor.Channel);
+							Advance;
+							Module.SetModified;
+						end; // not Shift
 
-					Module.PlayNote(@LastNote, Cursor.Channel);
-					Advance;
-					Module.SetModified;
+						Result := True;
+
+					end; // AllowEditing
 				end;
-				Result := True;
 			end;
 		end;
-
 	end;
 
 	if Result then
