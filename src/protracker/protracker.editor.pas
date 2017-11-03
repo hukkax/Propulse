@@ -1299,19 +1299,36 @@ begin
 				end;
 
 				COL_SAMPLE_1, COL_SAMPLE_2:
+				begin
 					Cursor.Note.Sample := 0;
+					if EditMask[EM_SAMPLE] then
+						LastNote.Sample := 0;
+				end;
 
 				COL_VOLUME_1, COL_VOLUME_2:
 				begin
 					Cursor.Note.Command := 0;
 					Cursor.Note.Parameter := 0;
+					if EditMask[EM_VOLUME] then // should we do this?
+					begin
+						LastNote.Command   := 0;
+						LastNote.Parameter := 0;
+					end;
 				end;
 
 				COL_COMMAND:
+				begin
 					Cursor.Note.Command := 0;
+					if EditMask[EM_EFFECT] then
+						LastNote.Command := 0;
+				end;
 
 				COL_PARAMETER_1, COL_PARAMETER_2:
+				begin
 					Cursor.Note.Parameter := 0;
+					if EditMask[EM_EFFECT] then
+						LastNote.Parameter := 0;
+				end;
 			end;
 
 			Module.SetModified;
