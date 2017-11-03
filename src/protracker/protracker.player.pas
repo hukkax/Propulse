@@ -437,11 +437,12 @@ begin
 			SetLength(ScopeBuffer[pos], Len div 2 + 1024);
 	end;
 
+	for pos := 0 to AMOUNT_CHANNELS-1 do
+		ZeroMemory(ScopeBuffer[pos], Length(ScopeBuffer[pos]));
+
 	if Module.DisableMixer then
 	begin
 		ZeroMemory(VUbuffer, Len);
-		for pos := 0 to AMOUNT_CHANNELS-1 do
-			ZeroMemory(ScopeBuffer[pos], Length(ScopeBuffer[pos]));
 		Mixing := False;
 		Exit;
 	end;
@@ -3067,7 +3068,7 @@ begin
 
 		DisableMixer := True;
 
-		n_period   := PeriodTable[(37 * S.Finetune) + _note];
+		n_period   := PeriodTable[(37 * S.Finetune) + _note - 1];
 		n_sample   := _sample;
 		n_start    := _start;
 		n_finetune := S.Finetune;
@@ -3137,12 +3138,12 @@ var
 	Amp, tempSample, tempVolume: Single;
 	outSample: array [0..1] of Single;
 	masterBufferL, masterBufferR: array of Single;
-	TempScopeBuffer: array[0..AMOUNT_CHANNELS-1] of array of Single;
 	v: TPaulaVoice;
 	bSmp, bVol: PBlep;
 	Sam: TSample;
 const
 	SCALER = 1.0 / 128.0;
+	Amp2   = -32767.0 / 1.0;
 begin
 	Amp := -32767.0 / NormFactor; // negative because signal phase is flipped on Amiga
 	ClippedSamples := 0;
@@ -3152,8 +3153,6 @@ begin
 
 	for i := 0 to AMOUNT_CHANNELS-1 do
 	begin
-		SetLength(TempScopeBuffer[i], numSamples + 2);
-
 		bSmp := @Blep[i];
 		bVol := @BlepVol[i];
 		v := Channel[i].Paula;
@@ -3193,7 +3192,12 @@ begin
 					tempVolume := tempVolume + BlepRun(bVol);
 
 				tempSample := tempSample * tempVolume;
-				TempScopeBuffer[i,j] := tempSample;
+
+				// feed data into channel scopes
+				if scopesOffset >= 0 then
+					ScopeBuffer[i, j+scopesOffset] :=
+						CLAMP(Trunc(tempSample * Amp2), -32768, 32767);
+
 				masterBufferL[j] := masterBufferL[j] + (tempSample * v.PANL);
 				masterBufferR[j] := masterBufferR[j] + (tempSample * v.PANR);
 
@@ -3247,15 +3251,6 @@ begin
 
 		sndOut[j*2]   := CLAMP2(Trunc(outSample[0]), -32768, 32767, ClippedSamples);
 		sndOut[j*2+1] := CLAMP2(Trunc(outSample[1]), -32768, 32767, ClippedSamples);
-	end;
-
-	if scopesOffset >= 0 then
-	begin
-		Amp := -32767.0 / 1.0;
-		for i := 0 to AMOUNT_CHANNELS-1 do
-			for j := 0 to numSamples-1 do
-				ScopeBuffer[i, j+scopesOffset] :=
-					CLAMP(Trunc(TempScopeBuffer[i,j] * Amp), -32768, 32767);
 	end;
 end;
 
