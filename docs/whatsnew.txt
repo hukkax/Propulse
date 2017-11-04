@@ -1,6 +1,6 @@
 Propulse Tracker 0.9.5.2
 
-- When clicking on a pattern the cursor is moved to the proper column
+- New option to center the currently playing row like in Impulse Tracker
 - New option to reset song tempo when stopping playback like in Impulse
   Tracker. The default speed and tempo can be modified by clicking on the
   Speed/BPM indicator in the Pattern Editor screen
@@ -8,6 +8,7 @@ Propulse Tracker 0.9.5.2
 - Mouse wheel on the Order indicator changes orderlist position during playback
 - Mouse wheel on the Pattern label selects a pattern
 - Removed unnecessary leading zero from Speed indicator
+- When clicking on a pattern the cursor is moved to the proper column
 - Added new fonts
 
 Propulse Tracker 0.9.5.0
