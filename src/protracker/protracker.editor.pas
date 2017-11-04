@@ -1818,6 +1818,15 @@ begin
 		mbLeft:
 			if Chan in [0..AMOUNT_CHANNELS-1] then
 			begin
+				// 0123456789ABC
+				// C-3 01 64 F33
+				case P.X - (Chan * (Width div 4)) of
+					$4..$6: Cursor.Column := COL_SAMPLE_1;
+					$7..$9: Cursor.Column := COL_VOLUME_1;
+					$A..$C: Cursor.Column := COL_COMMAND;
+					$D:     Exit;
+					else	Cursor.Column := COL_NOTE;
+				end;
 				Cursor.Row := P.Y + ScrollPos;
 				Cursor.Channel := Chan;
 				ValidateCursor;
@@ -1833,7 +1842,7 @@ begin
 			end;
 
 		mbRight:
-			Result := False; // unhandled
+			Result := False; // unhandled -> show menu
 
 	end;
 end;
