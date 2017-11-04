@@ -19,10 +19,10 @@ type
 	TCWEControl = class;
 	TCWEControlClass = class of TCWEControl;
 
-	TCWENotifyEvent		= 	procedure (Sender: TCWEControl)
-							of Object;
-	TCWENotifyEventID	= 	procedure (Sender: TCWEControl; ID: Integer)
-							of Object;
+	TCWENotifyEvent		= 	procedure (Sender: TCWEControl) of Object;
+	TCWENotifyEventID	= 	procedure (Sender: TCWEControl; ID: Integer) of Object;
+	TCWEBooleanEvent	= 	function  (Sender: TCWEControl): Boolean of Object;
+
 	TCWETextInputEvent	=	function (Sender: TCWEControl;
 							var Key: Char): Boolean
 							of Object;
@@ -32,17 +32,10 @@ type
 	TCWEMouseWheelEvent	= 	function (Sender: TCWEControl;
 							Shift: TShiftState; DirDown: Boolean; P: TPoint): Boolean
 							of Object;
-	TCWEMouseDownEvent	= 	function (Sender: TCWEControl;
-							Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean
-							of Object;
-	TCWEMouseUpEvent	= 	function (Sender: TCWEControl;
+	TCWEMouseButtonEvent= 	function (Sender: TCWEControl;
 							Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean
 							of Object;
 	TCWEMouseMoveEvent	= 	function (Sender: TCWEControl; X, Y: Integer; P: TPoint): Boolean
-							of Object;
-	TCWEMouseEnterEvent	= 	function (Sender: TCWEControl): Boolean
-							of Object;
-	TCWEMouseLeaveEvent	= 	function (Sender: TCWEControl): Boolean
 							of Object;
 
 
@@ -87,14 +80,16 @@ type
 	TCWEControl = class
 	protected
 		FOnChange:		TCWENotifyEvent;
+		FOnPaint:		TCWEBooleanEvent;
+		FOnAfterPaint:	TCWEBooleanEvent;
 		FOnTextInput:	TCWETextInputEvent;
 		FOnKeyDown: 	TCWEKeyDownEvent;
 		FOnMouseWheel: 	TCWEMouseWheelEvent;
-		FOnMouseDown: 	TCWEMouseDownEvent;
-		FOnMouseUp:		TCWEMouseUpEvent;
+		FOnMouseDown: 	TCWEMouseButtonEvent;
+		FOnMouseUp:		TCWEMouseButtonEvent;
 		FOnMouseMove:	TCWEMouseMoveEvent;
-		FOnMouseEnter:	TCWEMouseEnterEvent;
-		FOnMouseLeave:	TCWEMouseLeaveEvent;
+		FOnMouseEnter:	TCWEBooleanEvent;
+		FOnMouseLeave:	TCWEBooleanEvent;
 
 		Screen:			TCWEScreen;
 		class var
@@ -160,17 +155,20 @@ type
 
 		procedure 	Change(TriggerChange: Boolean = True);
 
-		property	OnChange:     TCWENotifyEvent     read FOnChange     write FOnChange;
-		property	OnTextInput:  TCWETextInputEvent  read FOnTextInput  write FOnTextInput;
-		property	OnKeyDown:    TCWEKeyDownEvent    read FOnKeyDown    write FOnKeyDown;
-		property	OnMouseWheel: TCWEMouseWheelEvent read FOnMouseWheel write FOnMouseWheel;
-		property	OnMouseDown:  TCWEMouseDownEvent  read FOnMouseDown  write FOnMouseDown;
-		property	OnMouseUp:    TCWEMouseUpEvent    read FOnMouseUp    write FOnMouseUp;
-		property	OnMouseMove:  TCWEMouseMoveEvent  read FOnMouseMove  write FOnMouseMove;
-		property	OnMouseEnter: TCWEMouseEnterEvent read FOnMouseEnter write FOnMouseEnter;
-		property	OnMouseLeave: TCWEMouseLeaveEvent read FOnMouseLeave write FOnMouseLeave;
+		property	OnChange:     TCWENotifyEvent      read FOnChange     write FOnChange;
+		property	OnPaint:      TCWEBooleanEvent     read FOnPaint      write FOnPaint;
+		property	OnAfterPaint: TCWEBooleanEvent     read FOnAfterPaint write FOnAfterPaint;
+		property	OnTextInput:  TCWETextInputEvent   read FOnTextInput  write FOnTextInput;
+		property	OnKeyDown:    TCWEKeyDownEvent     read FOnKeyDown    write FOnKeyDown;
+		property	OnMouseWheel: TCWEMouseWheelEvent  read FOnMouseWheel write FOnMouseWheel;
+		property	OnMouseDown:  TCWEMouseButtonEvent read FOnMouseDown  write FOnMouseDown;
+		property	OnMouseUp:    TCWEMouseButtonEvent read FOnMouseUp    write FOnMouseUp;
+		property	OnMouseMove:  TCWEMouseMoveEvent   read FOnMouseMove  write FOnMouseMove;
+		property	OnMouseEnter: TCWEBooleanEvent     read FOnMouseEnter write FOnMouseEnter;
+		property	OnMouseLeave: TCWEBooleanEvent     read FOnMouseLeave write FOnMouseLeave;
 
 		procedure	Paint; virtual;
+		procedure 	Painted;
 		procedure 	PaintTo(R: TRect); virtual;
 
 		function	ProcessShortcut(Sc: ControlKeyNames): Boolean; virtual;
@@ -1083,12 +1081,24 @@ var
 begin
 	if (Screen = nil) or (not Screen.Active) then Exit;
 
+	if Assigned(OnPaint) then
+		if not OnPaint(Self) then
+			Exit;
+
 	DrawBorder;
 
 	// Paint all owned controls
 	if (Controls <> nil) and (Controls.Count > 0) then
 		for Ctrl in Controls do
 			Ctrl.Paint;
+
+	Painted;
+end;
+
+procedure TCWEControl.Painted;
+begin
+	if Assigned(OnAfterPaint) then
+		OnAfterPaint(Self);
 end;
 
 { TCWEBorder }
