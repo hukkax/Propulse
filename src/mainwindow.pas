@@ -1325,6 +1325,8 @@ begin
 		.SetInfo('Home and End keys behavior', 0, 1, ['Impulse Tracker', 'Propulse']);
 		Cfg.AddBoolean(Sect, 'ShowEmptyParamZeroes', @Tracker.ShowEmptyParamZeroes, True)
 		.SetInfo('Show empty command parameters as', 0, 1, ['...', '.00']);
+		Cfg.AddBoolean(Sect, 'CenterPlayback', @Tracker.CenterPlayback, True)
+		.SetInfo('Center currently playing row', 0, 1, ['No', 'Yes']);
 		Cfg.AddBoolean(Sect, 'NoteB3AsInvalid', @Tracker.NoteB3Warning, False)
 		.SetInfo('Consider note B-3 as invalid', 0, 1, ['No', 'Yes']);
 		Cfg.AddBoolean(Sect, 'RestoreSamples', @Tracker.RestoreSamples, False)

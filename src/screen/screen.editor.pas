@@ -867,6 +867,7 @@ procedure TEditorScreen.Reset;
 begin
 	with PatternEditor do
 	begin
+		FollowPlayback := False;
 		Cursor.X := 0;
 		Cursor.Row := 0;
 		Cursor.Column := COL_NOTE;

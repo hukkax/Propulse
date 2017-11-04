@@ -1866,6 +1866,7 @@ var
 	s: AnsiString;
 	Note: PNote;
 	FirstInvalidNote: Byte;
+	ScrPos: Integer;
 //	UseVolumeColumn: Boolean;
 begin
 	if (Drawing) or (not Assigned(Module)) then Exit;
@@ -1884,12 +1885,19 @@ begin
 	Time.Start;
 	{$ENDIF}
 
-	if ScrollPos > 32 then
-		ScrollPos := 32;
+	if (FollowPlayback) and (Options.Tracker.CenterPlayback) then
+		ScrPos := Module.PlayPos.Row - 16
+	else
+	begin
+		if ScrollPos > 32 then
+			ScrollPos := 32;
+		ScrPos := ScrollPos;
+	end;
 
 	for i := 0 to Height do
 	begin
-		if (ScrollPos+i) = Module.PlayPos.Row then
+		row := ScrPos + i;
+		if row = Module.PlayPos.Row then
 		begin
 			if Module.PlayPos.Pattern = CurrentPattern then
 				c := COL_ROW_CURRENT
@@ -1898,90 +1906,95 @@ begin
 		end
 		else
 			c := COL_ROW;
-		Console.Write(
-			TextVals[ScrollPos+i],
-			Rect.Left, Rect.Top + i, c);
+		if (row < 0) or (row > 63) then
+			Console.Write('  ', Rect.Left, Rect.Top + i, c)
+		else
+			Console.Write(TextVals[row], Rect.Left, Rect.Top + i, c);
 	end;
 
 	for c := 0 to AMOUNT_CHANNELS - 1 do
 	for i := 0 to Height do
 	begin
-		row := ScrollPos + i;
-
+		row := ScrPos + i;
 		CX := Rect.Left + WIDTH_ROWNUM + (c * PATTERN_CHAN_WIDTH);
 		CY := Rect.Top + i;
 
-		Note := @Module.Notes[CurrentPattern, c, row];
-		s := '    '; // 4 spaces
-
-		if Note.Pitch = 0 then
-			sPut(s, 1, CHR_3PERIODS)
-		else
-			sPut(s, 1, NoteText[Min(Note.Pitch, High(NoteText))]);
-
-		if 	InRange(c,   Selection.Left, Selection.Right)  and
-			InRange(row, Selection.Top,  Selection.Bottom) then
+		if (row < 0) or (row > 63) then
 		begin
-			if row mod 16 = 0 then
-				bg := COL_HL_SEL_ROW	// highlight sel. rows bg
-			else
-			if row mod 4 = 0 then
-				bg := COL_HL_SEL_BEAT	// highlight sel. beats bg
-			else
-				bg := COL_SEL_BG;		// normal sel. bg
-			fg := COL_SEL_FG;			// selected text
+			Console.Write('... .. .. ...', CX, CY, ColorBack, ColorBack);
 		end
 		else
 		begin
-			if row mod 16 = 0 then
-				bg := COL_HL_ROW		// highlight rows bg 9
+			s := '    '; // 4 spaces
+			Note := @Module.Notes[CurrentPattern, c, row];
+			if Note.Pitch = 0 then
+				sPut(s, 1, CHR_3PERIODS)
 			else
-			if row mod 4 = 0 then
-				bg := COL_HL_BEAT		// highlight beats bg 9
-			else
-				bg := ColorBack;		// normal bg 8
-			fg := ColorFore;			// normal text
-		end;
+				sPut(s, 1, NoteText[Min(Note.Pitch, High(NoteText))]);
 
-		if Note.Pitch >= FirstInvalidNote then
-			bg := COL_INVALID;
-
-		Console.Write(s, CX, CY, fg, bg);
-
-
-		if (Note.Sample = 0) then
-			Console.Write(CHR_2PERIODS, CX + 4, CY, fg, bg)
-		else
-			Console.Write(TextVals[Note.Sample], CX + 4, CY, fg, bg);
-
-
-		s[1] := ' ';
-		s[4] := ' ';
-
-		if {(UseVolumeColumn) and} (Note.Command = $C) then
-		begin
-			// volume column + empty effect column
-			sPut(s, 2, TextVals[Note.Parameter]);
-			Console.Write(s, CX + 6, CY, fg, bg);
-			Console.Write(CHR_3PERIODS, CX + 10, CY, 15, bg);
-		end
-		else
-		begin
-			// empty volume column
-			//if UseVolumeColumn then
-			sPut(s, 2, CHR_2PERIODS);
-			Console.Write(s, CX + 6, CY, fg, bg);
-
-			if (Note.Command = 0) and (Note.Parameter = 0) then
+			if 	InRange(c,   Selection.Left, Selection.Right)  and
+				InRange(row, Selection.Top,  Selection.Bottom) then
 			begin
-				if Options.Tracker.ShowEmptyParamZeroes then
-					Console.Write(SEMP1, CX + 10, CY, fg, bg)
+				if row mod 16 = 0 then
+					bg := COL_HL_SEL_ROW	// highlight sel. rows bg
 				else
-					Console.Write(SEMP2, CX + 10, CY, fg, bg);
+				if row mod 4 = 0 then
+					bg := COL_HL_SEL_BEAT	// highlight sel. beats bg
+				else
+					bg := COL_SEL_BG;		// normal sel. bg
+				fg := COL_SEL_FG;			// selected text
 			end
 			else
-				Console.Write(CmdChars[Note.Command+1] // strings start at [1]
-					+ HexVals[Note.Parameter], CX + 10, CY, fg, bg);
+			begin
+				if row mod 16 = 0 then
+					bg := COL_HL_ROW		// highlight rows bg 9
+				else
+				if row mod 4 = 0 then
+					bg := COL_HL_BEAT		// highlight beats bg 9
+				else
+					bg := ColorBack;		// normal bg 8
+				fg := ColorFore;			// normal text
+			end;
+
+			if Note.Pitch >= FirstInvalidNote then
+				bg := COL_INVALID;
+
+			Console.Write(s, CX, CY, fg, bg);
+
+			if (Note.Sample = 0) then
+				Console.Write(CHR_2PERIODS, CX + 4, CY, fg, bg)
+			else
+				Console.Write(TextVals[Note.Sample], CX + 4, CY, fg, bg);
+
+			s[1] := ' ';
+			s[4] := ' ';
+
+			if {(UseVolumeColumn) and} (Note.Command = $C) then
+			begin
+				// volume column + empty effect column
+				sPut(s, 2, TextVals[Note.Parameter]);
+				Console.Write(s, CX + 6, CY, fg, bg);
+				Console.Write(CHR_3PERIODS, CX + 10, CY, 15, bg);
+			end
+			else
+			begin
+				// empty volume column
+				//if UseVolumeColumn then
+				sPut(s, 2, CHR_2PERIODS);
+				Console.Write(s, CX + 6, CY, fg, bg);
+
+				if (Note.Command = 0) and (Note.Parameter = 0) then
+				begin
+					if Options.Tracker.ShowEmptyParamZeroes then
+						Console.Write(SEMP1, CX + 10, CY, fg, bg)
+					else
+						Console.Write(SEMP2, CX + 10, CY, fg, bg);
+				end
+				else
+					Console.Write(CmdChars[Note.Command+1] // strings start at [1]
+						+ HexVals[Note.Parameter], CX + 10, CY, fg, bg);
+			end;
+
 		end;
 
 	end;
@@ -1989,7 +2002,7 @@ begin
 	// paint edit cursor if editor is active
 	if (Focused) and {(Module.PlayMode <> PLAY_SONG)} (not FollowPlayback) then
 	begin
-		row := Rect.Top + Cursor.Row - ScrollPos;
+		row := Rect.Top + Cursor.Row - ScrPos;
 		if (row >= Rect.Top) and (row < Rect.Bottom) then
 			Console.SetColor(
 				Cursor.X + Rect.Left + WIDTH_ROWNUM, row,

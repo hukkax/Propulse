@@ -90,6 +90,7 @@ type
 			AltHomeEndBehavior:		Boolean;
 			NoteB3Warning:			Boolean;
 			ShowEmptyParamZeroes: 	Boolean;
+			CenterPlayback:			Boolean;
 			RestoreSamples:			Boolean;
 			ResetTempo:				Boolean;
 		end;
