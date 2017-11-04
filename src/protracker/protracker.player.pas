@@ -154,7 +154,7 @@ type
 		MixBuffer: 			array of SmallInt;
 
 		procedure 	ClearRowVisitTable;
-		procedure 	FindDefaultTempo;
+		procedure 	FindDefaultTempo(GotSpeed, GotTempo: Boolean);
 
 		procedure	MixSampleBlock(streamOut: Pointer; numSamples: Cardinal;
 					scopesOffset: Integer = -1);
@@ -1701,7 +1701,9 @@ Done:
 	CalculatePans(StereoSeparation);
 	IndexSamples;
 
-	FindDefaultTempo;
+	if Info.BPM > 0 then
+		DefaultTempo := Info.BPM;
+	FindDefaultTempo(False, Info.BPM > 0);
 
 	CurrentSpeed := DefaultSpeed;
 	if Info.BPM = 0 then
@@ -1714,14 +1716,11 @@ Done:
 	Info.Filename := Filename;
 end;
 
-procedure TPTModule.FindDefaultTempo;
+procedure TPTModule.FindDefaultTempo(GotSpeed, GotTempo: Boolean);
 var
 	patt, ch, row: Integer;
 	Note: PNote;
-	GotSpeed, GotTempo: Boolean;
 begin
-	GotSpeed := False;
-	GotTempo := False;
 	patt := OrderList[0];
 	for ch := 0 to AMOUNT_CHANNELS-1 do
 	for row := 0 to 63 do
