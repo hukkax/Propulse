@@ -48,9 +48,9 @@ begin
 					for y := 0 to 63 do
 						Module.Notes[p, ch, y] := EmptyNote;
 			Module.Info.PatternCount := 1;
-			Module.Info.Tempo := 6;
+			Module.Info.Speed := 6;
 			Module.Info.BPM := 125;
-			Module.CurrentSpeed := Module.Info.Tempo;
+			Module.CurrentSpeed := Module.Info.Speed;
 			Module.CurrentBPM := Module.Info.BPM;
 			Module.Info.Filename := '';
 			CurrentPattern := 0;

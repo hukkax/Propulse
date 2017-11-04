@@ -57,7 +57,7 @@ type
 		{$ENDIF}
 		Screens:	TObjectList<TCWEScreen>;
 
-		procedure 	ModuleSpeedChanged;
+		procedure 	ModuleSpeedChanged(Speed, Tempo: Byte);
 		procedure	ModuleOrderChanged;
 		procedure 	TimerTick;
 
@@ -322,9 +322,9 @@ begin
 	end;
 end;
 
-procedure TWindow.ModuleSpeedChanged;
+procedure TWindow.ModuleSpeedChanged(Speed, Tempo: Byte);
 begin
-	Editor.UpdateInfoLabels;
+	Editor.UpdateInfoLabels(False, Speed, Tempo);
 end;
 
 procedure TWindow.ModuleOrderChanged;
