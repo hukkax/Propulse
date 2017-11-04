@@ -2967,13 +2967,17 @@ begin
 		Channel[i].Note := @Notes[OrderList[0], i, 0];
 	end;
 
+	if Options.Tracker.ResetTempo then
+	begin
+		SetSpeed(DefaultSpeed, False);
+		SetTempo(DefaultTempo);
+	end;
+
 	if Options.Tracker.RestoreSamples then
 		for i := 0 to Samples.Count-1 do
 			SampleChanged[i] := Samples[i].RestoreBackup;
 
-	SetSpeed(DefaultSpeed, False);
-	SetTempo(DefaultTempo);
-
+	Counter := 0;
 	DisableMixer := False;
 end;
 

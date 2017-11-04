@@ -6,7 +6,7 @@ uses
 	ConfigurationManager, Types;
 
 const
-	VERSION  =  '0.9.5.0';
+	VERSION  =  '0.9.5.1';
 
 	URL = 'http://hukka.yiff.fi/propulse/';
 
@@ -91,6 +91,7 @@ type
 			NoteB3Warning:			Boolean;
 			ShowEmptyParamZeroes: 	Boolean;
 			RestoreSamples:			Boolean;
+			ResetTempo:				Boolean;
 		end;
 
 		Display: packed record

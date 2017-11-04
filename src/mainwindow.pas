@@ -1329,6 +1329,8 @@ begin
 		.SetInfo('Consider note B-3 as invalid', 0, 1, ['No', 'Yes']);
 		Cfg.AddBoolean(Sect, 'RestoreSamples', @Tracker.RestoreSamples, False)
 		.SetInfo('Restore samples when playback stopped', 0, 1, ['No', 'Yes']);
+		Cfg.AddBoolean(Sect, 'ResetTempo', @Tracker.ResetTempo, True)
+		.SetInfo('Reset tempo when playback stopped', 0, 1, ['No', 'Yes']);
 
 		Sect := 'Program';
 		Cfg.AddBoolean(Sect, 'HighPriority', @HighPriority, True)
