@@ -172,8 +172,29 @@ var
 
 procedure TEditorScreen.Callback_AskDefaultTempo(ID: Word;
 	ModalResult: TDialogButton; Tag: Integer; Data: Variant; Dlg: TCWEDialog);
+var
+	i: Integer;
 begin
+	if Dlg = nil then Exit;
+	if not (ModalResult in [btnYes, btnOK]) then Exit;
 
+	if GetAskedValue(i) then
+	begin
+		case ID of
+			0:
+			begin
+				Module.DefaultSpeed := i;
+				if Module.PlayMode = PLAY_STOPPED then
+					Module.SetSpeed(i);
+			end;
+			1:
+			begin
+				Module.DefaultTempo := i;
+				if Module.PlayMode = PLAY_STOPPED then
+					Module.SetTempo(i);
+			end;
+		end;
+	end;
 end;
 
 function TEditorScreen.LabelClicked(Sender: TCWEControl;
