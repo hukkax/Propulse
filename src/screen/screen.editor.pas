@@ -6,7 +6,8 @@ interface
 
 uses
 	Classes, Types, SysUtils, Math,
-	TextMode, CWE.Core, CWE.Widgets.Text, CWE.Widgets.Numeric,
+	TextMode, CWE.Core, CWE.Dialogs,
+	CWE.Widgets.Text, CWE.Widgets.Numeric,
 	ProTracker.Player, ProTracker.Editor;
 
 const
@@ -122,6 +123,11 @@ type
 		function	OnContextMenu: Boolean; override;
 		procedure 	HandleCommand(const Cmd: Cardinal); override;
 		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
+		function 	LabelClicked(Sender: TCWEControl;
+					Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
+
+		procedure 	Callback_AskDefaultTempo(ID: Word;
+					ModalResult: TDialogButton; Tag: Integer; Data: Variant; Dlg: TCWEDialog);
 
 		procedure 	AmplificationChange(Sender: TCWEControl);
 		procedure 	SongTitleChanged(Sender: TCWEControl);
@@ -144,7 +150,7 @@ implementation
 
 uses
 	MainWindow, BuildInfo, ShortcutManager, Layout,
-	CWE.MainMenu, CWE.Dialogs,
+	CWE.MainMenu, Dialog.ValueQuery,
 	SDL.Api.Types, Graphics32,
 	ProTracker.Sample, ProTracker.Util,
 	Screen.Samples, Screen.Help;
@@ -163,6 +169,30 @@ var
 // ==========================================================================
 // TEditorScreen
 // ==========================================================================
+
+procedure TEditorScreen.Callback_AskDefaultTempo(ID: Word;
+	ModalResult: TDialogButton; Tag: Integer; Data: Variant; Dlg: TCWEDialog);
+begin
+
+end;
+
+function TEditorScreen.LabelClicked(Sender: TCWEControl;
+	Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
+begin
+	if Sender = lblTempo then
+	begin
+		if P.X < 2 then
+			AskValue(0, 'Default Speed', 1,   31, Module.DefaultSpeed, Callback_AskDefaultTempo)
+		else
+		if P.X > 2 then
+			AskValue(1, 'Default BPM', 32, 255, Module.DefaultTempo, Callback_AskDefaultTempo);
+	end
+	else
+	if Sender = lblSample then
+	begin
+		ChangeScreen(TCWEScreen(SampleScreen));
+	end;
+end;
 
 constructor TEditorScreen.Create(var Con: TConsole; const sCaption,
 	sID: AnsiString);
@@ -234,6 +264,7 @@ begin
 		'00:......................', 'Current Sample',
 		Bounds(i, 3, 22+3, 1), True);
 	EnableMouseOn(lblSample);
+	lblSample.OnMouseDown := LabelClicked;
 
 	lblOctave := TCWESunkenLabel.Create(Self,
 		'Hi', 'Current Octave',
@@ -243,6 +274,9 @@ begin
 	lblTempo := TCWESunkenLabel.Create(Self,
 		'06/125', 'Current Speed',
 		Bounds(i, 7, 6, 1), True);
+	lblTempo.WantMouse := True;
+	lblTempo.WantHover := True;
+	lblTempo.OnMouseDown := LabelClicked;
 
 	lblPattern.OnAfterPaint:= InfoLabelPaint;
 	lblOrder.OnAfterPaint  := InfoLabelPaint;
