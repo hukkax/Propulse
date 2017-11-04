@@ -154,6 +154,7 @@ type
 		MixBuffer: 			array of SmallInt;
 
 		procedure 	ClearRowVisitTable;
+		procedure 	FindDefaultTempo;
 
 		procedure	MixSampleBlock(streamOut: Pointer; numSamples: Cardinal;
 					scopesOffset: Integer = -1);
@@ -178,7 +179,6 @@ type
 		procedure 	PositionJump(var ch: TPTChannel);
 		procedure 	VolumeChange(var ch: TPTChannel);
 		procedure 	PatternBreak(var ch: TPTChannel);
-		procedure 	SetSpeed(NewSpeed: Byte; DoChange: Boolean = True);
 		procedure 	Arpeggio(var ch: TPTChannel);
 		procedure 	PortaUp(var ch: TPTChannel);
 		procedure 	PortaDown(var ch: TPTChannel);
@@ -308,6 +308,7 @@ type
 		procedure 	IndexSamples;
 
 		procedure 	SetTitle(const S: AnsiString);
+		procedure 	SetSpeed(NewSpeed: Byte; DoChange: Boolean = True);
 		procedure 	SetTempo(bpm: Word);
 
 		procedure 	Reset;
@@ -1700,6 +1701,8 @@ Done:
 	CalculatePans(StereoSeparation);
 	IndexSamples;
 
+	FindDefaultTempo;
+
 	CurrentSpeed := DefaultSpeed;
 	if Info.BPM = 0 then
 	begin
@@ -1709,6 +1712,39 @@ Done:
 
 	Result := True;
 	Info.Filename := Filename;
+end;
+
+procedure TPTModule.FindDefaultTempo;
+var
+	patt, ch, row: Integer;
+	Note: PNote;
+	GotSpeed, GotTempo: Boolean;
+begin
+	GotSpeed := False;
+	GotTempo := False;
+	patt := OrderList[0];
+	for ch := 0 to AMOUNT_CHANNELS-1 do
+	for row := 0 to 63 do
+	begin
+		Note := @Notes[patt, ch, row];
+		if Note.Command = $F then
+		begin
+			if Note.Parameter >= 32 then
+			begin
+				if not GotTempo then
+					DefaultTempo := Note.Parameter;
+				GotTempo := True;
+			end
+			else
+			if Note.Parameter > 0 then
+			begin
+				if not GotSpeed then
+					DefaultSpeed := Note.Parameter;
+				GotSpeed := True;
+			end;
+			if (GotSpeed) and (GotTempo) then Exit;
+		end;
+	end;
 end;
 
 procedure TPTModule.RepostChanges;
