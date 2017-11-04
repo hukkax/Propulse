@@ -108,7 +108,8 @@ type
 
 		procedure	UpdateVUMeter(Len: Integer);
 		procedure	UpdateTimeDisplay;
-		procedure 	UpdateInfoLabels(Repaint: Boolean = False);
+		procedure 	UpdateInfoLabels(Repaint: Boolean = False;
+					Speed: SmallInt = -1; Tempo: SmallInt = -1);
 		procedure 	MessageText(const S: String; LogIt: Boolean = False);
 
 		procedure 	ToggleChannel(Channel: Byte);
@@ -126,6 +127,7 @@ type
 		procedure 	SongTitleChanged(Sender: TCWEControl);
 		function	LabelMouseWheel(Sender: TCWEControl;
 					Shift: TShiftState; DirDown: Boolean; P: TPoint): Boolean;
+		function	InfoLabelPaint(Sender: TCWEControl): Boolean;
 
 		procedure	Show; override;
 		constructor	Create(var Con: TConsole; const sCaption, sID: AnsiString); override;
@@ -220,7 +222,7 @@ begin
 
 	lblOrder := TCWESunkenLabel.Create(Self, '000/000', 'OrderNum',
 		Bounds(i + 13, 7, 7, 1), True);
-//	EnableMouseOnLabel(lblOrder);
+	EnableMouseOn(lblOrder);
 
 	i := 32;
 {	AddControl(TCWELabel, 'Sample', '', Bounds(i, 3, 6, 1));
@@ -231,15 +233,20 @@ begin
 	lblSample := TCWESunkenLabel.Create(Self,
 		'00:......................', 'Current Sample',
 		Bounds(i, 3, 22+3, 1), True);
+	EnableMouseOn(lblSample);
+
 	lblOctave := TCWESunkenLabel.Create(Self,
 		'Hi', 'Current Octave',
 		Bounds(i, 5, 2, 1), True);
-	lblTempo := TCWESunkenLabel.Create(Self,
-		'006/125', 'Current Speed',
-		Bounds(i, 7, 7, 1), True);
-
-	EnableMouseOn(lblSample);
 	EnableMouseOn(lblOctave);
+
+	lblTempo := TCWESunkenLabel.Create(Self,
+		'06/125', 'Current Speed',
+		Bounds(i, 7, 6, 1), True);
+
+	lblPattern.OnAfterPaint:= InfoLabelPaint;
+	lblOrder.OnAfterPaint  := InfoLabelPaint;
+	lblTempo.OnAfterPaint  := InfoLabelPaint;
 
 	lblPlayMode := TCWELabel.Create(Self,
 		'Stopped', 'Playback Indicator',
@@ -340,6 +347,25 @@ begin
 	lblMessage.SetCaption(DefaultMessage);
 
 	AppStartedTime := Now;
+end;
+
+// colorize the '/' char in labels
+function TEditorScreen.InfoLabelPaint(Sender: TCWEControl): Boolean;
+var
+	X: Integer;
+	lbl: TCWELabel;
+begin
+	Result := False;
+	if Sender is TCWELabel then
+	begin
+		lbl := Sender as TCWELabel;
+		X := Pos('/', lbl.Caption);
+		if X > 0 then
+		begin
+			Console.SetColor(lbl.Rect.Left + X - 1, lbl.Rect.Top, TConsole.COLOR_PANEL);
+			Result := True;
+		end;
+	end;
 end;
 
 function TEditorScreen.ShowCommandHelp: Boolean;
@@ -562,7 +588,7 @@ function TEditorScreen.LabelMouseWheel(Sender: TCWEControl;
 	Shift: TShiftState; DirDown: Boolean; P: TPoint): Boolean;
 var
 	lbl: TCWELabel;
-	Delta: Integer;
+	Delta, i: Integer;
 begin
 	Result := True;
 	if not (Sender is TCWELabel) then Exit;
@@ -576,15 +602,20 @@ begin
 
 	if lbl = lblPattern then
 	begin
+		i := CurrentPattern + Delta;
+		if (i >= 0) and (i < MAX_PATTERNS) then
+		begin
+			FollowPlayback := False;
+			SelectPattern(i);
+		end;
+	end
+	else
+	if ((lbl = lblOrder) and (Module.PlayMode = PLAY_SONG)) then
+	begin
 		if Delta < 0 then
 			SelectPattern(SELECT_PREV)
 		else
 			SelectPattern(SELECT_NEXT);
-	end
-	else
-	if lbl = lblOrder then
-	begin
-		//
 	end
 	else
 	if lbl = lblSample then
@@ -623,7 +654,7 @@ begin
 				with Module do
 				begin
 					PlayPos.Order := Max(PlayPos.Order - 1, 0);
-					PlayPos.Pattern := OrderList[Module.PlayPos.Order];
+					PlayPos.Pattern := OrderList[PlayPos.Order];
 					PlayPos.Row := 0;
 					RepostChanges;
 				end
@@ -797,7 +828,8 @@ begin
 	UpdateInfoLabels;
 end;
 
-procedure TEditorScreen.UpdateInfoLabels(Repaint: Boolean = False);
+procedure TEditorScreen.UpdateInfoLabels(Repaint: Boolean = False;
+	Speed: SmallInt = -1; Tempo: SmallInt = -1);
 var
 	i, x, y, xx, sizePatt, sizeSamp: Integer;
 	S: AnsiString;
@@ -872,8 +904,11 @@ begin
 		Format('%.2d/%.2d', [CurrentPattern, Module.Info.PatternCount]));
 	lblOrder.SetCaption(
 		Format('%.3d/%.3d', [Module.PlayPos.Order, Module.Info.OrderCount-1]));
-	lblTempo.SetCaption(
-		Format('%.3d/%.3d', [Module.CurrentSpeed, Module.CurrentBPM]));
+
+	if Speed < 0 then Speed := Module.CurrentSpeed;
+	if Tempo < 0 then Tempo := Module.CurrentBPM;
+
+	lblTempo.SetCaption(Format('%.2d/%.3d', [Speed, Tempo]));
 
 	sizeSamp := 0;
 	for sizePatt := 0 to Module.Samples.Count-1 do

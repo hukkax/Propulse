@@ -52,7 +52,7 @@ Border=fat sunken
 [005]
 Type=Text
 ID=App Title and Build Data
-Caption=PoroTracker
+Caption=Propulse Tracker
 X1=00
 Y1=00
 X2=80
@@ -100,10 +100,10 @@ Border=sunken pixel
 [010]
 Type=Text
 ID=Current Speed
-Caption=000/125
+Caption=00/125
 X1=38
 Y1=+2
-X2=45
+X2=44
 Border=sunken pixel
 
 [011]
