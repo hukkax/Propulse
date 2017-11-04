@@ -145,7 +145,7 @@ end;
 procedure LoadLayout(const Screen: TCWEScreen);
 var
 	Sect: String;
-	Ini: TIniFile;
+	Ini: TMemIniFile;
 
 	function FixStr(const S: AnsiString): AnsiString; inline;
 	begin
@@ -168,7 +168,7 @@ var
 
 var
 	slSections: TStringList;
-	i: Integer;
+	i, Y: Integer;
 	Ctrl: TCWEControl;
 	S: String;
 	CtrlKind: TControlKind;
@@ -208,8 +208,25 @@ begin
 		end;
 	end;}
 
-	Ini := TIniFile.Create(S);
+	Ini := TMemIniFile.Create(S);
 	slSections := TStringList.Create;
+	Ini.GetStrings(slSections);
+	Y := 0;
+
+	for i := 0 to slSections.Count-1 do
+	begin
+		S := slSections[i];
+		if Copy(S, 1, 1) = '[' then
+		begin
+			slSections[i] := '[' + IntToStr(Y) + ']';
+			Inc(Y);
+		end;
+	end;
+
+	Ini.Clear;
+	Ini.SetStrings(slSections);
+
+	slSections.Clear;
 	Ini.ReadSections(slSections);
 	CtrlCreated := False;
 
