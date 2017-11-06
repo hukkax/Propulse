@@ -1805,11 +1805,16 @@ begin
 				// 0123456789ABC
 				// C-3 01 64 F33
 				case P.X - (Chan * (Width div 4)) of
-					$4..$6: Cursor.Column := COL_SAMPLE_1;
-					$7..$9: Cursor.Column := COL_VOLUME_1;
-					$A..$C: Cursor.Column := COL_COMMAND;
+					$0,$1:	Cursor.Column := COL_NOTE;
+					$2: 	Cursor.Column := COL_OCTAVE;
+					$4:		Cursor.Column := COL_SAMPLE_1;
+					$5:		Cursor.Column := COL_SAMPLE_2;
+					$7: 	Cursor.Column := COL_VOLUME_1;
+					$8:		Cursor.Column := COL_VOLUME_2;
+					$A: 	Cursor.Column := COL_COMMAND;
+					$B: 	Cursor.Column := COL_PARAMETER_1;
+					$C: 	Cursor.Column := COL_PARAMETER_2;
 					$D:     Exit;
-					else	Cursor.Column := COL_NOTE;
 				end;
 				Cursor.Row := P.Y + ScrollPos;
 				Cursor.Channel := Chan;
