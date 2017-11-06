@@ -114,6 +114,7 @@ type
 		procedure 	MessageText(const S: String; LogIt: Boolean = False);
 
 		procedure 	ToggleChannel(Channel: Byte);
+		procedure 	ToggleChannelSolo(Channel: Byte);
 		procedure 	SetOctave(Hi: Boolean);
 		procedure 	SetSample(i: Integer = -1);
 		procedure 	SelectPattern(i: Integer);
@@ -217,6 +218,11 @@ begin
 	begin
 		Result := True;
 		ChangeScreen(TCWEScreen(SampleScreen));
+	end
+	else
+	if Sender = lblOctave then
+	begin
+		SetOctave(not PatternEditor.HighOctave);
 	end;
 end;
 
@@ -296,6 +302,7 @@ begin
 		'Hi', 'Current Octave',
 		Bounds(i, 5, 2, 1), True);
 	EnableMouseOn(lblOctave);
+	lblOctave.OnMouseDown := LabelClicked;
 
 	lblTempo := TCWESunkenLabel.Create(Self,
 		'06/125', 'Current Speed',
@@ -630,8 +637,10 @@ begin
 	begin
 		Scope.GetPixelRect(R);
 		X := X div (R.Width div 4);
-		if (X >= 0) and (X < AMOUNT_CHANNELS) then
-			Module.Channel[X].Enabled := not Module.Channel[X].Enabled;
+		case Button of
+			mbRight:	ToggleChannel(X);
+			mbMiddle:	ToggleChannelSolo(X);
+		end;
 	end;
 	Result := True;
 end;
@@ -713,7 +722,32 @@ end;
 
 procedure TEditorScreen.ToggleChannel(Channel: Byte);
 begin
+	if not (Channel in [0..AMOUNT_CHANNELS-1]) then Exit;
 	Module.Channel[Channel].Enabled := not Module.Channel[Channel].Enabled;
+	UpdateInfoLabels(True);
+end;
+
+procedure TEditorScreen.ToggleChannelSolo(Channel: Byte);
+var
+	i, o: Integer;
+begin
+	if not (Channel in [0..AMOUNT_CHANNELS-1]) then Exit;
+	o := 0; // amount of enabled channels
+	for i := 0 to AMOUNT_CHANNELS-1 do
+		if Module.Channel[i].Enabled then
+			Inc(o);
+	if (o = 1) and (Module.Channel[Channel].Enabled) then
+	begin
+		// enable all channels (unsolo)
+		for i := 0 to AMOUNT_CHANNELS-1 do
+			Module.Channel[i].Enabled := True;
+	end
+	else
+	begin
+		// mute all but current channel (solo)
+		for i := 0 to AMOUNT_CHANNELS-1 do
+			Module.Channel[i].Enabled := (i = Channel);
+	end;
 	UpdateInfoLabels(True);
 end;
 

@@ -1567,23 +1567,7 @@ begin
 		keyChannelSolo:
 		begin
 			Result := True;
-			o := 0; // amount of enabled channels
-			for i := 0 to AMOUNT_CHANNELS-1 do
-				if Module.Channel[i].Enabled then
-					Inc(o);
-			if (o = 1) and (Module.Channel[Cursor.Channel].Enabled) then
-			begin
-				// enable all channels (unsolo)
-				for i := 0 to AMOUNT_CHANNELS-1 do
-					Module.Channel[i].Enabled := True;
-			end
-			else
-			begin
-				// mute all but current channel (solo)
-				for i := 0 to AMOUNT_CHANNELS-1 do
-					Module.Channel[i].Enabled := (i = Cursor.Channel);
-			end;
-			Editor.UpdateInfoLabels(True);
+			Editor.ToggleChannelSolo(Cursor.Channel);
 		end;
 
 		// Misc
