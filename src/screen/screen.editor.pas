@@ -200,17 +200,22 @@ end;
 function TEditorScreen.LabelClicked(Sender: TCWEControl;
 	Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
 begin
+	Result := False;
 	if Sender = lblTempo then
 	begin
+		Result := True;
 		if P.X < 2 then
 			AskValue(0, 'Default Speed', 1,   31, Module.DefaultSpeed, Callback_AskDefaultTempo)
 		else
 		if P.X > 2 then
-			AskValue(1, 'Default BPM', 32, 255, Module.DefaultTempo, Callback_AskDefaultTempo);
+			AskValue(1, 'Default BPM', 32, 255, Module.DefaultTempo, Callback_AskDefaultTempo)
+		else
+			Result := False;
 	end
 	else
 	if Sender = lblSample then
 	begin
+		Result := True;
 		ChangeScreen(TCWEScreen(SampleScreen));
 	end;
 end;
@@ -496,7 +501,7 @@ procedure TEditorScreen.UpdateVUMeter(Len: Integer);
 var
 	p: Single;
 	C: TColor32;
-	pos, X, Y, ox, oy, w, h, hh, wh: Integer;
+	ch, X, Y, ox, oy, w, h, hh, wh: Integer;
 	R: TRect;
 begin
 	// Channel VUmeters
@@ -540,7 +545,6 @@ begin
 	Console.Bitmap.FillRect(R, C);
 
 	C := Console.Palette[Options.Display.Colors.Scope.Foreground];
-
 	ox := R.Left;
 	oy := R.Top;
 	w := R.Right - R.Left - 1;
@@ -548,37 +552,39 @@ begin
 	hh := h div 2;
 	wh := w div 4 + 1;
 
-	if Len <= 0 then
-		Console.Bitmap.HorzLine(ox, oy + hh, ox + w, C);
-
 	if Options.Display.ScopePerChannel then
 	begin
+		Inc(hh, oy);
 		if Len > 0 then
-		begin
 			p := (Len div 4 - 1) / wh; // step
-			for X := 0 to wh-1 do
-			begin
-				pos := Trunc(p * X);
 
-				Y := Trunc(ScopeBuffer[0, pos] / 65536 * h);
-				Console.Bitmap.Pixel[ox + X, oy + Y + hh] := C;
-
-				Y := Trunc(ScopeBuffer[1, pos] / 65536 * h);
-				Console.Bitmap.Pixel[ox + X + wh, oy + Y + hh] := C;
-
-				Y := Trunc(ScopeBuffer[2, pos] / 65536 * h);
-				Console.Bitmap.Pixel[ox + X + (wh*2), oy + Y + hh] := C;
-
-				Y := Trunc(ScopeBuffer[3, pos] / 65536 * h);
-				Console.Bitmap.Pixel[ox + X + (wh*3), oy + Y + hh] := C;
-			end;
-		end;
-		hh := R.Bottom-1; Dec(oy);
-		for pos := 1 to 3 do
+		for ch := 0 to 3 do
 		begin
-			X := ox + (pos * wh);
-			Console.Bitmap.VertLine(X-1, oy, hh, Console.Palette[Console.COLOR_3DLIGHT]);
-			Console.Bitmap.VertLine(X,   oy, hh, Console.Palette[Console.COLOR_3DDARK]);
+			if Module.Channel[ch].Enabled then
+				C := Console.Palette[Options.Display.Colors.Scope.Foreground]
+			else
+				C := Console.Palette[15];
+
+			if Len > 0 then
+			begin
+				for X := 0 to wh-1 do
+				begin
+					Console.Bitmap.Pixel[ox + X,
+						hh + Trunc(ScopeBuffer[ch, Trunc({%H-}p * X)] / 65536 * h)] := C;
+				end;
+			end
+			else
+			begin
+				Console.Bitmap.HorzLine(ox, hh, ox+wh-1, C);
+			end;
+
+			if ch > 0 then
+			begin
+				Console.Bitmap.VertLine(ox-1, oy-1, R.Bottom-1, Console.Palette[Console.COLOR_3DLIGHT]);
+				Console.Bitmap.VertLine(ox,   oy-1, R.Bottom-1, Console.Palette[Console.COLOR_3DDARK]);
+			end;
+
+			Inc(ox, wh);
 		end;
 	end
 	else
@@ -591,7 +597,9 @@ begin
 			Y := Trunc(Y / 2 / 65536 * h);
 			Console.Bitmap.Pixel[ox + X, oy + Y + hh] := C;
 		end;
-	end;
+	end
+	else
+		Console.Bitmap.HorzLine(ox, oy + hh, ox + w, C);
 end;
 
 function TEditorScreen.ScopeWheel(Sender: TCWEControl;
@@ -613,8 +621,18 @@ end;
 
 function TEditorScreen.ScopeClicked(Sender: TCWEControl; Button: TMouseButton;
 	X, Y: Integer; P: TPoint): Boolean;
+var
+	R: TRect;
 begin
-	Options.Display.ScopePerChannel := not Options.Display.ScopePerChannel;
+	if Button = mbLeft then
+		Options.Display.ScopePerChannel := not Options.Display.ScopePerChannel
+	else
+	begin
+		Scope.GetPixelRect(R);
+		X := X div (R.Width div 4);
+		if (X >= 0) and (X < AMOUNT_CHANNELS) then
+			Module.Channel[X].Enabled := not Module.Channel[X].Enabled;
+	end;
 	Result := True;
 end;
 
