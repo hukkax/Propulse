@@ -814,6 +814,12 @@ begin
 
 	// write song title
 	//
+	for i := High(Info.Title) to Low(Info.Title) do
+		if Info.Title[i] = ' ' then
+			Info.Title[i] := #0
+		else
+			Break;
+
 	for i := Low(Info.Title) to High(Info.Title) do
 		Stream.Write8(Info.Title[i]);
 
@@ -821,6 +827,12 @@ begin
 	//
 	for i := 0 to 30 do
 	begin
+		for j := 21 downto 0 do
+			if Samples[i].Name[j] = ' ' then
+				Samples[i].Name[j] := #0
+			else
+				Break;
+
 		for j := 0 to 21 do
 			Stream.Write8(Samples[i].Name[j]);
 
