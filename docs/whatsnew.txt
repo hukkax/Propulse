@@ -1,3 +1,19 @@
+Propulse Tracker 0.9.5.5
+
+Fixes bugs caused by pattern and replayer code simplifications in v0.9.5.0.
+
+- Regression fix: off-by-one error when modifying a note's octave via editing
+  the octave column value caused the note B unable to be modified
+- Regression fix: off-by-one error when transposing notes in pattern caused
+  A#3 to be the highest available destination note
+- Regression fix: off-by-one error when playing notes via keyboard in the
+  sample list caused incorrect pitches being heard
+- Sample names were incorrectly padded with spaces instead of zeroes in
+  saved modules
+- Fixed formatting issues with the sample list dialog shown by sample functions
+  such as Replace with/Swap with/Copy from
+- Added config option for muted channel colors in quadrascope
+
 Propulse Tracker 0.9.5.2
 
 - New option to center the currently playing row like in Impulse Tracker
