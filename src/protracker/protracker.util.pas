@@ -6,7 +6,7 @@ uses
 	ConfigurationManager, Types;
 
 const
-	VERSION  =  '0.9.5.2';
+	VERSION  =  '0.9.5.5';
 
 	URL = 'http://hukka.yiff.fi/propulse/';
 
@@ -111,6 +111,7 @@ type
 				Scope: record
 					Background,
 					Foreground,
+					Muted,
 					Clipped:		Byte;
 				end;
 			end;
