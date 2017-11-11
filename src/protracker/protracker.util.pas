@@ -6,7 +6,7 @@ uses
 	ConfigurationManager, Types;
 
 const
-	VERSION  =  '0.9.5.0';
+	VERSION  =  '0.9.5.5';
 
 	URL = 'http://hukka.yiff.fi/propulse/';
 
@@ -90,7 +90,9 @@ type
 			AltHomeEndBehavior:		Boolean;
 			NoteB3Warning:			Boolean;
 			ShowEmptyParamZeroes: 	Boolean;
+			CenterPlayback:			Boolean;
 			RestoreSamples:			Boolean;
+			ResetTempo:				Boolean;
 		end;
 
 		Display: packed record
@@ -109,6 +111,7 @@ type
 				Scope: record
 					Background,
 					Foreground,
+					Muted,
 					Clipped:		Byte;
 				end;
 			end;

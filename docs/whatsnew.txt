@@ -1,0 +1,81 @@
+Propulse Tracker 0.9.5.5
+
+Fixes bugs caused by pattern and replayer code simplifications in v0.9.5.0.
+
+- Regression fix: off-by-one error when modifying a note's octave via editing
+  the octave column value caused the note B unable to be modified
+- Regression fix: off-by-one error when transposing notes in pattern caused
+  A#3 to be the highest available destination note
+- Regression fix: off-by-one error when playing notes via keyboard in the
+  sample list caused incorrect pitches being heard
+- Sample names were incorrectly padded with spaces instead of zeroes in
+  saved modules
+- Fixed formatting issues with the sample list dialog shown by sample functions
+  such as Replace with/Swap with/Copy from
+- Added config option for muted channel colors in quadrascope
+
+Propulse Tracker 0.9.5.2
+
+- New option to center the currently playing row like in Impulse Tracker
+- New option to reset song tempo when stopping playback like in Impulse
+  Tracker. The default speed and tempo can be modified by clicking on the
+  Speed/BPM indicator in the Pattern Editor screen
+- BPM changes now show instantly in the Speed/BPM indicator
+- Mouse wheel on the Order indicator changes orderlist position during playback
+- Mouse wheel on the Pattern label selects a pattern
+- Removed unnecessary leading zero from Speed indicator
+- When clicking on a pattern the cursor is moved to the proper column
+- Added new fonts
+
+Propulse Tracker 0.9.5.0
+
+New features
+
+- S3M import
+- Merge module function: press Shift-Enter on a module file (or use the
+  context menu) to merge the module into the current one
+- You can now sort files by extension in the file requesters
+- Added Upsample and Downsample effects to samples screen
+- Added "Browse to current module" to file requester context menu
+- Text edit controls now support clipboard copy and paste (Ctrl-C, Ctrl-V)
+- F1 in pattern editor already showed a short description of the command
+  under the cursor, but now pressing it again brings up a help popup with the
+  complete description of the command
+- Per-channel scopes (finally); click on the scope to toggle between the
+  normal scope and per-channel scopes. Use mousewheel, Shift+mousewheel or the
+  palette configuration screen to modify colors used
+
+Improvements
+
+- Importing a module with more than 4 channels now lets you specify which
+  channels to import
+- Module loader is now more robust and can load some broken modules
+- Improved file sorting in file requesters
+- The Cleanup dialog now allows to clean up duplicate patterns and samples
+- Invalid (out-of-range) notes in imported modules now show the original
+  note value instead of "???"
+- If module loading fails the currently loaded module is kept in memory instead
+  of clearing everything
+- Illegal sample loops are now handled better (fixes mod.shorttune2 etc.)
+- Sample loops are now retained after using the Resample function
+- Updated the help file
+- GUI improvements and fixes
+  - You can now press Enter on an item in the configuration screen to
+    modify the value via a popup window
+  - For dialogs that ask you to select an item in a listbox, you can now
+    doubleclick on the list to select the item and acknowledge the dialog
+  - If there were errors or warnings when loading a module a dialog box
+    will be displayed
+  - Fixed incorrect size and range with scrollbar thumb in certain situations
+  - Fixed the Ctrl and Delete keys not working in text edit controls
+
+Bugfixes
+
+- Paste function in the sample editor now works properly
+- File requester no longer hides filenames with more than one period in them
+- Impulse Tracker sample decompression is now faster and no longer generates
+  trashed sampledata
+- Automatic resampling at module import no longer trashes samples
+- Playing notes without inserting them to the pattern using the Shift key
+  didn't work at all
+- Space and period (.) keys in pattern editor didn't work like in IT

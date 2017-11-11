@@ -386,6 +386,11 @@
  module playback is started, and original sample data is again restored once
  stopping playback.
 
+ <h3><#Editor.ResetTempo>Reset tempo when playback stopped:
+ If enabled, the module's speed and tempo are reset to default values upon
+ stopping playback. The defaults can be changed by clicking on the Tempo
+ value display on the Editor screen.
+
 
 <#Program Settings><h2>Program settings
 

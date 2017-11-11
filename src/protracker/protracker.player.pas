@@ -55,6 +55,7 @@ const
 
 type
 	TModuleEvent   		= procedure of Object;
+	TSpeedChangeEvent	= procedure (Speed, Tempo: Byte) of Object;
 	TProgressEvent 		= procedure (Progress: Cardinal) of Object;
 	TProgressInitEvent 	= procedure (Max: Cardinal; const Title: String) of Object;
 	TModifiedEvent 		= procedure (B: Boolean = True; Force: Boolean = False) of Object;
@@ -153,6 +154,7 @@ type
 		MixBuffer: 			array of SmallInt;
 
 		procedure 	ClearRowVisitTable;
+		procedure 	FindDefaultTempo(GotSpeed, GotTempo: Boolean);
 
 		procedure	MixSampleBlock(streamOut: Pointer; numSamples: Cardinal;
 					scopesOffset: Integer = -1);
@@ -177,7 +179,6 @@ type
 		procedure 	PositionJump(var ch: TPTChannel);
 		procedure 	VolumeChange(var ch: TPTChannel);
 		procedure 	PatternBreak(var ch: TPTChannel);
-		procedure 	SetSpeed(var ch: TPTChannel);
 		procedure 	Arpeggio(var ch: TPTChannel);
 		procedure 	PortaUp(var ch: TPTChannel);
 		procedure 	PortaDown(var ch: TPTChannel);
@@ -224,6 +225,9 @@ type
 		ClippedSamples: Integer;
 		SampleChanged:  packed array[0..31] of Boolean;
 
+		DefaultSpeed,
+		DefaultTempo:	Byte;
+
 		Info: record
 			Format:			TModuleFormat;
 			ID:				packed array [0..3]  of AnsiChar;
@@ -231,7 +235,7 @@ type
 			RestartPos: 	Byte;
 			OrderCount,
 			PatternCount,
-			Tempo,
+			Speed,
 			BPM: 			Word;
 			Filesize:		Cardinal;
 			Filename:		String;
@@ -267,10 +271,10 @@ type
 		PlayPos:			TSongPosition;
 
 		OnFilter,
-		OnPlayModeChange,
-		OnSpeedChange
+		OnPlayModeChange
 		{OnRowChange,
 		OnOrderChange}:		TModuleEvent;
+		OnSpeedChange:		TSpeedChangeEvent;
 
 		OnProgressInit:		TProgressInitEvent;
 		OnProgress:			TProgressEvent;
@@ -304,6 +308,7 @@ type
 		procedure 	IndexSamples;
 
 		procedure 	SetTitle(const S: AnsiString);
+		procedure 	SetSpeed(NewSpeed: Byte; DoChange: Boolean = True);
 		procedure 	SetTempo(bpm: Word);
 
 		procedure 	Reset;
@@ -809,6 +814,12 @@ begin
 
 	// write song title
 	//
+	for i := High(Info.Title) to Low(Info.Title) do
+		if Info.Title[i] = ' ' then
+			Info.Title[i] := #0
+		else
+			Break;
+
 	for i := Low(Info.Title) to High(Info.Title) do
 		Stream.Write8(Info.Title[i]);
 
@@ -816,6 +827,12 @@ begin
 	//
 	for i := 0 to 30 do
 	begin
+		for j := 21 downto 0 do
+			if Samples[i].Name[j] = ' ' then
+				Samples[i].Name[j] := #0
+			else
+				Break;
+
 		for j := 0 to 21 do
 			Stream.Write8(Samples[i].Name[j]);
 
@@ -1696,15 +1713,49 @@ Done:
 	CalculatePans(StereoSeparation);
 	IndexSamples;
 
-	CurrentSpeed := 6;
+	if Info.BPM > 0 then
+		DefaultTempo := Info.BPM;
+	FindDefaultTempo(False, Info.BPM > 0);
+
+	CurrentSpeed := DefaultSpeed;
 	if Info.BPM = 0 then
 	begin
-		Info.BPM := 125;
+		Info.BPM := DefaultTempo;
 		SetTempo(Info.BPM);
 	end;
 
 	Result := True;
 	Info.Filename := Filename;
+end;
+
+procedure TPTModule.FindDefaultTempo(GotSpeed, GotTempo: Boolean);
+var
+	patt, ch, row: Integer;
+	Note: PNote;
+begin
+	patt := OrderList[0];
+	for ch := 0 to AMOUNT_CHANNELS-1 do
+	for row := 0 to 63 do
+	begin
+		Note := @Notes[patt, ch, row];
+		if Note.Command = $F then
+		begin
+			if Note.Parameter >= 32 then
+			begin
+				if not GotTempo then
+					DefaultTempo := Note.Parameter;
+				GotTempo := True;
+			end
+			else
+			if Note.Parameter > 0 then
+			begin
+				if not GotSpeed then
+					DefaultSpeed := Note.Parameter;
+				GotSpeed := True;
+			end;
+			if (GotSpeed) and (GotTempo) then Exit;
+		end;
+	end;
 end;
 
 procedure TPTModule.RepostChanges;
@@ -1756,11 +1807,14 @@ begin
 	PreventClipping := True;
 	RenderMode := RENDER_NONE;
 
+	DefaultSpeed := 6;
+	DefaultTempo := 125;
+
 	Info.Filename := '';
 	Info.OrderCount := 1;
 	Info.PatternCount := 0;
-	Info.Tempo := 6;
-	Info.BPM := 125;
+	Info.Speed := DefaultSpeed;
+	Info.BPM := DefaultTempo;
 	CurrentSpeed := 6;
 	SetBPMFlag := 0;
 
@@ -2136,11 +2190,12 @@ end;
 procedure TPTModule.SetReplayerBPM(bpm: Byte);
 var
 	ciaVal: Word;
+	bufsize: Cardinal;
 	f_hz, f_smp: Single;
 begin
-	if outputFreq = 0.0 then Exit;
-
+	if outputFreq < 0.1 then Exit;
 	if bpm < 32 then bpm := 32;
+	SetBPMFlag := 0;
 
 	ciaVal := Trunc(1773447 / bpm); // yes, truncate here
 	f_hz  := CIA_PAL_CLK / ciaVal;
@@ -2148,35 +2203,38 @@ begin
 
 	samplesPerFrame := Trunc(f_smp + 0.5);
 
-	{$IFDEF DEBUG}
-	// Log('Samples per Frame: %d', [samplesPerFrame]);
-	{$ENDIF}
+	bufsize := samplesPerFrame * 2 + 2;
+	if Length(MixBuffer) < bufsize then
+		SetLength(MixBuffer, bufsize);
+
+	if RenderMode = RENDER_NONE then
+		if Assigned(OnSpeedChange) then
+			OnSpeedChange(CurrentSpeed, bpm);
 end;
 
-procedure TPTModule.SetSpeed(var ch: TPTChannel);
+procedure TPTModule.SetSpeed(NewSpeed: Byte; DoChange: Boolean = True);
 begin
-	if (ch.Note.Parameter) = 0 then Exit;
+	if NewSpeed = 0 then Exit;
 
 	Counter := 0;
 
-	if (VBlankMode) or ((ch.Note.Parameter) < 32) then
+	if (VBlankMode) or (NewSpeed < 32) then
 	begin
-		CurrentSpeed := ch.Note.Parameter;
+		CurrentSpeed := NewSpeed;
 
-		if CurrentSpeed = 0 then
+		if NewSpeed = 0 then
 			RenderInfo.HasBeenPlayed := True;
-
-		if RenderMode = RENDER_NONE then
-			if Assigned(OnSpeedChange) then
-				OnSpeedChange;
+		if (DoChange) and (RenderMode = RENDER_NONE) and (Assigned(OnSpeedChange)) then
+			OnSpeedChange(NewSpeed, CurrentBPM);
 	end
 	else
 	begin
 		// CIA doesn't refresh its registers until the next interrupt, so change it later
-		SetBPMFlag := ch.Note.Parameter;
-	end;
+		SetBPMFlag := NewSpeed;
 
-	//Log('SetSpeed (%d) samplesPerFrame=%d', [ch.Note.Parameter, samplesPerFrame]);
+		if (DoChange) and (RenderMode = RENDER_NONE) and (Assigned(OnSpeedChange)) then
+			OnSpeedChange(CurrentSpeed, NewSpeed);
+	end;
 end;
 
 procedure TPTModule.Arpeggio(var ch: TPTChannel);
@@ -2507,7 +2565,7 @@ begin
 		$0B: PositionJump(ch);
 		$0D: PatternBreak(ch);
 		$0E: E_Commands(ch);
-		$0F: SetSpeed(ch);
+		$0F: SetSpeed(ch.Note.Parameter);
 		$0C: VolumeChange(ch);
 	else
 		ch.Paula.SetPeriod(ch.n_period);
@@ -2708,7 +2766,6 @@ end;
 procedure TPTModule.IntMusic;
 var
 	i: Integer;
-	bufsize: Cardinal;
 begin
 	if (RenderMode <> RENDER_NONE) and (RenderMode <> RENDER_SAMPLE) then
 	begin
@@ -2722,12 +2779,6 @@ begin
 	begin
 		CurrentBPM := SetBPMFlag;
 		SetReplayerBPM(CurrentBPM);
-    	SetBPMFlag := 0;
-
-		bufsize := samplesPerFrame * 2 + 2;
-		if Length(MixBuffer) < bufsize then
-			SetLength(MixBuffer, bufsize);
-		//Log('SetSpeed (%d) samplesPerFrame=%d', [CurrentBPM, samplesPerFrame]);
 	end;
 
 	Inc(Counter);
@@ -2830,10 +2881,6 @@ begin
 	begin
 		CurrentBPM := bpm;
 		SetReplayerBPM(CurrentBPM);
-
-		if RenderMode = RENDER_NONE then
-			if Assigned(OnSpeedChange) then
-				OnSpeedChange;
 	end;
 end;
 
@@ -2965,6 +3012,12 @@ begin
 	begin
 		Channel[i].Paula.Kill;
 		Channel[i].Note := @Notes[OrderList[0], i, 0];
+	end;
+
+	if Options.Tracker.ResetTempo then
+	begin
+		SetSpeed(DefaultSpeed, False);
+		SetTempo(DefaultTempo);
 	end;
 
 	if Options.Tracker.RestoreSamples then
@@ -3598,7 +3651,6 @@ begin
 	RenderMode := RENDER_NONE;
 	Stop;
 end;
-
 
 end.
 

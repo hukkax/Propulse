@@ -626,6 +626,8 @@ begin
 			Console.WriteHeader(S, Rect.Top, C, ColorBack, Rect.Left, Rect.Right);
 
 	end;
+
+	Painted;
 end;
 
 procedure TCWELabel.SetCaption(const NewCaption: AnsiString);

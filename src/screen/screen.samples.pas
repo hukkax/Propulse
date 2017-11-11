@@ -874,8 +874,8 @@ begin
 	SetLength(Result, 31);
 	for i := 0 to 30 do
 	begin
-		S := Copy(Module.Samples[i].Name, 1, 22);
-		Result[i] := Format('%.2d "%21s" %.8d', [i+1, S, Module.Samples[i].Length]);
+		S := Module.Samples[i].GetName;
+		Result[i] := Format('%.2d "%-21s" %8d', [i+1, S, Module.Samples[i].Length]);
 	end;
 end;
 
@@ -1165,8 +1165,8 @@ begin
 
 				keyNoteC_lo..keyNoteB_hi:
 				begin
-					i := Integer(Scn) - Integer(keyNoteC_lo) + (Integer(PatternEditor.HighOctave) * 12);
-					if i < 36 then // go no higher than B-3
+					i := Integer(Scn) - Integer(keyNoteC_lo) + (Integer(PatternEditor.HighOctave) * 12) + 1;
+					if i <= 36 then // go no higher than B-3
 					begin
 						with Waveform do // play selected range
 						if (not IsFocused) and (Selection.Length > 0) then

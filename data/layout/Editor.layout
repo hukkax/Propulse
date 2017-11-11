@@ -1,4 +1,4 @@
-[000]
+[]
 Type=Box
 ID=Song Title
 X1=10
@@ -8,7 +8,7 @@ Y2=03
 Border=sunken pixel
 Data=0B00
 
-[001]
+[]
 Type=Box
 ID=Song Filename
 X1=10
@@ -18,7 +18,7 @@ Y2=05
 Border=sunken pixel
 Data=0B00
 
-[002]
+[]
 Type=Box
 ID=Scope
 X1=64
@@ -30,7 +30,7 @@ ColorBack=00
 Border=sunken pixel
 Data=0D
 
-[003]
+[]
 Type=Box
 ID=PatternView
 X1=01
@@ -40,7 +40,7 @@ Y2=44
 Border=fat sunken
 Data=0D0E0F0803090900030003
 
-[004]
+[]
 Type=Box
 ID=OrderList
 X1=61
@@ -49,17 +49,17 @@ X2=67
 Y2=44
 Border=fat sunken
 
-[005]
+[]
 Type=Text
 ID=App Title and Build Data
-Caption=PoroTracker
+Caption=Propulse Tracker
 X1=00
 Y1=00
 X2=80
 Y2=01
 TextAlign=1
 
-[006]
+[]
 Type=Text
 ID=PatternNum
 Caption=00/00
@@ -69,7 +69,7 @@ X2=15
 Y2=07
 Border=sunken pixel
 
-[007]
+[]
 Type=Text
 ID=OrderNum
 Caption=000/000
@@ -79,7 +79,7 @@ X2=30
 Y2=07
 Border=sunken pixel
 
-[008]
+[]
 Type=Text
 ID=Current Sample
 Caption=01:                      
@@ -88,7 +88,7 @@ Y1=02
 X2=63
 Border=sunken pixel
 
-[009]
+[]
 Type=Text
 ID=Current Octave
 Caption=Hi
@@ -97,16 +97,16 @@ Y1=+2
 X2=40
 Border=sunken pixel
 
-[010]
+[]
 Type=Text
 ID=Current Speed
-Caption=000/125
+Caption=00/125
 X1=38
 Y1=+2
-X2=45
+X2=44
 Border=sunken pixel
 
-[011]
+[]
 Type=Text
 ID=Playback Indicator
 X1=00
@@ -114,7 +114,7 @@ Y1=00
 X2=09
 Y2=01
 
-[012]
+[]
 Type=Text
 ID=Time Display
 Caption= 0:00:00
@@ -124,7 +124,7 @@ X2=80
 Y2=01
 TextAlign=2
 
-[013]
+[]
 Type=Text
 ID=Song size
 Caption=Song:
@@ -133,21 +133,21 @@ X1=47
 Y1=04
 X2=63
 
-[014]
+[]
 Type=Text
 ID=Samples size
 Caption=Samples:
 TextAlign=2
 Y1=+1
 
-[015]
+[]
 Type=Text
 ID=Total size
 Caption=Total:
 TextAlign=2
 Y1=+1
 
-[016]
+[]
 Type=Text
 Caption=Pattern Editor (%sc:Screen.PatternEditor%)
 X1=01
@@ -155,7 +155,7 @@ Y1=09
 X2=59
 TextAlign=3
 
-[017]
+[]
 Type=Text
 Caption=Orders (%sc:Screen.OrderList%)
 X1=61
@@ -163,7 +163,7 @@ Y1=09
 X2=79
 TextAlign=3
 
-[018]
+[]
 Type=Text
 ID=\"Channel 1\"
 Caption=Channel 1
@@ -172,7 +172,7 @@ Y1=11
 X2=17
 TextAlign=1
 
-[019]
+[]
 Type=Text
 ID=\"Channel 2\"
 Caption=Channel 2
@@ -180,7 +180,7 @@ X1=18
 X2=31
 TextAlign=1
 
-[020]
+[]
 Type=Text
 ID=\"Channel 3\"
 Caption=Channel 3
@@ -188,7 +188,7 @@ X1=32
 X2=45
 TextAlign=1
 
-[021]
+[]
 Type=Text
 ID=\"Channel 4\"
 Caption=Channel 4
@@ -196,53 +196,53 @@ X1=46
 X2=59
 TextAlign=1
 
-[022]
+[]
 Type=Text
 Caption=Songname
 X1=01
 Y1=02
 X2=09
 
-[023]
+[]
 Type=Text
 Caption=Filename
 X1=01
 Y1=04
 X2=09
 
-[024]
+[]
 Type=Text
 Caption=Pattern
 X1=01
 Y1=06
 X2=09
 
-[025]
+[]
 Type=Text
 Caption=Order
 X1=17
 Y1=06
 X2=22
 
-[026]
+[]
 Type=Text
 Caption=Sample
 X1=31
 Y1=02
 X2=37
 
-[027]
+[]
 Type=Text
 Caption=Octave
 X1=31
 Y1=+2
 
-[028]
+[]
 Type=Text
 Caption=Tempo
 Y1=+2
 
-[029]
+[]
 Type=Box
 ID=AmpSlider
 X1=68
@@ -250,20 +250,20 @@ Y1=06
 X2=75
 Border=sunken pixel
 
-[030]
+[]
 Type=Text
 ID=AmpLabel
 Caption=0.0
 X1=76
 X2=79
 
-[031]
+[]
 Type=Text
 Caption=Amp
 X1=64
 X2=67
 
-[032]
+[]
 Type=Box
 Border=sunken pixel
 X1=00
@@ -271,7 +271,7 @@ X2=80
 Y1=08
 Y2=08
 
-[033]
+[]
 Type=Button
 Caption=Menu
 X1=69
@@ -279,7 +279,7 @@ Y1=11
 X2=79
 Shortcut=#Program.Menu
 
-[034]
+[]
 Type=Text
 Caption=Module
 X1=69
@@ -288,94 +288,94 @@ Y2=14
 TextAlign=3
 ColorText=1
 
-[035]
+[]
 Type=Button
 Caption=New.
 X1=69
 Y1=+2
 Shortcut=#Song.New
 
-[036]
+[]
 Type=Button
 Caption=Load
 Y1=+2
 Shortcut=#Screen.Load
 
-[037]
+[]
 Type=Button
 Caption=Save
 Y1=+2
 Shortcut=#Screen.Save
 
-[038]
+[]
 Type=Button
 Caption=Clean Up
 Y1=+2
 Shortcut=#Song.Cleanup
 
-[039]
+[]
 Type=Button
 Caption=Info
 Y1=+2
 Shortcut=#Song.Length
 
-[040]
+[]
 Type=Button
 Caption=Seek To
 Y1=+2
 Shortcut=#Song.JumpToTime
 
-[041]
+[]
 Type=Button
 Caption=Samples
 Y1=+2
 Shortcut=#Screen.Samples
 
-[042]
+[]
 Type=Text
 Caption=Play
 Y1=+2
 TextAlign=3
 ColorText=1
 
-[043]
+[]
 Type=Button
 Caption=Song
 Y1=+2
 Shortcut=#Playback.Song
 
-[044]
+[]
 Type=Button
 Caption=Pattern
 Y1=+2
 Shortcut=#Playback.Pattern
 
-[045]
+[]
 Type=Button
 Caption=Stop
 Y1=+2
 Shortcut=#Playback.Stop
 
-[046]
+[]
 Type=Text
 Caption=Misc
 Y1=+2
 TextAlign=3
 ColorText=1
 
-[047]
+[]
 Type=Button
 Caption=Help
 Y1=+2
 Shortcut=#Screen.Help
 
-[048]
+[]
 Type=Button
 Caption=About
 Y1=+2
 Shortcut=#Screen.About
 
-[049]
+[]
 Type=Button
 Caption=Settings
 Y1=+2

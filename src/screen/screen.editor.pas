@@ -6,7 +6,8 @@ interface
 
 uses
 	Classes, Types, SysUtils, Math,
-	TextMode, CWE.Core, CWE.Widgets.Text, CWE.Widgets.Numeric,
+	TextMode, CWE.Core, CWE.Dialogs,
+	CWE.Widgets.Text, CWE.Widgets.Numeric,
 	ProTracker.Player, ProTracker.Editor;
 
 const
@@ -108,10 +109,12 @@ type
 
 		procedure	UpdateVUMeter(Len: Integer);
 		procedure	UpdateTimeDisplay;
-		procedure 	UpdateInfoLabels(Repaint: Boolean = False);
+		procedure 	UpdateInfoLabels(Repaint: Boolean = False;
+					Speed: SmallInt = -1; Tempo: SmallInt = -1);
 		procedure 	MessageText(const S: String; LogIt: Boolean = False);
 
 		procedure 	ToggleChannel(Channel: Byte);
+		procedure 	ToggleChannelSolo(Channel: Byte);
 		procedure 	SetOctave(Hi: Boolean);
 		procedure 	SetSample(i: Integer = -1);
 		procedure 	SelectPattern(i: Integer);
@@ -121,11 +124,17 @@ type
 		function	OnContextMenu: Boolean; override;
 		procedure 	HandleCommand(const Cmd: Cardinal); override;
 		function 	KeyDown(var Key: Integer; Shift: TShiftState): Boolean; override;
+		function 	LabelClicked(Sender: TCWEControl;
+					Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
+
+		procedure 	Callback_AskDefaultTempo(ID: Word;
+					ModalResult: TDialogButton; Tag: Integer; Data: Variant; Dlg: TCWEDialog);
 
 		procedure 	AmplificationChange(Sender: TCWEControl);
 		procedure 	SongTitleChanged(Sender: TCWEControl);
 		function	LabelMouseWheel(Sender: TCWEControl;
 					Shift: TShiftState; DirDown: Boolean; P: TPoint): Boolean;
+		function	InfoLabelPaint(Sender: TCWEControl): Boolean;
 
 		procedure	Show; override;
 		constructor	Create(var Con: TConsole; const sCaption, sID: AnsiString); override;
@@ -142,7 +151,7 @@ implementation
 
 uses
 	MainWindow, BuildInfo, ShortcutManager, Layout,
-	CWE.MainMenu, CWE.Dialogs,
+	CWE.MainMenu, Dialog.ValueQuery,
 	SDL.Api.Types, Graphics32,
 	ProTracker.Sample, ProTracker.Util,
 	Screen.Samples, Screen.Help;
@@ -162,13 +171,76 @@ var
 // TEditorScreen
 // ==========================================================================
 
+procedure TEditorScreen.Callback_AskDefaultTempo(ID: Word;
+	ModalResult: TDialogButton; Tag: Integer; Data: Variant; Dlg: TCWEDialog);
+var
+	i: Integer;
+begin
+	if Dlg = nil then Exit;
+	if not (ModalResult in [btnYes, btnOK]) then Exit;
+
+	if GetAskedValue(i) then
+	begin
+		case ID of
+			0:
+			begin
+				Module.DefaultSpeed := i;
+				if Module.PlayMode = PLAY_STOPPED then
+					Module.SetSpeed(i);
+			end;
+			1:
+			begin
+				Module.DefaultTempo := i;
+				if Module.PlayMode = PLAY_STOPPED then
+					Module.SetTempo(i);
+			end;
+		end;
+	end;
+end;
+
+function TEditorScreen.LabelClicked(Sender: TCWEControl;
+	Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
+begin
+	Result := False;
+	if Sender = lblTempo then
+	begin
+		Result := True;
+		if P.X < 2 then
+			AskValue(0, 'Default Speed', 1,   31, Module.DefaultSpeed, Callback_AskDefaultTempo)
+		else
+		if P.X > 2 then
+			AskValue(1, 'Default BPM', 32, 255, Module.DefaultTempo, Callback_AskDefaultTempo)
+		else
+			Result := False;
+	end
+	else
+	if Sender = lblSample then
+	begin
+		Result := True;
+		ChangeScreen(TCWEScreen(SampleScreen));
+	end
+	else
+	if Sender = lblOctave then
+	begin
+		SetOctave(not PatternEditor.HighOctave);
+	end;
+end;
+
 constructor TEditorScreen.Create(var Con: TConsole; const sCaption,
 	sID: AnsiString);
 
+	// enables hover effect and mouse wheel handler on control
 	procedure EnableMouseOn(const lbl: TCWEControl);
 	begin
 		lbl.OnMouseWheel := LabelMouseWheel;
 		lbl.WantHover := True;
+	end;
+
+	// colorizes the Xth character in the label text (in InfoLabelPaint)
+	procedure SetDimmedChar(const lbl: TCWELabel; X: Byte);
+	begin
+		lbl.SetData(0, X + 1, '');
+		lbl.OnAfterPaint:= InfoLabelPaint;
 	end;
 
 var
@@ -220,7 +292,7 @@ begin
 
 	lblOrder := TCWESunkenLabel.Create(Self, '000/000', 'OrderNum',
 		Bounds(i + 13, 7, 7, 1), True);
-//	EnableMouseOnLabel(lblOrder);
+	EnableMouseOn(lblOrder);
 
 	i := 32;
 {	AddControl(TCWELabel, 'Sample', '', Bounds(i, 3, 6, 1));
@@ -231,15 +303,26 @@ begin
 	lblSample := TCWESunkenLabel.Create(Self,
 		'00:......................', 'Current Sample',
 		Bounds(i, 3, 22+3, 1), True);
+	EnableMouseOn(lblSample);
+	lblSample.OnMouseDown := LabelClicked;
+
 	lblOctave := TCWESunkenLabel.Create(Self,
 		'Hi', 'Current Octave',
 		Bounds(i, 5, 2, 1), True);
-	lblTempo := TCWESunkenLabel.Create(Self,
-		'006/125', 'Current Speed',
-		Bounds(i, 7, 7, 1), True);
-
-	EnableMouseOn(lblSample);
 	EnableMouseOn(lblOctave);
+	lblOctave.OnMouseDown := LabelClicked;
+
+	lblTempo := TCWESunkenLabel.Create(Self,
+		'06/125', 'Current Speed',
+		Bounds(i, 7, 6, 1), True);
+	lblTempo.WantMouse := True;
+	lblTempo.WantHover := True;
+	lblTempo.OnMouseDown := LabelClicked;
+
+	SetDimmedChar(lblPattern, 2);
+	SetDimmedChar(lblOrder,   3);
+	SetDimmedChar(lblTempo,   2);
+	SetDimmedChar(lblSample,  2);
 
 	lblPlayMode := TCWELabel.Create(Self,
 		'Stopped', 'Playback Indicator',
@@ -342,6 +425,26 @@ begin
 	AppStartedTime := Now;
 end;
 
+// colorize the '/' char in labels
+function TEditorScreen.InfoLabelPaint(Sender: TCWEControl): Boolean;
+var
+	X: Integer;
+	lbl: TCWELabel;
+begin
+	Result := False;
+	if Sender is TCWELabel then
+	begin
+		lbl := Sender as TCWELabel;
+		//X := Pos('/', lbl.Caption);
+		X := lbl.Data[0].Value;
+		if X > 0 then
+		begin
+			Console.SetColor(lbl.Rect.Left + X - 1, lbl.Rect.Top, TConsole.COLOR_PANEL);
+			Result := True;
+		end;
+	end;
+end;
+
 function TEditorScreen.ShowCommandHelp: Boolean;
 var
 	Capt, S: AnsiString;
@@ -415,7 +518,7 @@ procedure TEditorScreen.UpdateVUMeter(Len: Integer);
 var
 	p: Single;
 	C: TColor32;
-	pos, X, Y, ox, oy, w, h, hh, wh: Integer;
+	ch, X, Y, ox, oy, w, h, hh, wh: Integer;
 	R: TRect;
 begin
 	// Channel VUmeters
@@ -459,7 +562,6 @@ begin
 	Console.Bitmap.FillRect(R, C);
 
 	C := Console.Palette[Options.Display.Colors.Scope.Foreground];
-
 	ox := R.Left;
 	oy := R.Top;
 	w := R.Right - R.Left - 1;
@@ -467,41 +569,39 @@ begin
 	hh := h div 2;
 	wh := w div 4 + 1;
 
-	if Len <= 0 then
-		Console.Bitmap.HorzLine(ox, oy + hh, ox + w, C);
-
-	if Options.Display.ScopePerChannel then
+	if Options.Display.ScopePerChannel then // Quadrascope
 	begin
+		Inc(hh, oy);
 		if Len > 0 then
-		begin
 			p := (Len div 4 - 1) / wh; // step
-			for X := 0 to wh-1 do
-			begin
-				pos := Trunc(p * X);
 
-				Y := Trunc(ScopeBuffer[0, pos] / 65536 * h);
-				Console.Bitmap.Pixel[ox + X, oy + Y + hh] := C;
-
-				Y := Trunc(ScopeBuffer[1, pos] / 65536 * h);
-				Console.Bitmap.Pixel[ox + X + wh, oy + Y + hh] := C;
-
-				Y := Trunc(ScopeBuffer[2, pos] / 65536 * h);
-				Console.Bitmap.Pixel[ox + X + (wh*2), oy + Y + hh] := C;
-
-				Y := Trunc(ScopeBuffer[3, pos] / 65536 * h);
-				Console.Bitmap.Pixel[ox + X + (wh*3), oy + Y + hh] := C;
-			end;
-		end;
-		hh := R.Bottom-1; Dec(oy);
-		for pos := 1 to 3 do
+		for ch := 0 to 3 do
 		begin
-			X := ox + (pos * wh);
-			Console.Bitmap.VertLine(X-1, oy, hh, Console.Palette[Console.COLOR_3DLIGHT]);
-			Console.Bitmap.VertLine(X,   oy, hh, Console.Palette[Console.COLOR_3DDARK]);
+			if Module.Channel[ch].Enabled then
+				C := Console.Palette[Options.Display.Colors.Scope.Foreground]
+			else
+				C := Console.Palette[Options.Display.Colors.Scope.Muted];
+
+			if Len > 0 then
+			begin
+				for X := 0 to wh-1 do
+					Console.Bitmap.Pixel[ox + X,
+						hh + Trunc(ScopeBuffer[ch, Trunc({%H-}p * X)] / 65536 * h)] := C;
+			end
+			else
+				Console.Bitmap.HorzLine(ox, hh, ox+wh-1, C);
+
+			if ch > 0 then
+			begin
+				Console.Bitmap.VertLine(ox-1, oy-1, R.Bottom-1, Console.Palette[Console.COLOR_3DLIGHT]);
+				Console.Bitmap.VertLine(ox,   oy-1, R.Bottom-1, Console.Palette[Console.COLOR_3DDARK]);
+			end;
+
+			Inc(ox, wh);
 		end;
 	end
 	else
-	if Len > 0 then
+	if Len > 0 then // Master output scope
 	begin
 		p := (Len div 2 - 1) / w; // step
 		for X := 0 to w do
@@ -510,7 +610,9 @@ begin
 			Y := Trunc(Y / 2 / 65536 * h);
 			Console.Bitmap.Pixel[ox + X, oy + Y + hh] := C;
 		end;
-	end;
+	end
+	else
+		Console.Bitmap.HorzLine(ox, oy + hh, ox + w, C);
 end;
 
 function TEditorScreen.ScopeWheel(Sender: TCWEControl;
@@ -532,8 +634,20 @@ end;
 
 function TEditorScreen.ScopeClicked(Sender: TCWEControl; Button: TMouseButton;
 	X, Y: Integer; P: TPoint): Boolean;
+var
+	R: TRect;
 begin
-	Options.Display.ScopePerChannel := not Options.Display.ScopePerChannel;
+	if Button = mbLeft then
+		Options.Display.ScopePerChannel := not Options.Display.ScopePerChannel
+	else
+	begin
+		Scope.GetPixelRect(R);
+		X := X div (R.Width div 4);
+		case Button of
+			mbRight:	ToggleChannel(X);
+			mbMiddle:	ToggleChannelSolo(X);
+		end;
+	end;
 	Result := True;
 end;
 
@@ -562,7 +676,7 @@ function TEditorScreen.LabelMouseWheel(Sender: TCWEControl;
 	Shift: TShiftState; DirDown: Boolean; P: TPoint): Boolean;
 var
 	lbl: TCWELabel;
-	Delta: Integer;
+	Delta, i: Integer;
 begin
 	Result := True;
 	if not (Sender is TCWELabel) then Exit;
@@ -576,15 +690,20 @@ begin
 
 	if lbl = lblPattern then
 	begin
+		i := CurrentPattern + Delta;
+		if (i >= 0) and (i < MAX_PATTERNS) then
+		begin
+			FollowPlayback := False;
+			SelectPattern(i);
+		end;
+	end
+	else
+	if ((lbl = lblOrder) and (Module.PlayMode = PLAY_SONG)) then
+	begin
 		if Delta < 0 then
 			SelectPattern(SELECT_PREV)
 		else
 			SelectPattern(SELECT_NEXT);
-	end
-	else
-	if lbl = lblOrder then
-	begin
-		//
 	end
 	else
 	if lbl = lblSample then
@@ -609,7 +728,32 @@ end;
 
 procedure TEditorScreen.ToggleChannel(Channel: Byte);
 begin
+	if not (Channel in [0..AMOUNT_CHANNELS-1]) then Exit;
 	Module.Channel[Channel].Enabled := not Module.Channel[Channel].Enabled;
+	UpdateInfoLabels(True);
+end;
+
+procedure TEditorScreen.ToggleChannelSolo(Channel: Byte);
+var
+	i, o: Integer;
+begin
+	if not (Channel in [0..AMOUNT_CHANNELS-1]) then Exit;
+	o := 0; // amount of enabled channels
+	for i := 0 to AMOUNT_CHANNELS-1 do
+		if Module.Channel[i].Enabled then
+			Inc(o);
+	if (o = 1) and (Module.Channel[Channel].Enabled) then
+	begin
+		// enable all channels (unsolo)
+		for i := 0 to AMOUNT_CHANNELS-1 do
+			Module.Channel[i].Enabled := True;
+	end
+	else
+	begin
+		// mute all but current channel (solo)
+		for i := 0 to AMOUNT_CHANNELS-1 do
+			Module.Channel[i].Enabled := (i = Channel);
+	end;
 	UpdateInfoLabels(True);
 end;
 
@@ -623,7 +767,7 @@ begin
 				with Module do
 				begin
 					PlayPos.Order := Max(PlayPos.Order - 1, 0);
-					PlayPos.Pattern := OrderList[Module.PlayPos.Order];
+					PlayPos.Pattern := OrderList[PlayPos.Order];
 					PlayPos.Row := 0;
 					RepostChanges;
 				end
@@ -781,6 +925,7 @@ procedure TEditorScreen.Reset;
 begin
 	with PatternEditor do
 	begin
+		FollowPlayback := False;
 		Cursor.X := 0;
 		Cursor.Row := 0;
 		Cursor.Column := COL_NOTE;
@@ -797,7 +942,8 @@ begin
 	UpdateInfoLabels;
 end;
 
-procedure TEditorScreen.UpdateInfoLabels(Repaint: Boolean = False);
+procedure TEditorScreen.UpdateInfoLabels(Repaint: Boolean = False;
+	Speed: SmallInt = -1; Tempo: SmallInt = -1);
 var
 	i, x, y, xx, sizePatt, sizeSamp: Integer;
 	S: AnsiString;
@@ -872,8 +1018,11 @@ begin
 		Format('%.2d/%.2d', [CurrentPattern, Module.Info.PatternCount]));
 	lblOrder.SetCaption(
 		Format('%.3d/%.3d', [Module.PlayPos.Order, Module.Info.OrderCount-1]));
-	lblTempo.SetCaption(
-		Format('%.3d/%.3d', [Module.CurrentSpeed, Module.CurrentBPM]));
+
+	if Speed < 0 then Speed := Module.CurrentSpeed;
+	if Tempo < 0 then Tempo := Module.CurrentBPM;
+
+	lblTempo.SetCaption(Format('%.2d/%.3d', [Speed, Tempo]));
 
 	sizeSamp := 0;
 	for sizePatt := 0 to Module.Samples.Count-1 do

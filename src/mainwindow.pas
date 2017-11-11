@@ -57,7 +57,7 @@ type
 		{$ENDIF}
 		Screens:	TObjectList<TCWEScreen>;
 
-		procedure 	ModuleSpeedChanged;
+		procedure 	ModuleSpeedChanged(Speed, Tempo: Byte);
 		procedure	ModuleOrderChanged;
 		procedure 	TimerTick;
 
@@ -322,9 +322,9 @@ begin
 	end;
 end;
 
-procedure TWindow.ModuleSpeedChanged;
+procedure TWindow.ModuleSpeedChanged(Speed, Tempo: Byte);
 begin
-	Editor.UpdateInfoLabels;
+	Editor.UpdateInfoLabels(False, Speed, Tempo);
 end;
 
 procedure TWindow.ModuleOrderChanged;
@@ -1325,10 +1325,14 @@ begin
 		.SetInfo('Home and End keys behavior', 0, 1, ['Impulse Tracker', 'Propulse']);
 		Cfg.AddBoolean(Sect, 'ShowEmptyParamZeroes', @Tracker.ShowEmptyParamZeroes, True)
 		.SetInfo('Show empty command parameters as', 0, 1, ['...', '.00']);
+		Cfg.AddBoolean(Sect, 'CenterPlayback', @Tracker.CenterPlayback, True)
+		.SetInfo('Center currently playing row', 0, 1, ['No', 'Yes']);
 		Cfg.AddBoolean(Sect, 'NoteB3AsInvalid', @Tracker.NoteB3Warning, False)
 		.SetInfo('Consider note B-3 as invalid', 0, 1, ['No', 'Yes']);
 		Cfg.AddBoolean(Sect, 'RestoreSamples', @Tracker.RestoreSamples, False)
 		.SetInfo('Restore samples when playback stopped', 0, 1, ['No', 'Yes']);
+		Cfg.AddBoolean(Sect, 'ResetTempo', @Tracker.ResetTempo, True)
+		.SetInfo('Reset tempo when playback stopped', 0, 1, ['No', 'Yes']);
 
 		Sect := 'Program';
 		Cfg.AddBoolean(Sect, 'HighPriority', @HighPriority, True)
