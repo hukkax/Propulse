@@ -405,6 +405,10 @@ begin
 		@Options.Display.Colors.Scope.Background, 0).
 		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
 
+	PaletteConfig.AddByte(S, 'Muted channel',
+		@Options.Display.Colors.Scope.Muted, 15).
+		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');
+
 	PaletteConfig.AddByte(S, 'Clipped bg',
 		@Options.Display.Colors.Scope.Clipped, 13).
 		SetInfo('§', 0, 15, [], ColorChanged, '%.2d');

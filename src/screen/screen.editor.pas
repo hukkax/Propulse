@@ -229,10 +229,18 @@ end;
 constructor TEditorScreen.Create(var Con: TConsole; const sCaption,
 	sID: AnsiString);
 
+	// enables hover effect and mouse wheel handler on control
 	procedure EnableMouseOn(const lbl: TCWEControl);
 	begin
 		lbl.OnMouseWheel := LabelMouseWheel;
 		lbl.WantHover := True;
+	end;
+
+	// colorizes the Xth character in the label text (in InfoLabelPaint)
+	procedure SetDimmedChar(const lbl: TCWELabel; X: Byte);
+	begin
+		lbl.SetData(0, X + 1, '');
+		lbl.OnAfterPaint:= InfoLabelPaint;
 	end;
 
 var
@@ -311,9 +319,10 @@ begin
 	lblTempo.WantHover := True;
 	lblTempo.OnMouseDown := LabelClicked;
 
-	lblPattern.OnAfterPaint:= InfoLabelPaint;
-	lblOrder.OnAfterPaint  := InfoLabelPaint;
-	lblTempo.OnAfterPaint  := InfoLabelPaint;
+	SetDimmedChar(lblPattern, 2);
+	SetDimmedChar(lblOrder,   3);
+	SetDimmedChar(lblTempo,   2);
+	SetDimmedChar(lblSample,  2);
 
 	lblPlayMode := TCWELabel.Create(Self,
 		'Stopped', 'Playback Indicator',
@@ -426,7 +435,8 @@ begin
 	if Sender is TCWELabel then
 	begin
 		lbl := Sender as TCWELabel;
-		X := Pos('/', lbl.Caption);
+		//X := Pos('/', lbl.Caption);
+		X := lbl.Data[0].Value;
 		if X > 0 then
 		begin
 			Console.SetColor(lbl.Rect.Left + X - 1, lbl.Rect.Top, TConsole.COLOR_PANEL);
@@ -559,7 +569,7 @@ begin
 	hh := h div 2;
 	wh := w div 4 + 1;
 
-	if Options.Display.ScopePerChannel then
+	if Options.Display.ScopePerChannel then // Quadrascope
 	begin
 		Inc(hh, oy);
 		if Len > 0 then
@@ -570,20 +580,16 @@ begin
 			if Module.Channel[ch].Enabled then
 				C := Console.Palette[Options.Display.Colors.Scope.Foreground]
 			else
-				C := Console.Palette[15];
+				C := Console.Palette[Options.Display.Colors.Scope.Muted];
 
 			if Len > 0 then
 			begin
 				for X := 0 to wh-1 do
-				begin
 					Console.Bitmap.Pixel[ox + X,
 						hh + Trunc(ScopeBuffer[ch, Trunc({%H-}p * X)] / 65536 * h)] := C;
-				end;
 			end
 			else
-			begin
 				Console.Bitmap.HorzLine(ox, hh, ox+wh-1, C);
-			end;
 
 			if ch > 0 then
 			begin
@@ -595,7 +601,7 @@ begin
 		end;
 	end
 	else
-	if Len > 0 then
+	if Len > 0 then // Master output scope
 	begin
 		p := (Len div 2 - 1) / w; // step
 		for X := 0 to w do
