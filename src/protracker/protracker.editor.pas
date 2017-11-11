@@ -512,7 +512,7 @@ begin
 			if np > 0 then
 			begin
 				np := np + Semitones;
-				if InRange(np, 0, 35) then
+				if InRange(np, 1, 36) then
 					Note.Pitch := np;
 			end;
 		end;
@@ -1629,10 +1629,10 @@ begin
 					with Cursor.Note^ do
 						if Pitch > 0 then
 						begin
-							n := Pitch mod 12;
+							n := (Pitch - 1) mod 12;
 							if n >= 0 then
 							begin
-								Pitch := n + ((o - 1) * 12);
+								Pitch := n + 1 + ((o - 1) * 12);
 								LastNote.Pitch := Pitch;
 								Module.SetModified;
 								Advance;
