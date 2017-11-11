@@ -76,3 +76,5 @@ src/include/_generics\.collections/
 Propulse\.app/
 
 *.log
+
+data/commands\.txt
