@@ -16,11 +16,12 @@ const
 
 	SAMPLES_REMOVE		= 0;
 	SAMPLES_DUPLICATES	= 1;
-	SAMPLES_REARRANGE	= 2;
-	SAMPLES_LOCKNAMES	= 3;
-	PATTERNS_REMOVE		= 4;
-	PATTERNS_DUPLICATES = 5;
-	PATTERNS_REARRANGE	= 6;
+	SAMPLES_AFTERLOOP	= 2;
+	SAMPLES_REARRANGE	= 3;
+	SAMPLES_LOCKNAMES	= 4;
+	PATTERNS_REMOVE		= 5;
+	PATTERNS_DUPLICATES = 6;
+	PATTERNS_REARRANGE	= 7;
 
 
 	procedure Dialog_Cleanup;
@@ -46,13 +47,15 @@ var
 	UnusedPatterns,
 	UnusedSamples,
 	DuplicatedPatterns,
-	DuplicatedSamples:	Byte;
+	DuplicatedSamples,
+	CroppableSamples:	Byte;
 	PatternUsage:		array[0..MAX_PATTERNS-1] of Byte;
 	SampleUsage:		array[0..30] of Cardinal;
 	UnusedPattern:		array[0..MAX_PATTERNS-1] of Boolean;
 	UnusedSample:		array[0..30] of Boolean;
 	DuplicatePattern:	array[0..MAX_PATTERNS-1] of ShortInt;
 	DuplicateSample:	array[0..30] of ShortInt;
+	CroppableSample:	array[0..30] of Cardinal;
 
 type
 	TPattern = class
@@ -158,6 +161,7 @@ var
 	Note: PNote;
 	Savings: Cardinal;
 	B: Boolean;
+	Sam: TSample;
 begin
 	Savings := 0; // bytes saved if unused stuff is deleted
 	Warnings := 0;
@@ -226,6 +230,7 @@ begin
 		SampleUsage[s] := 0;
 		UnusedSample[s] := False;
 		DuplicateSample[s] := -1;
+		CroppableSample[s] := 0;
 	end;
 
 	if Prescan then
@@ -252,21 +257,38 @@ begin
 
 	UnusedSamples := 0;
 	DuplicatedSamples := 0;
+	CroppableSamples := 0;
 
 	for s := 0 to 30 do
 	begin
+		Sam := Module.Samples[s];
 		if SampleUsage[s] = 0 then
 		begin
 			UnusedSample[s] := True;
-			if not IsEmptySample(Module.Samples[s]) then
+			if not IsEmptySample(Sam) then
 			begin
 				Inc(UnusedSamples);
-				Inc(Savings, Module.Samples[s].ByteLength);
+				Inc(Savings, Sam.ByteLength);
 			end;
 		end
 		else
-		if IsEmptySample(Module.Samples[s]) then
+		if IsEmptySample(Sam) then
 			Inc(Warnings); // referenced empty sample
+	end;
+
+	for s := 0 to 30 do
+	begin
+		Sam := Module.Samples[s];
+		if (Sam.LoopStart > 0) and (Sam.IsLooped) then // skip one-shot samples
+		begin
+			p := (Sam.LoopStart + Sam.LoopLength) * 2; // loop end in bytes
+			if p < (Sam.Length * 2) then
+			begin
+				Inc(CroppableSamples);
+				CroppableSample[s] := Sam.Length * 2 - p;
+				Inc(Savings, CroppableSample[s]);
+			end;
+		end;
 	end;
 
 	// find duplicate samples
@@ -277,14 +299,15 @@ begin
 
 		for p := 30 downto 0 do
 		begin
+			Sam := Module.Samples[p];
 			if (p = s) or (UnusedSample[p]) or (DuplicateSample[p] >= 0) or
-				(IsEmptySample(Module.Samples[p])) then Continue;
+				(IsEmptySample(Sam)) then Continue;
 
-			if Module.Samples[s].IsDuplicateOf(Module.Samples[p]) then
+			if Module.Samples[s].IsDuplicateOf(Sam) then
 			begin
 				DuplicateSample[p] := s;
 				Inc(DuplicatedSamples);
-				Inc(Savings, Module.Samples[p].ByteLength);
+				Inc(Savings, Sam.ByteLength);
 			end;
 		end;
 	end;
@@ -330,6 +353,13 @@ begin
 				ReplaceSampleInPatterns(i+1, DuplicateSample[i]+1);
 				Module.Samples[i].Clear;
 			end;
+	end;
+
+	if DialogBooleans[SAMPLES_AFTERLOOP] then
+	begin
+		for i := 0 to 30 do
+			if CroppableSample[i] > 0 then
+				Module.Samples[i].Resize(Module.Samples[i].ByteLength - CroppableSample[i]);
 	end;
 
 	// Rearrange samples
@@ -463,33 +493,37 @@ begin
 		if UnusedSamples > 0 then
 		begin
 			CLog('');
-			CLog('Module contains %d unused samples:', [UnusedSamples]);
+			CLog('%d unused samples:', [UnusedSamples]);
 			for y := 0 to 30 do
 			begin
-				if SampleUsage[y] = 0 then
-				begin
-					if not IsEmptySample(Module.Samples[y]) then
-					begin
-						Sn := Module.Samples[y].Name;
-						CLog(CITEM + '%.2d "%22s" %dB', [y+1, Sn, Module.Samples[y].ByteLength]);
-					end;
-				end;
+				if (SampleUsage[y] = 0) and (not IsEmptySample(Module.Samples[y])) then
+					CLog(CITEM + '%.2d "%-22s" %8d', [y+1, Module.Samples[y].GetName,
+						Module.Samples[y].ByteLength]);
 			end;
 		end;
 
 		if DuplicatedSamples > 0 then
 		begin
 			CLog('');
-			CLog('Module contains %d duplicate samples:', [DuplicatedSamples]);
+			CLog('%d duplicate samples:', [DuplicatedSamples]);
 			for y := 0 to 30 do
 				if DuplicateSample[y] >= 0 then
 					CLog(CITEM + 'Sample %.2d is a duplicate of sample %.2d', [y+1, DuplicateSample[y]+1]);
 		end;
 
+		if CroppableSamples > 0 then
+		begin
+			CLog('');
+			CLog('%d samples with data after loop:', [CroppableSamples]);
+			for y := 0 to 30 do
+				if CroppableSample[y] > 0 then
+					CLog(CITEM + '%.2d "%-22s" %8d', [y+1, Module.Samples[y].GetName, CroppableSample[y]]);
+		end;
+
 		if UnusedPatterns > 0 then
 		begin
 			CLog('');
-			CLog('Module contains %d unused patterns:', [UnusedPatterns]);
+			CLog('%d unused patterns:', [UnusedPatterns]);
 			for y := 0 to MAX_PATTERNS-1 do
 				if UnusedPattern[y] then
 					CLog(CITEM + 'Pattern %.2d', [y]);
@@ -498,7 +532,7 @@ begin
 		if DuplicatedPatterns > 0 then
 		begin
 			CLog('');
-			CLog('Module contains %d duplicate patterns:', [DuplicatedPatterns]);
+			CLog('%d duplicate patterns:', [DuplicatedPatterns]);
 			for y := 0 to MAX_PATTERNS-1 do
 				if DuplicatePattern[y] >= 0 then
 					CLog(CITEM + 'Pattern %.2d is a duplicate of pattern %.2d', [y, DuplicatePattern[y]]);
@@ -545,6 +579,9 @@ begin
 		ConfigManager.AddBoolean(Sect, '',
 			@DialogBooleans[SAMPLES_DUPLICATES], {(DuplicatedSamples > 0)}False).
 			SetInfo('Remove duplicate samples', 0, 1, CN_YESNO);
+		ConfigManager.AddBoolean(Sect, '',
+			@DialogBooleans[SAMPLES_AFTERLOOP], (CroppableSamples > 0)).
+			SetInfo('Truncate samples at loop end', 0, 1, CN_YESNO);
 		ConfigManager.AddBoolean(Sect, '',
 			@DialogBooleans[SAMPLES_REARRANGE], False).
 			SetInfo('Rearrange samples', 0, 1, CN_YESNO);
