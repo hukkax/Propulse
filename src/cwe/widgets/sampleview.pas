@@ -38,6 +38,7 @@ type
 		MouseAction: Byte;
 		MouseActionOffset: SmallInt;
 		PrevMousePos: TPoint;
+		PrevClickTime: TDateTime;
 		BoxL, BoxR,
 		PixelRect:	TRect;
 		BmCache:	TBitmap32;
@@ -72,6 +73,7 @@ type
 		function	MouseWheelEvent(Sender: TCWEControl;
 					Shift: TShiftState; DirDown: Boolean; P: TPoint): Boolean;
 		function 	MouseMoveEvent(Sender: TCWEControl; X, Y: Integer; P: TPoint): Boolean;
+		procedure	DoubleClicked;
 		function 	ScrollEvent(Sender: TCWEControl; NewOffset: Cardinal): Boolean;
 		procedure	ScrollBy(Amount: Integer); override;
 
@@ -88,8 +90,9 @@ type
 implementation
 
 uses
+	SysUtils, DateUtils,
 	CWE.Dialogs,
-	Screen.Samples;
+	Screen.Samples, SampleEditor;
 
 // --------------------------------------------------------------------------
 { TSampleRange }
@@ -128,6 +131,7 @@ begin
 	inherited;
 
 	MouseAction := MOUSE_NONE;
+	PrevClickTime := 0;
 	BmCache := TBitmap32.Create;
 	InitCachedBitmap;
 	GetPixelRect(PixelRect);
@@ -415,9 +419,8 @@ begin
 				PC := BmCache.PixelPtr[x1, y];
 				for x := x1 to x2 do
 				begin
-					if (x >= 0) and (x < w) then
-						if PC^ <> CP then
-							PC^ := C;
+					if (x >= 0) and (x <= w) and (PC^ <> CP) then
+						PC^ := C;
 					Inc(PC);
 				end;
 			end;
@@ -513,6 +516,29 @@ end;
 // Event Handlers
 // --------------------------------------------------------------------------
 
+procedure TSampleView.DoubleClicked;
+var
+	X: Integer;
+begin
+	X := Selection.Origin;
+	if (X >= 0) and (X < Sample.ByteLength) then
+	begin
+		if not Sample.IsLooped then
+			SampleEdit.ProcessCommand(actSelectAll)
+		else
+		begin
+			if X < (Sample.LoopStart * 2) then
+				SampleEdit.ProcessCommand(actSelectPreLoop)
+			else
+			if X > ((Sample.LoopStart + Sample.LoopLength) * 2) then
+				SampleEdit.ProcessCommand(actSelectPostLoop)
+			else
+				SampleEdit.ProcessCommand(actSelectLoop);
+		end;
+
+	end;
+end;
+
 function TSampleView.MouseDownEvent(Sender: TCWEControl;
 	Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
 
@@ -533,21 +559,30 @@ begin
 
 		mbLeft:
 		begin
-			CaptureMouse;
+			if (MilliSecondsBetween(Now, PrevClickTime) < 250) then // Double clicked
+			begin
+				PrevClickTime := Now;
+				DoubleClicked;
+				Exit(True);
+			end
+			else
+			begin
+				PrevClickTime := Now;
+				CaptureMouse;
 
-			case MouseAction of
+				case MouseAction of
 
-				MOUSE_NONE, MOUSE_SELECT:
-				begin
-					MouseAction := MOUSE_SELECT;
-					X := Max(PixelToSamplePos(X, 0), 0);
-					Selection.SetRange(X, X, FSample);
-					Selection.Origin := X;
-					DrawWaveform;
+					MOUSE_NONE, MOUSE_SELECT:
+					begin
+						MouseAction := MOUSE_SELECT;
+						X := Max(PixelToSamplePos(X, 0), 0);
+						Selection.SetRange(X, X, FSample);
+						Selection.Origin := X;
+						DrawWaveform;
+					end;
+
 				end;
-
 			end;
-
 		end;
 
 		mbRight:
