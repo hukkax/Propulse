@@ -1,3 +1,29 @@
+Propulse Tracker 0.9.6.0
+
+Important playroutine and sample-related fixes and features.
+
+Additions:
+
+- Added "Insert pattern" and "Delete pattern" (Ctrl+Insert, Ctrl+Delete)
+- Added "Truncate samples at loop end" in Cleanup dialog
+- Doubleclicking on the sample waveform now selects the sample, loop, pre-loop
+  or post-loop data depending on location
+- Pressing F3 in the sample screen now brings focus back to the sample list
+- You can now click on a row number to the left of the pattern view to jump
+  to that row; use right mouse button to center the clicked row
+- Improved orderlist coloring
+
+Fixes:
+
+- Brought the playroutine more in line with ProTracker Clone behavior:
+  - Fixed invalid notes and some effects producing sound when they shouldn't
+  - Reset Paula properly when changing patterns on the fly while playing
+  - Muted Paula channels are now always emulated to fix problems related to
+    unmuting channels and for display on quadrascopes
+- Fixed invalid sample loop handling which could cause the playroutine to crash
+- Fixed selection not getting drawn on the rightmost pixels in sample waveform
+- Pattern view is now properly restored upon stopping song playback
+
 Propulse Tracker 0.9.5.5
 
 Fixes bugs caused by pattern and replayer code simplifications in v0.9.5.0.
