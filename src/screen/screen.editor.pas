@@ -28,7 +28,7 @@ const
 		'Slide to note + Volume slide',
 		'Vibrato + Volume slide',
 		'Tremolo',
-		'Karplus-Strong',
+		'Unused',
 		'Set sample offset',
 		'Volume slide',
 		'Jump to order',
@@ -47,7 +47,7 @@ const
 		'Set finetune',
 		'Set/Jump to loop',
 		'Set tremolo waveform',
-		'Unused',
+		'Karplus-Strong',
 		'Retrigger note',
 		'Fine volume slide up',
 		'Fine volume slide down',
@@ -83,7 +83,6 @@ type
 					DirDown: Boolean; P: TPoint): Boolean;
 		function 	ScopeClicked(Sender: TCWEControl; Button: TMouseButton;
 					X, Y: Integer; P: TPoint): Boolean;
-
 	public
 		lblAmp,
 		lblMessage,
@@ -758,19 +757,28 @@ begin
 end;
 
 procedure TEditorScreen.SelectPattern(i: Integer);
+var
+	Evt: TModuleEvent;
 begin
+	Evt := Module.OnPlayModeChange;
+	Module.OnPlayModeChange := nil;
+
 	case i of
 
 		SELECT_PREV:
 		begin
 			if FollowPlayback then
-				with Module do
+			begin
+				{with Module do
 				begin
 					PlayPos.Order := Max(PlayPos.Order - 1, 0);
 					PlayPos.Pattern := OrderList[PlayPos.Order];
 					PlayPos.Row := 0;
 					RepostChanges;
-				end
+				end}
+				Module.Play(Max(Module.PlayPos.Order - 1, 0), 0);
+				OrderList.Paint;
+			end
 			else
 			if CurrentPattern > 0 then
 			begin
@@ -778,14 +786,14 @@ begin
 					(Module.IsPatternEmpty(CurrentPattern)) then
 						Module.CountUsedPatterns;
 				Dec(CurrentPattern);
-				UpdateInfoLabels;
 			end;
+			UpdateInfoLabels;
 		end;
 
 		SELECT_NEXT:
 		begin
 			if FollowPlayback then
-				Module.NextPosition
+				Module.NextPosition(True)
 			else
 			if CurrentPattern < MAX_PATTERNS-1 then
 			begin
@@ -802,6 +810,7 @@ begin
 		end;
 	end;
 
+	Module.OnPlayModeChange := Evt;
 	PatternEditor.ValidateCursor;
 	if Active then
 		PatternEditor.Paint;
@@ -1119,11 +1128,13 @@ begin
 		AddCmd(Ord(keyTransposeOctaveUp),		'Transpose octave up');
 		AddCmd(Ord(keyTransposeOctaveDown),		'Transpose octave down');
 
-		{AddSection('Pattern operations'); 		// handled in Screen.Editor
+		AddSection('Pattern operations'); 		// handled in Screen.Editor
 
-		AddCmdEx(CMD_PATTERN_INSERT,		 		'Insert pattern');
-		AddCmdEx(CMD_PATTERN_DELETE,		 		'Delete pattern');
-		AddCmdEx(CMD_PATTERN_CLONE,		 		'Duplicate pattern');}
+		//AddCmdEx(CMD_PATTERN_INSERT,		 	'Insert pattern');
+		//AddCmdEx(CMD_PATTERN_DELETE,		 	'Delete pattern');
+		//AddCmdEx(CMD_PATTERN_CLONE,		 	'Duplicate pattern');}
+		AddCmd(Ord(keyPatternInsert),			'Insert pattern');
+		AddCmd(Ord(keyPatternDelete),		 	'Delete pattern');
 	end;
 	Result := True;
 end;
@@ -1266,21 +1277,25 @@ begin
 	begin
 		i := y + Offset;
 
-		if (Module.PlayMode = PLAY_SONG) and (i = Module.PlayPos.Order) then
-			con := 3
-		else
-			con := 0;
-
 		if i >= Module.Info.OrderCount then
-			col := 1
+		begin
+			con := 1;
+			col := 1;
+		end
 		else
+		if (Module.PlayMode = PLAY_SONG) and (i = Module.PlayPos.Order) then
+		begin
+			con := 11;
+			col := 11;
+		end
+		else
+		begin
+			con := 0;
 			col := 2;
+		end;
 
-		Console.Write(
-			Format('%.3d', [i]),
-			Rect.Left, Rect.Top + y, con);
-		Console.Write(
-			TextVals[Module.OrderList[i]],
+		Console.Write(TextVals3[i], Rect.Left, Rect.Top + y, con);
+		Console.Write(TextVals[Module.OrderList[i]],
 			Rect.Left + 4, Rect.Top + y, col);
 	end;
 
