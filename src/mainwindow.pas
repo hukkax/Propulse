@@ -338,33 +338,20 @@ end;
 
 procedure TWindow.PlayModeChanged;
 var
-	S: string;
+	S: AnsiString;
 begin
 	if CurrentScreen <> Editor then Exit;
 
 	case Module.PlayMode of
-
-		PLAY_PATTERN:
-			begin
-				S := #16 + ' Pattern';
-				//C := 11;
-			end;
-
-		PLAY_SONG:
-			begin
-				S := #16 + ' Song';
-				//C := 0;
-			end;
-
+		PLAY_PATTERN:	S := #16 + ' Pattern';
+		PLAY_SONG:		S := #16 + ' Song';
 		else
-			// PLAY_STOPPED:
-			S := ''; // #219;//+ ' Stopped';
-			//C := 1;
-		end;
+			S := ''; // #219 + ' Stopped';
+			FollowPlayback := False;
+	end;
 
-	Editor.lblPlayMode.ColorFore := 3; // C;
+	Editor.lblPlayMode.ColorFore := 3;
 	Editor.lblPlayMode.SetCaption(S);
-
 	Editor.Paint;
 	UpdatePatternView;
 end;
@@ -381,11 +368,11 @@ procedure TWindow.DoLoadModule(const Filename: String);
 	end;
 
 var
-	OK, AltMethod: Boolean;
+	OK{, AltMethod}: Boolean;
 	TempModule: TPTModule;
 begin
 	TempModule := ResetModule;
-	AltMethod := False;
+	//AltMethod := False;
 
 	if Filename <> '' then
 	begin
@@ -393,8 +380,9 @@ begin
 		if not OK then // try again in case file is broken
 		begin
 			TempModule.Warnings := False;
-			AltMethod := True;
-			OK := TempModule.LoadFromFile(Filename, True);
+			Module.Warnings := False;
+			{AltMethod := True;
+			OK := TempModule.LoadFromFile(Filename, True);}
 		end;
 	end
 	else
@@ -438,7 +426,7 @@ begin
 			ImportedModule.ShowImportDialog
 		else
 		if Filename <> '' then
-			FinishModuleLoad(AltMethod);
+			FinishModuleLoad(False{AltMethod});
 	end;
 end;
 
@@ -455,13 +443,13 @@ begin
 		Editor.Paint;
 	end;
 
-	if (Module.Warnings) or (AltMethod) then
+	if (Module.Warnings) {or (AltMethod)} then
 	begin
-		if Module.Warnings then
+		//if Module.Warnings then
 			S := 'Module loaded with errors/warnings.' + CHAR_NEWLINE;
-		if AltMethod then
+		{if AltMethod then
 			S := S + 'The module was loaded from a nonstandard offset,' + CHAR_NEWLINE +
-				'indicating a broken or non-module file.' + CHAR_NEWLINE;
+				'indicating a broken or non-module file.' + CHAR_NEWLINE;}
 	end;
 
 	if not Module.Warnings then
