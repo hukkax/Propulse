@@ -106,7 +106,7 @@ type
 		Note:			PNote;
 		n_start,
 		n_wavestart,
-		n_loopstart:	Cardinal;
+		n_loopstart:	Integer;
 		n_index,
 		n_volume,
 		n_toneportdirec,
@@ -287,7 +287,7 @@ type
 		procedure 	RepostChanges;
 		procedure 	SetModified(B: Boolean = True; Force: Boolean = False);
 
-		function 	LoadFromFile(const Filename: String; Force: Boolean = False): Boolean;
+		function 	LoadFromFile(const Filename: String{; Force: Boolean = False}): Boolean;
 		function 	SaveToFile(const Filename: String): Boolean;
 		function 	MergeWithFile(const Filename: String): Boolean;
 
@@ -324,7 +324,7 @@ type
 					_volume: ShortInt = -1; _start: Integer = 0; _length: Integer = 0);
 		procedure 	PlayVoice(var ch: TPTChannel);
 
-		procedure 	NextPosition;
+		procedure 	NextPosition(FromEditor: Boolean = False);
 		procedure 	IntMusic;
 
 		procedure 	ApplyAudioSettings;
@@ -642,9 +642,9 @@ procedure TPTChannel.Reset;
 begin
 	Note := nil;
 
-	n_start := 0;
-	n_wavestart := 0;
-	n_loopstart := 0;
+	n_start := -1;
+	n_wavestart := -1;
+	n_loopstart := -1;
 	n_volume := 0;
 	n_toneportdirec := 0;
 	n_vibratopos := 0;
@@ -1138,7 +1138,7 @@ begin
 	Temp.Free;
 end;
 
-function TPTModule.LoadFromFile(const Filename: String; Force: Boolean = False): Boolean;
+function TPTModule.LoadFromFile(const Filename: String{; Force: Boolean = False}): Boolean;
 const
 	TEXT_INVALIDMOD = 'Invalid .MOD file: ';
 var
@@ -1164,8 +1164,8 @@ var
 		if ModFile <> nil then
 			ModFile.Free;
 		Log(TEXT_FAILURE + 'Load failed: ' + Msg, Args);
-		if Force then
-			Log('-');
+		//if Force then
+		Log('-');
 	end;
 
 label
@@ -1182,13 +1182,13 @@ begin
 	//
 	if IsMaster then
 	begin
-		if not Force then
-		begin
+		{if not Force then
+		begin}
 			Log('-');
 			Log(TEXT_ACTION + 'Loading module: ' + Filename);
-		end
+		{end
 		else
-			Log(TEXT_INFO + 'Retrying using alternate method.');
+			Log(TEXT_INFO + 'Retrying using alternate method.');}
 	end;
 
 	Origin := 0;
@@ -1196,7 +1196,7 @@ begin
 	// if Force flag implies that the previous load attempt failed to recognize a valid
 	// module; try a more forceful method
 	//
-	if Force then
+	(*if Force then
 	begin
 		sFile := FileToString(Filename);
 		Origin := Pos('M.K.', sFile);
@@ -1214,7 +1214,7 @@ begin
 			Log('-');
 			Exit;
 		end;
-	end;
+	end;*)
 
 	Reset;
 	ModFile := TFileStreamEx.Create(Filename, fmOpenRead, fmShareDenyNone);
@@ -1376,9 +1376,8 @@ begin
 		for j := 0 to 21 do
 			s.Name[j] := AnsiChar(Max(32, ModFile.ReadByte));
 
-		s.Length := ModFile.Read16R;
-		if s.Length > 9999 then
-			lateVerSTKFlag := True; // Only used if mightBeSTK is set
+		s.Length := ModFile.Read16R * 2;
+		lateVerSTKFlag := (s.Length > 9999); // Only used if mightBeSTK is set
 
 		if Info.Format = FORMAT_FEST then
 			// One more bit of precision, + inverted
@@ -1389,17 +1388,17 @@ begin
 		s.Volume := Min(64, ModFile.ReadByte);
 
 		s.LoopStart  := ModFile.Read16R; // repeat
-		s.LoopLength := Max(ModFile.Read16R, 2); // replen
+		if (not mightBeSTK) then
+			s.LoopStart := s.LoopStart * 2;
+		s.LoopLength := Max(ModFile.Read16R * 2, 2); // replen
 
-		if (mightBeSTK) and (s.LoopStart > 0) then
-			s.LoopStart := s.LoopStart div 2;
+	//Log('Sam %.2d  Len=%8x  S=%7x  L=%7x',	[i+1, s.Length, s.LoopStart, s.LoopLength]);
 
 		// fix for poorly converted STK.PTMOD modules.
-		if (not mightBeSTK) and
-			(s.LoopLength > 2) and ((s.LoopStart + s.LoopLength) > s.Length) then
+		if (not mightBeSTK) and (s.LoopLength > 2) and (s.LoopStart + s.LoopLength > s.Length) then
 		begin
 			WarnText := Format('Sample %d has illegal loop.', [i+1]);
-			if ((s.LoopStart div 2) + s.LoopLength) <= s.Length then
+			if ((s.LoopStart div 2 + s.LoopLength) <= s.Length) then
 			begin
 				s.LoopStart := s.LoopStart div 2;
 				WarnText := WarnText + ' Loop start adjusted.';
@@ -1410,55 +1409,70 @@ begin
 		begin
 			if s.LoopLength > 2 then
 			begin
-				j := s.LoopStart;
 				s.Length       := Max(s.Length - s.LoopStart, 0);
+				s.tmpLoopStart := s.LoopStart;
 				s.LoopStart    := 0;
-				s.tmpLoopStart := j;
 			end;
-
-			// No finetune in STK/UST
-			s.Finetune := 0;
+			s.Finetune := 0; // No finetune in STK/UST
 		end;
 
 		// some modules are broken like this, adjust sample length if possible
-		if (s.LoopLength > 2) and ((s.LoopStart + s.LoopLength) > s.Length) then
+		if (s.LoopLength > 2) and (s.LoopStart + s.LoopLength > s.Length) then
 		begin
-			loopOverflow := (s.LoopStart + s.LoopLength) - s.Length;
-			if (s.Length + loopOverflow) <= 131070 then
+			WarnText := Format('Sample %d has illegal loop.', [i+1]);
+			loopOverflow := s.LoopStart + s.LoopLength - s.Length;
+			if (s.Length > 0) and ((s.Length + loopOverflow) <= 131070) then
 			begin
 				Inc(s.Length, loopOverflow);
-				WarnText := WarnText + ' Sample length adjusted.';
-			end
-			else
-			begin
-				// loop points are still illegal, deactivate loop
-				WarnText := WarnText + ' Loop deactivated.';
-				s.LoopStart  := 0;
-				s.LoopLength := 2;
+				WarnText := WarnText + Format(' Increased sample length by %d bytes.', [loopOverflow*2]);
 			end;
 		end;
 
-		if WarnText <> '' then
-			Log(TEXT_WARNING + WarnText);
+		if (s.Length > 0) and (WarnText <> '') then
+		begin
+			Log(TEXT_ERROR + WarnText);
+			Warnings := True;
+		end;
 	end;
 
 	// STK 2.5 had loopStart in words, not bytes. Convert if late version STK.
 	//
 	if mightBeSTK and lateVerSTKFlag then
 	begin
-		//Debug('%d Converting sample loops from STK.', [i+1]);
+		//Log('Converting sample loops from STK.');
 		for i := 0 to 15 do
 		begin
 			if SamplesOnly then
 				s := ImportInfo.Samples[i]
 			else
 				s := Samples[i];
-
 			if s.LoopStart > 2 then
 			begin
 				s.Length := s.Length - s.tmpLoopStart;
 				s.tmpLoopStart := s.tmpLoopStart * 2;
 			end;
+		end;
+	end;
+
+
+	if mightBeSTK then log('mightBeSTK');
+	if lateVerSTKFlag then log('lateVerSTKFlag');
+
+	for i := 0 to 30 do
+	begin
+		s := Samples[i];
+		s.Length := s.Length div 2;
+		s.LoopStart := s.LoopStart div 2;
+		s.LoopLength := s.LoopLength div 2;
+		if s.LoopStart + s.LoopLength > s.Length then
+		begin
+			if s.Length > 0 then
+			begin
+				Log(TEXT_ERROR + 'Sample %d has illegal loop. Loop deactivated.', [i+1]);
+				Warnings := True;
+			end;
+			s.LoopStart := 0;
+			s.LoopLength := 1;
 		end;
 	end;
 
@@ -1552,7 +1566,7 @@ begin
 		Exit;
 	end;
 
-	if Info.Format <> FORMAT_STK then	// The Ultimate SoundTracker MODs doesn't have this tag
+	if Info.Format <> FORMAT_STK then	// The Ultimate SoundTracker MODs don't have this tag
 		ModFile.Skip(4); 				// We already read/tested the tag earlier, skip it
 
 	// ======================================================================
@@ -1572,14 +1586,12 @@ begin
 
 				note.Pitch     := PeriodToNote(((bytes[0] and $0F) shl 8) or bytes[1]);
 				// Don't (!) clamp, the player checks for invalid samples
-				note.Sample    :=  (bytes[0] and $F0) or (bytes[2] shr 4);
+				note.Sample    := (bytes[0] and $F0) or (bytes[2] shr 4);
 				note.Command   := bytes[2] and $0F;
 				note.Parameter := bytes[3];
 				if note.Command = $C then
 					note.Parameter := Min(note.Parameter, 64);
-				//Note.Note      := PeriodToNote(note.Period);
-
-				if Note.Pitch >= 37 { = High(NoteText)} then
+				if Note.Pitch >= 37 then
 					Warnings := True;
 
 				if Info.Format = FORMAT_FEST then
@@ -1975,12 +1987,16 @@ begin
 		if (ch.n_funkoffset >= 128) then
 		begin
 			ch.n_funkoffset := 0;
-			Inc(ch.n_wavestart);
-			if (ch.n_wavestart >= (ch.n_loopstart + (ch.n_replen * 2))) then
-				ch.n_wavestart := ch.n_loopstart;
-			Samples[ch.n_sample].Data[ch.n_wavestart] :=
-				-1 - Samples[ch.n_sample].Data[ch.n_wavestart];
-			SampleChanged[ch.n_sample] := True;
+			if (ch.n_loopstart >= 0) and (ch.n_wavestart >= 0) then
+			begin
+				if not ch.Paula.HasSound then Exit;
+				Inc(ch.n_wavestart);
+				if (ch.n_wavestart >= (ch.n_loopstart + (ch.n_replen * 2))) then
+					ch.n_wavestart := ch.n_loopstart;
+				Samples[ch.n_sample].Data[ch.n_wavestart] :=
+					-1 - Samples[ch.n_sample].Data[ch.n_wavestart];
+				SampleChanged[ch.n_sample] := True;
+			end;
 		end;
 	end;
 end;
@@ -2041,26 +2057,32 @@ var
 	i, p: Integer;
 	Sam: TSample;
 begin
+	if not ch.Paula.HasSound then Exit;
 	if not Options.Audio.EnableKarplusStrong then Exit;
 
 	Sam := Samples[ch.n_sample];
     len := ((ch.n_replen * 2) and $FFFF) - 1;
 	p := ch.n_loopstart;
 
-	for i := 0 to len-1 do
+	if p >= 0 then
 	begin
-		Sam.Data[p] := SarSmallint(ShortInt(Sam.Data[p]) + ShortInt(Sam.Data[p+1]));
-		Inc(p);
-	end;
+		for i := 0 to len-1 do
+		begin
+			Sam.Data[p] := SarSmallint(ShortInt(Sam.Data[p]) + ShortInt(Sam.Data[p+1]));
+			Inc(p);
+		end;
 
-	Sam.Data[p] := SarSmallint(ShortInt(Sam.Data[ch.n_loopstart]) + ShortInt(Sam.Data[p]));
-	SampleChanged[ch.n_sample] := True;
+		Sam.Data[p] := SarSmallint(ShortInt(Sam.Data[ch.n_loopstart]) + ShortInt(Sam.Data[p]));
+		SampleChanged[ch.n_sample] := True;
+	end;
 end;
 
 procedure TPTModule.DoRetrg(var ch: TPTChannel);
 begin
 	with ch do
 	begin
+		if not Paula.HasSound then Exit;
+
 		Paula.SetData(n_sample, n_start); // n_start is increased on 9xx
 		Paula.SetLength(n_length);
 		Paula.SetPeriod(n_period);
@@ -2093,34 +2115,30 @@ begin
 	if (cmd and $F0) = 0 then
 	begin
 		Dec(ch.n_volume, (cmd and $0F));
-		if (ch.n_volume < 0) then
-			ch.n_volume := 0;
+		if ch.n_volume < 0 then ch.n_volume := 0;
 	end
 	else
 	begin
 		Inc(ch.n_volume, (cmd shr 4));
-		if (ch.n_volume > 64) then
-			ch.n_volume := 64;
+		if ch.n_volume > 64 then ch.n_volume := 64;
 	end;
 end;
 
 procedure TPTModule.VolumeFineUp(var ch: TPTChannel);
 begin
-	if (Counter = 0) then
+	if Counter = 0 then
 	begin
 		Inc(ch.n_volume, (ch.Note.Parameter and $0F));
-		if (ch.n_volume > 64) then
-			ch.n_volume := 64;
+		if ch.n_volume > 64 then ch.n_volume := 64;
 	end;
 end;
 
 procedure TPTModule.VolumeFineDown(var ch: TPTChannel);
 begin
-	if (Counter = 0) then
+	if Counter = 0 then
 	begin
 		Dec(ch.n_volume, (ch.Note.Parameter and $0F));
-		if (ch.n_volume < 0) then
-			ch.n_volume := 0;
+		if ch.n_volume < 0 then ch.n_volume := 0;
 	end;
 end;
 
@@ -2150,7 +2168,7 @@ end;
 
 procedure TPTModule.FunkIt(var ch: TPTChannel);
 begin
-	if (Counter = 0) then
+	if Counter = 0 then
 	begin
 		ch.n_glissfunk := ((ch.Note.Parameter and $0F) shl 4) or (ch.n_glissfunk and $0F);
 		if (ch.n_glissfunk and $F0) <> 0 then
@@ -2243,6 +2261,8 @@ var
 	dat: Byte;
 	arpPointer: PArrayOfSmallInt;
 begin
+	if not ch.Paula.HasSound then Exit;
+
 	dat := Counter mod 3;
 
 	case dat of
@@ -2264,6 +2284,8 @@ end;
 
 procedure TPTModule.PortaUp(var ch: TPTChannel);
 begin
+	if not ch.Paula.HasSound then Exit;
+
 	Dec(ch.n_period, ((ch.Note.Parameter) and LowMask));
 	LowMask := $FF;
 
@@ -2275,6 +2297,8 @@ end;
 
 procedure TPTModule.PortaDown(var ch: TPTChannel);
 begin
+	if not ch.Paula.HasSound then Exit;
+
 	Inc(ch.n_period, ((ch.Note.Parameter) and LowMask));
 	LowMask := $FF;
 
@@ -2293,7 +2317,7 @@ end;
 
 procedure TPTModule.FinePortaUp(var ch: TPTChannel);
 begin
-	if (Counter = 0) then
+	if Counter = 0 then
 	begin
 		LowMask := $0F;
 		PortaUp(ch);
@@ -2302,7 +2326,7 @@ end;
 
 procedure TPTModule.FinePortaDown(var ch: TPTChannel);
 begin
-	if (Counter = 0) then
+	if Counter = 0 then
 	begin
 		LowMask := $0F;
 		PortaDown(ch);
@@ -2315,6 +2339,8 @@ var
 	note: Word;
 	portaPointer: PArrayOfSmallInt;
 begin
+	if not ch.Paula.HasSound then Exit;
+
 	note := ch.n_note and $0FFF;
 	portaPointer := @PeriodTable[37 * ch.n_finetune];
 
@@ -2350,12 +2376,14 @@ var
 	i: Integer;
 	portaPointer: PArrayOfSmallInt;
 begin
-	if (ch.n_wantedperiod <> 0) then
+	if not ch.Paula.HasSound then Exit;
+
+	if ch.n_wantedperiod <> 0 then
 	begin
-		if (ch.n_toneportdirec <> 0) then
+		if ch.n_toneportdirec <> 0 then
 		begin
 			Dec(ch.n_period, ch.n_toneportspeed);
-			if (ch.n_period <= ch.n_wantedperiod) then
+			if ch.n_period <= ch.n_wantedperiod then
 			begin
 				ch.n_period := ch.n_wantedperiod;
 				ch.n_wantedperiod := 0;
@@ -2364,7 +2392,7 @@ begin
 		else
 		begin
 			Inc(ch.n_period, ch.n_toneportspeed);
-			if (ch.n_period >= ch.n_wantedperiod) then
+			if ch.n_period >= ch.n_wantedperiod then
 			begin
 				ch.n_period := ch.n_wantedperiod;
 				ch.n_wantedperiod := 0;
@@ -2372,27 +2400,23 @@ begin
 		end;
 
 		if (ch.n_glissfunk and $0F) = 0 then
-		begin
-			ch.Paula.SetPeriod(ch.n_period);
-		end
+			ch.Paula.SetPeriod(ch.n_period)
 		else
 		begin
 			portaPointer := @PeriodTable[37 * ch.n_finetune];
-
 			i := 0;
 			while True do
 			begin
-				// portaPointer[36] := 0, so i=36 is safe
-				if (ch.n_period >= portaPointer[i]) then
+				// portaPointer[36] = 0, so i=36 is safe
+				if ch.n_period >= portaPointer[i] then
 					Break;
 				Inc(i);
-				if (i >= 37) then
+				if i >= 37 then
 				begin
 					i := 35;
 					Break;
 				end;
 			end;
-
 			ch.Paula.SetPeriod(portaPointer[i]);
 		end;
 	end;
@@ -2411,18 +2435,18 @@ var
 	vibratoTemp: Byte;
 	vibratoData: Word;
 begin
+	if not ch.Paula.HasSound then Exit;
+
 	vibratoTemp := (ch.n_vibratopos div 4) and 31;
 	vibratoData := ch.n_wavecontrol and 3;
 
-	if (vibratoData = 0) then
-	begin
-		vibratoData := VibratoTable[vibratoTemp];
-	end
+	if vibratoData = 0 then
+		vibratoData := VibratoTable[vibratoTemp]
 	else
 	begin
-		if (vibratoData = 1) then
+		if vibratoData = 1 then
 		begin
-			if (ch.n_vibratopos < 0) then
+			if ch.n_vibratopos < 0 then
 				vibratoData := 255 - (vibratoTemp * 8)
 			else
 				vibratoData := vibratoTemp * 8;
@@ -2445,7 +2469,7 @@ end;
 
 procedure TPTModule.Vibrato(var ch: TPTChannel);
 begin
-	if (ch.Note.Parameter) <> 0 then
+	if ch.Note.Parameter <> 0 then
 	begin
 		if (ch.Note.Parameter and $0F) <> 0 then
 			ch.n_vibratocmd := (ch.n_vibratocmd and $F0) or (ch.Note.Parameter and $0F);
@@ -2606,43 +2630,44 @@ end;
 
 procedure TPTModule.SetPeriod(var ch: TPTChannel);
 var
-	i: Integer;
+	n, i: Integer;
 begin
-	for i := 0 to 36 do
-	begin
-		// PeriodTable[36] = 0, so i=36 is safe
-		if (ch.n_note >= PeriodTable[i]) then Break;
-	end;
+	n := -1;
+	for i := 0 to 36 do // PeriodTable[36] = 0, so i=36 is safe
+		if ch.n_note >= PeriodTable[i] then
+		begin
+			n := i;
+			Break;
+		end;
 
-	// BUG: yes it's 'safe' if i=37 because of padding at the end of period table
-	ch.n_period := PeriodTable[(37 * ch.n_finetune) + i];
+	ch.n_period := PeriodTable[37 * ch.n_finetune + n];
 
 	//if ((ch.n_cmd and $0FF0) <> $0ED0) then // no note delay
 	if (ch.Note.Command <> $E) or ((ch.Note.Parameter and $F0) <> $D0) then
 	begin
-		if ((ch.n_wavecontrol and $04) = 0) then ch.n_vibratopos := 0;
-		if ((ch.n_wavecontrol and $40) = 0) then ch.n_tremolopos := 0;
+		if (ch.n_wavecontrol and $04) = 0 then ch.n_vibratopos := 0;
+		if (ch.n_wavecontrol and $40) = 0 then ch.n_tremolopos := 0;
 
 		// pt2play <1.3
-		if (ch.n_length = 0) then
+		{if ch.n_length = 0 then
 		begin
-			ch.n_loopstart := 0;
+			ch.n_loopstart := -1;
 			ch.n_length := 1; // this must NOT be set to 0! 1 is the correct value
 			ch.n_replen := 1;
-		end;
+		end;}
 
 		with ch.Paula do
 		begin
 			SetLength(ch.n_length);
 			SetData(ch.n_sample, ch.n_start);
 
-			// pt2play 1.3
-			{if ch.n_start = 0 then
+			// pt2play 1.3+
+			if ch.n_start < 0 then
 			begin
-				ch.n_loopstart := 0;
+				ch.n_loopstart := -1;
 				SetLength(1);
 				ch.n_replen := 1;
-			end;}
+			end;
 
 			SetPeriod(ch.n_period);
 			RestartDMA;
@@ -2664,36 +2689,42 @@ procedure TPTModule.PlayVoice(var ch: TPTChannel);
 var
 	sample: Byte;
 	srepeat: Word;
+	Sam: TSample;
 begin
 	if (ch.n_note = 0) and (ch.Note.Command = 0) and (ch.Note.Parameter = 0) then
 		ch.Paula.SetPeriod(Word(ch.n_period));
 
 	ch.Note := @Notes[PlayPos.Pattern, ch.n_index, PlayPos.Row];
 
-	if ch.Note.Pitch > 0 then
+	if ch.Note.Pitch in [1..36] then
 		ch.n_note := PeriodTable[ch.Note.Pitch-1] and $0FFF
 	else
+	begin
 		ch.n_note := 0;
+		if ch.Note.Pitch > 36 then
+			SetPeriod(ch); // kill audio on invalid note
+	end;
 
-	// SAFETY BUG FIX: don't handle sample-numbers >31
+	// SAFETY BUG FIX: don't handle samples >31
 	sample := ch.Note.Sample;
 	if (sample >= 1) and (sample <= 31) then
 	begin
 		Dec(sample);
+		Sam := Samples[sample];
 
 		ch.n_sample   := sample;
 		ch.n_start    := 0; // Data[0]
-		ch.n_finetune := Samples[sample].Finetune;
-		ch.n_volume   := Samples[sample].Volume;
-		ch.n_length   := Samples[sample].Length and $FFFF; // limit to 127K
-		ch.n_replen   := Samples[sample].LoopLength;
-		srepeat       := Samples[sample].LoopStart;
+		ch.n_finetune := Sam.Finetune;
+		ch.n_volume   := Sam.Volume;
+		ch.n_length   := Sam.Length and $FFFF; // limit to 127K
+		ch.n_replen   := Sam.LoopLength;
+		srepeat       := Sam.LoopStart;
 
 		ch.Paula.Sample := sample;
 		if ch.Paula.Enabled then
-			Samples[sample].Age := 3;
+			Sam.Age := 3;
 
-		if (srepeat > 0) then
+		if srepeat > 0 then
 		begin
 			ch.n_loopstart := ch.n_start + (srepeat * 2);
 			ch.n_wavestart := ch.n_loopstart;
@@ -2703,6 +2734,13 @@ begin
 		begin
 			ch.n_loopstart := ch.n_start;
 			ch.n_wavestart := ch.n_start;
+		end;
+
+		if ch.n_length = 0 then
+		begin
+			ch.Paula.QueuedSample := -1;
+			ch.n_loopstart := -1;
+			ch.n_wavestart := -1;
 		end;
 	end;
 
@@ -2736,7 +2774,7 @@ begin
 		CheckMoreEffects(ch);
 end;
 
-procedure TPTModule.NextPosition;
+procedure TPTModule.NextPosition(FromEditor: Boolean = False);
 var
 	NewOrder: Byte;
 begin
@@ -2753,8 +2791,13 @@ begin
 			RenderInfo.HasBeenPlayed := True;
 		end;
 
-		PlayPos.Order := NewOrder;
-		PlayPos.Pattern := OrderList[NewOrder];
+		if FromEditor then
+			Play(NewOrder, 0)
+		else
+		begin
+			PlayPos.Order := NewOrder;
+			PlayPos.Pattern := OrderList[NewOrder];
+		end;
 
 		if RenderMode = RENDER_NONE then
 			PostMessagePtr(MSG_ORDERCHANGE, @PlayPos);
@@ -2846,9 +2889,7 @@ begin
 		NextPosition
 	else
 	if RenderMode = RENDER_NONE then
-	begin
-        PostMessagePtr(MSG_ROWCHANGE, @PlayPos);
-	end
+        PostMessagePtr(MSG_ROWCHANGE, @PlayPos)
 	else
 	if PattDelTime2 = 0 then
 	begin
@@ -2941,7 +2982,10 @@ begin
 	Reset;
 
 	for i := 0 to AMOUNT_CHANNELS-1 do
+	begin
+		Channel[i].Paula.Kill;
 		Channel[i].Note := @Notes[pattern, i, 0];
+	end;
 
 	if Options.Tracker.RestoreSamples then
 		for i := 0 to Samples.Count-1 do
@@ -3048,7 +3092,7 @@ begin
 	if not ch.Enabled then Exit;
 
 	sample := Samples[Note.Sample-1];
-	if sample.Length = 0 then
+	if (sample.Length = 0) or (Note.Pitch = 0) then
 	begin
 		ch.Paula.Kill;
 		Exit;
@@ -3064,9 +3108,9 @@ begin
 	ch.n_period   := PeriodTable[(37 * sample.Finetune) + Note.Pitch - 1];
 	ch.n_finetune := sample.Finetune;
 	if Vol > 64 then
-		ch.n_volume   := sample.Volume
+		ch.n_volume := sample.Volume
 	else
-		ch.n_volume   := Min(Vol, 64);
+		ch.n_volume := Min(Vol, 64);
 	ch.n_length   := sample.Length;
 	ch.n_replen   := sample.LoopLength;
 	srepeat       := sample.LoopStart;
@@ -3210,11 +3254,11 @@ begin
 		bVol := @BlepVol[i];
 		v := Channel[i].Paula;
 
-		if (Channel[i].Enabled) and (v.DELTA > 0.0) then
+		if v.DELTA > 0.0 then
 		begin
 			for j := 0 to numSamples-1 do
 			begin
-				if v.DMA_DAT = nil then
+				if (v.DMA_DAT = nil) or (not v.HasSound) then
 				begin
 					tempSample := 0.0;
 					tempVolume := 0.0;
@@ -3239,9 +3283,9 @@ begin
 					bVol.lastValue := tempVolume;
 				end;
 
-				if (bSmp.samplesLeft > 0) then
+				if bSmp.samplesLeft > 0 then
 					tempSample := tempSample + BlepRun(bSmp);
-				if (bVol.samplesLeft > 0) then
+				if bVol.samplesLeft > 0 then
 					tempVolume := tempVolume + BlepRun(bVol);
 
 				tempSample := tempSample * tempVolume;
@@ -3250,6 +3294,9 @@ begin
 				if scopesOffset >= 0 then
 					ScopeBuffer[i, j+scopesOffset] :=
 						CLAMP(Trunc(tempSample * Amp2), -32768, 32767);
+
+				if not Channel[i].Enabled then
+					tempSample := 0;
 
 				masterBufferL[j] := masterBufferL[j] + (tempSample * v.PANL);
 				masterBufferR[j] := masterBufferR[j] + (tempSample * v.PANR);
@@ -3261,7 +3308,10 @@ begin
 					v.LASTFRAC := v.FRAC;
 					v.LASTDELTA := v.DELTA;
 
-					Sam := Samples[v.Sample];
+					if v.Sample < 0 then
+						Sam := EmptySample
+					else
+						Sam := Samples[v.Sample];
 
 					Inc(v.DMA_POS);
 					if v.DMA_POS >= v.DMA_LEN then

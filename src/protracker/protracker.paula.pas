@@ -3,12 +3,14 @@ unit ProTracker.Paula;
 interface
 
 uses
-	ProTracker.Util;
+	ProTracker.Util,
+	ProTracker.Sample;
 
 type
 	TPaulaVoice = class
 	public
-		Enabled: Boolean;
+		Enabled,
+		HasSound: Boolean;
 
 		SRC_DAT: PArrayOfShortInt;
 		SRC_LEN: uint32;
@@ -27,7 +29,7 @@ type
 		Volume: Single;
 
 		Sample,
-		QueuedSample: Byte;
+		QueuedSample: SmallInt;
 		QueuedOffset: Cardinal;
 		PlayPos:      Integer;
 
@@ -36,17 +38,21 @@ type
 		procedure Kill;
 		procedure TurnOffDMA; inline;
 		procedure RestartDMA;
-		procedure SetData(NewSample, NewOffset: Cardinal); inline; // can't inline due to compiler bug!
+		procedure SetData(NewSample: Byte; NewOffset: Integer); inline;
 		procedure SetDataPtr(const src: PArrayOfShortInt); inline;
 		procedure SetLength(len: Cardinal); inline;
 		procedure SetPeriod(period: Word); inline;
 		procedure SetVolume(vol: Word);
 	end;
 
+var
+	EmptySample: TSample;
+
 
 implementation
 
 uses
+	Math,
 	ProTracker.Player;
 
 
@@ -59,7 +65,7 @@ begin
 	SRC_DAT := nil;
 	DMA_DAT := nil;
 
-	Sample := 31;
+	Sample := -1;
 	QueuedSample := Sample;
 end;
 
@@ -73,15 +79,17 @@ begin
 	FRAC := 0.0;
 	DMA_POS := 0;
 	DMA_DAT := SRC_DAT;
-	DMA_LEN := SRC_LEN;
+	DMA_LEN := Max(SRC_LEN, 2);
 	PlayPos := -1;
 	Sample := QueuedSample;
 
-	if Enabled then
-	with Module.Samples[Sample] do
+	if (Enabled) and (Sample >= 0) and (Sample < Module.Samples.Count) then
 	begin
-		PlayPos := QueuedOffset;
-		Age := 6;//Trunc(6 * SRC_VOL) + 2;
+		with Module.Samples[Sample] do
+		begin
+			PlayPos := QueuedOffset;
+			Age := 6;//Trunc(6 * SRC_VOL) + 2;
+		end;
 	end;
 
 	QueuedOffset := 0;
@@ -102,19 +110,24 @@ begin
 	LASTFRAC  := 0;
 	Volume  := 0;
 	PlayPos := -1;
+	Sample := -1;
+	QueuedSample := -1;
+	HasSound := False;
 end;
 
 procedure TPaulaVoice.SetPeriod(period: Word);
 begin
 	// This is what really happens on Paula on a real Amiga
 	// on normal video modes. Tested and confirmed by 8bitbubsy!
-	if period = 0 then
-		DELTA := 0.0
+	if period > 0 then
+	begin
+		DELTA := (PAULA_PAL_CLK / Max(period, 113)) / f_outputFreq;
+		HasSound := True;
+	end
 	else
 	begin
-		if period < 113 then
-			period := 113;
-		DELTA := (PAULA_PAL_CLK / period) / f_outputFreq;
+		DELTA := 0.0;
+		HasSound := False;
 	end;
 	if LASTDELTA = 0.0 then
 		LASTDELTA := DELTA;
@@ -140,18 +153,36 @@ begin
 	SRC_LEN := len * 2;
 end;
 
-procedure TPaulaVoice.SetData(NewSample, NewOffset: Cardinal);
+procedure TPaulaVoice.SetData(NewSample: Byte; NewOffset: Integer);
 begin
-	SRC_DAT := @Module.Samples[NewSample].Data[NewOffset];
-	QueuedSample := NewSample;
-	QueuedOffset := NewOffset;
+	if NewOffset >= 0 then
+	begin
+		SRC_DAT := @Module.Samples[NewSample].Data[NewOffset];
+		QueuedSample := NewSample;
+		QueuedOffset := NewOffset;
+	end
+	else
+		SetDataPtr(nil);
 end;
 
 procedure TPaulaVoice.SetDataPtr(const src: PArrayOfShortInt);
 begin
-	SRC_DAT := src;
-	//if src = nil then TurnOffDMA;
+	if src <> nil then
+		SRC_DAT := src
+	else
+	begin
+		SRC_DAT := @EmptySample.Data[0];
+		QueuedSample := -1;
+	end;
 end;
 
+initialization
+
+	EmptySample := TSample.Create;
+	EmptySample.Resize(16);
+
+finalization
+
+	EmptySample.Free;
 
 end.
