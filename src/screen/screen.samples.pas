@@ -121,6 +121,7 @@ type
 					ModalResult: Integer; Data: Variant; Dlg: TCWEDialog);
 		procedure 	ResampleDialog(ShowDialog: Boolean);
 		procedure 	DoResampleAfterDialog;
+		procedure 	ShowEvent(Sender: TCWEControl);
 		function 	OnContextMenu: Boolean; override;
 
 		procedure 	AfterSampleLoaded(const Sam: TSample);
@@ -443,6 +444,7 @@ begin
 		AdjustScrollbar;
 	end;
 
+	OnShow := ShowEvent;
 	ActiveControl := SampleList;
 	LoadLayout(Self);
 end;
@@ -715,6 +717,12 @@ begin
 	);
 
 	UpdateSampleInfo;
+end;
+
+procedure TSampleScreen.ShowEvent(Sender: TCWEControl);
+begin
+	SampleList.Cursor.X := SampleList.LENGTH_SAMPLETEXT;
+	ActivateControl(SampleList);
 end;
 
 function TSampleScreen.OnContextMenu: Boolean;
