@@ -71,7 +71,8 @@ type
 		keyBlockSwap,				keyToggleEditMask,
 		keyTransposeSemitoneUp,		keyTransposeSemitoneDown,
 		keyTransposeOctaveUp,		keyTransposeOctaveDown,
-		keyChannelToggle,			keyChannelSolo
+		keyChannelToggle,			keyChannelSolo,
+		keyPatternInsert,			keyPatternDelete
 	);
 
 	TEditCursor = record
@@ -119,18 +120,25 @@ type
 		EditMask:	array[EM_SAMPLE..EM_EFFECT] of Boolean;
 
 		procedure 	SetModified(B: Boolean = True; Force: Boolean = False);
+		procedure 	SelectChannel(Ch: Integer);
 		procedure	ValidateCursor;
+		procedure 	Advance;
 
 		function 	GetNote(Pattern, Channel, Row: Byte): PNote;
 		function 	IsValidPosition(Pattern, Channel, Row: Byte): Boolean;
 		function 	SetNote(Pattern, Channel, Row: Byte; Note: TNote;
 					Masked: Boolean = False): Boolean;
+		function 	PrepareSelectionForRender: Byte;
 
 		procedure 	InsertNote(Pattern, Channel, Row: Byte; WholePattern: Boolean = False);
 		procedure 	DeleteNote(Pattern, Channel, Row: Byte; WholePattern: Boolean = False);
 
 		procedure 	NoteTranspose(Pattern, Channel, Row: Byte; Semitones: ShortInt);
 		procedure 	Transpose(Semitones: ShortInt);
+
+		procedure 	InsertPattern;
+		procedure 	DeletePattern(i: Byte);
+		procedure 	ExchangePatterns(A, B: Byte);
 
 		procedure 	BufferClear(R: TRect; Masked: Boolean = False);
 		procedure 	BufferCopy(R: TRect);
@@ -140,12 +148,8 @@ type
 		procedure	BlockWipeEffects;
 		procedure	BlockSlideEffect;
 		procedure 	BlockSetSample;
-		function 	PrepareSelectionForRender: Byte;
 
 		procedure 	ReplaceSample(iFrom, iTo: Byte);
-
-		procedure 	SelectChannel(Ch: Integer);
-		procedure 	Advance;
 
 		procedure 	MessageText(const S: String); inline;
 		procedure 	SaveModule(const Filename: String = '');
@@ -241,7 +245,7 @@ begin
 		Bind(keyNoteGGhi, 'Note.G#hi', '6');	Bind(keyNoteA_hi, 'Note.A-hi', 'Y');
 		Bind(keyNoteAAhi, 'Note.A#hi', '7');	Bind(keyNoteB_hi, 'Note.B-hi', 'U');
 
-		//Bind(keyNoteModifierPreview,	'Note.Modifier.Preview','Shift', True);
+		//Bind(keyNoteModifierPreview,	'Note.Modifier.Preview',	'Shift', True);
 		Bind(keyToggleEditMask,			'Toggle.EditMask',			',');
 		Bind(keyNoteClear,				'Note.Clear', 				'.');
 		Bind(keyNoteDelete,				'Note.Delete', 				'Delete');
@@ -274,7 +278,7 @@ begin
 		Bind(keySelectOctaveLo,			'Select.Octave.Lo', 		'Keypad /');
 		Bind(keySelectOctaveHi,			'Select.Octave.Hi', 		'Keypad *');
 		Bind(keySelectSampleNext,		'Select.Sample.Next', 		['Ctrl+Down', '>']);
-		Bind(keySelectSamplePrev,		'Select.Sample.Prev', 		['Ctrl+Up', '<']);
+		Bind(keySelectSamplePrev,		'Select.Sample.Prev', 		['Ctrl+Up',   '<']);
 		Bind(keyBlockMarkStart,			'Block.MarkStart',	 		'Alt+B');
 		Bind(keyBlockMarkEnd,			'Block.MarkEnd', 			'Alt+E');
 		Bind(keyBlockMarkWhole,			'Block.MarkWhole', 			'Alt+L');
@@ -300,6 +304,8 @@ begin
 		Bind(keyTransposeOctaveDown,	'Transpose.Octave.Down', 	'Shift+Alt+A');
 		Bind(keyChannelToggle,			'Channel.Toggle', 			'Alt+F9');
 		Bind(keyChannelSolo,			'Channel.Solo', 			'Alt+F10');
+		Bind(keyPatternInsert,			'Pattern.Insert',			'Ctrl+Insert');
+		Bind(keyPatternDelete,			'Pattern.Delete',			'Ctrl+Delete');
 	end;
 
 	ColorBack := 0;
@@ -334,7 +340,10 @@ begin
 		begin
 			Module.Info.PatternCount := CurrentPattern;
 			Editor.UpdateInfoLabels(True);
-		end;
+		end
+		else
+		if Force then
+			Editor.UpdateInfoLabels(True);
 	end;
 
 	if (not Force) and (B = Module.Modified) then Exit;
@@ -803,6 +812,78 @@ begin
 	Module.SetModified;
 end;
 
+procedure TPatternEditor.ExchangePatterns(A, B: Byte);
+var
+	c, y: Integer;
+	Temp: TNote;
+begin
+	for c := 0 to AMOUNT_CHANNELS-1 do
+	for y := 0 to 63 do
+	begin
+		Temp := Module.Notes[B, c, y];
+		Module.Notes[B, c, y] := Module.Notes[A, c, y];
+		Module.Notes[A, c, y] := Temp;
+	end;
+	Module.SetModified;
+end;
+
+procedure TPatternEditor.InsertPattern;
+var
+	p, c, y: Integer;
+begin
+	if Module.Info.PatternCount < MAX_PATTERNS-1 then
+	begin
+		for p := Module.Info.PatternCount downto CurrentPattern do
+			for c := 0 to AMOUNT_CHANNELS-1 do
+			for y := 0 to 63 do
+				Module.Notes[p+1, c, y] := Module.Notes[p, c, y];
+
+		for c := 0 to AMOUNT_CHANNELS-1 do
+		for y := 0 to 63 do
+			Module.Notes[CurrentPattern, c, y] := EmptyNote;
+
+		for c := 0 to Module.Info.OrderCount-1 do
+			if Module.OrderList[c] >= CurrentPattern then
+				Module.OrderList[c] := Module.OrderList[c] + 1;
+
+		Inc(Module.Info.PatternCount);
+		Module.SetModified(True, True);
+	end
+	else
+		ModalDialog.ShowMessage('Insert pattern', 'No room to insert a new pattern!');
+end;
+
+procedure TPatternEditor.DeletePattern(i: Byte);
+var
+	p, c, y: Integer;
+begin
+	if (Module.Info.PatternCount < 1) or (i >= MAX_PATTERNS) then Exit;
+
+	for p := i to Module.Info.PatternCount-1 do
+		for c := 0 to AMOUNT_CHANNELS-1 do
+		for y := 0 to 63 do
+			Module.Notes[p, c, y] := Module.Notes[p+1, c, y];
+
+	for c := 0 to AMOUNT_CHANNELS-1 do
+	for y := 0 to 63 do
+		Module.Notes[Module.Info.PatternCount, c, y] := EmptyNote;
+
+	for y := Module.Info.OrderCount-1 downto 0 do
+	begin
+		if Module.OrderList[y] = i then
+		begin
+			Module.OrderList.Delete(y);
+			Dec(Module.Info.OrderCount);
+		end
+		else
+		if Module.OrderList[y] > i then
+			Module.OrderList[y] := Module.OrderList[y] - 1;
+	end;
+
+	Dec(Module.Info.PatternCount);
+	Module.SetModified(True, True);
+end;
+
 procedure TPatternEditor.Advance;
 begin
 	if (Cursor.Row + NoteStep) > 63 then Exit;
@@ -968,10 +1049,7 @@ begin
 
 		keyNotePlay:	// 4
 		begin
-			if Cursor.Note.Pitch > 0 then
-				Module.PlayNote(Cursor.Note, Cursor.Channel);
-				{Module.PlaySample(GetPeriodTableOffset(Cursor.Note.Period),
-					Cursor.Note.Sample, Cursor.Channel);}
+			Module.PlayNote(Cursor.Note, Cursor.Channel);
 			Result := True;
 		end;
 
@@ -1570,6 +1648,20 @@ begin
 			Editor.ToggleChannelSolo(Cursor.Channel);
 		end;
 
+		// Pattern insertion/deletion
+
+		keyPatternInsert:
+		begin
+			Result := True;
+			InsertPattern;
+		end;
+
+		keyPatternDelete:
+		begin
+			Result := True;
+			DeletePattern(CurrentPattern);
+		end;
+
 		// Misc
 
 		keySelectSamplePrev:
@@ -1791,11 +1883,20 @@ function TPatternEditor.MouseDown(Button: TMouseButton; X, Y: Integer; P: TPoint
 var
 	Chan: Byte;
 begin
-	if P.X < 3 then Exit(False);
+	Result := True;
+
+	if P.X < 2 then // row number clicked
+	begin
+		Cursor.Row := P.Y + ScrollPos;
+		if Button = mbRight then // center row using right button
+			ScrollPos := Cursor.Row - 16;
+		ValidateCursor;
+		Exit;
+	end;
 
 	P.X := P.X - 3;
+	if P.X < 0 then Exit(False);
 	Chan := P.X div (Width div 4);
-	Result := True;
 
 	case Button of
 
@@ -1874,7 +1975,7 @@ begin
 	Time.Start;
 	{$ENDIF}
 
-	if (FollowPlayback) and (Options.Tracker.CenterPlayback) then
+	if (FollowPlayback) and {(Module.PlayMode = PLAY_SONG) and }(Options.Tracker.CenterPlayback) then
 		ScrPos := Module.PlayPos.Row - 16
 	else
 	begin
