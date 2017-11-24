@@ -407,7 +407,7 @@ end;
 function RegisterLayoutControl;
 var
 	RC: TRegisteredControl;
-	S: String;
+//	S: String;
 begin
 	if IsControlRegistered(Ctrl) then Exit(nil);
 
@@ -426,7 +426,7 @@ begin
 	else
 	if Ctrl is TCWEMemo 	then S := 'Memo'
 	else
-}		S := '';
+		S := '';}
 
 	RC.AllowDelete := not Ctrl.IsProtected;
 

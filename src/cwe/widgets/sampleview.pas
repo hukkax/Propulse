@@ -49,7 +49,6 @@ type
 		procedure	SetSample(const Sample: TSample);
 		procedure 	InitCachedBitmap;
 
-		function 	SampleToPixelPos(pos: Integer): Integer; inline;
 		function 	PixelToSamplePos(x, mx: Integer): Integer; inline;
 		function 	PixelToSampleValue(Y: Integer): SmallInt; inline;
 		function 	GetSampleY(X: Integer): Integer; inline;
@@ -64,6 +63,8 @@ type
 		procedure	DrawWaveform;
 		procedure	SetViewport(aL, aR: Integer);
 		procedure 	Zoom(ZoomIn: Boolean; X: Integer = -1);
+
+		function 	SampleToPixelPos(pos: Integer): Integer; inline;
 
 		function	MouseDownEvent(Sender: TCWEControl;
 					Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
@@ -289,7 +290,7 @@ begin
 		//
 		if (FSample.LoopLength > 1) or (FSample.LoopStart > 0) then
 		begin
-			x := Cardinal(x1 + SampleToPixelPos(FSample.LoopStart * 2));
+			x := x1 + SampleToPixelPos(FSample.LoopStart * 2);
 
 			if (x - PixelRect.Left) >= BOXSIZE then
 				BoxL := Bounds(x-BOXSIZE, y1, BOXSIZE, BOXSIZE)

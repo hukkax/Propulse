@@ -611,7 +611,7 @@ begin
 
 		ItemList := TCWEMemo.Create(Dlg, '', 'Items',
 			Types.Rect(1, H, W-1, H+LH-1));
-		ItemList.Scrollbar.Visible := False;
+		ItemList.Scrollbar.Visible := True;
 		ItemList.Border.Pixel := True;
 		ItemList.WantKeyboard := False;
 

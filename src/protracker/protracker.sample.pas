@@ -79,16 +79,16 @@ type
 		Name:			packed array [0..21] of AnsiChar;
 		Finetune:		ShortInt;
 		Volume:			Byte;
-		Length:			Cardinal;	// data length in words
+		Length:			Cardinal;		// data length in words
 		BackupLength:	Word;
 		LoopStart,
 		LoopLength,
 		TempLoopStart,
 		TempLoopLength,
-		tmpLoopStart:	Word;		// positions in words
+		tmpLoopStart:	Cardinal;		// positions in words
 		Age: 			ShortInt;
 		FileOffset:		Cardinal;
-		Index:			Byte; // 1-based!
+		Index:			Byte; 			// 1-based!
 
 		function 		IsEmpty: Boolean; inline;
 		function 		IsLooped: Boolean; inline;
