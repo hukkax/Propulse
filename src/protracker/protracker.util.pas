@@ -6,9 +6,9 @@ uses
 	ConfigurationManager, Types;
 
 const
-	VERSION  =  '0.9.5.5';
+	VERSION  =  '0.9.6.0';
 
-	URL = 'http://hukka.yiff.fi/propulse/';
+	URL = 'http://hukka.ncn.fi/propulse/';
 
 	// ========================================================================
 	// Default files
@@ -164,7 +164,7 @@ var
 	Locked, FollowPlayback: Boolean;
 	Options: TPoroTrackerConfiguration;
 	ConfigManager: TConfigurationManager;
-	TextVals, HexVals: array [0..255] of AnsiString;
+	TextVals, TextVals3, HexVals: array [0..255] of AnsiString;
 
 const
 	VSYNC_AUTO	= 0;
@@ -634,10 +634,12 @@ initialization
 
 	DebugLogger.LogName := 'debug.txt';
 
+	for i := 0 to 99 do
+		TextVals[i] := Format('%.2d', [i]);
 	for i := 0 to 255 do
 	begin
-		TextVals[i] := Format('%.2d', [i]);
-		HexVals[i]  := IntToHex(i, 2);
+		TextVals3[i] := Format('%.3d', [i]);
+		HexVals[i]   := IntToHex(i, 2);
 	end;
 
 end.
