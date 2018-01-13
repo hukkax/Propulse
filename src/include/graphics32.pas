@@ -94,14 +94,21 @@ type
 		procedure 	FrameRect(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
 		procedure 	Clear(FillColor: TColor32);
 		procedure 	HorzLine(X1, Y, X2: Integer; Value: TColor32);
+		procedure 	HorzLineS(X1, Y, X2: Integer; Value: TColor32);
 		procedure 	VertLine(X, Y1, Y2: Integer; Value: TColor32);
+		procedure 	VertLineS(X, Y1, Y2: Integer; Value: TColor32);
 		procedure 	Line(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
+		procedure 	LineS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 		procedure 	LineTo(X, Y: Integer; PenColor: TColor32);
+		procedure 	LineToS(X, Y: Integer; PenColor: TColor32);
 
 		procedure	SetPixel(X, Y: Integer; Value: TColor32); inline;
+		procedure	SetPixelS(X, Y: Integer; Value: TColor32); inline;
 		function	GetPixel(X, Y: Integer): TColor32; inline;
+		function	GetPixelS(X, Y: Integer): TColor32; inline;
 
 		property	Pixel[X, Y: Integer]: TColor32 read GetPixel write SetPixel; default;
+		property	PixelS[X, Y: Integer]: TColor32 read GetPixelS write SetPixelS;
 	    property 	PixelPtr[X, Y: Integer]: PColor32 read GetPixelPtr;
 
 		constructor Create;
@@ -162,6 +169,11 @@ end;
 { ============================================================================}
 { TBitmap32 }
 { ============================================================================}
+
+constructor TBitmap32.Create;
+begin
+	ResetClipRect;
+end;
 
 function TBitmap32.SaneCoords(X1, Y1, X2, Y2: Integer): Boolean;
 begin
@@ -232,14 +244,25 @@ begin
 	Result := Bits[X + Y * Width];
 end;
 
-constructor TBitmap32.Create;
-begin
-	ResetClipRect;
-end;
-
 procedure TBitmap32.SetPixel(X, Y: Integer; Value: TColor32);
 begin
 	Bits[X + Y * Width] := Value;
+end;
+
+function TBitmap32.GetPixelS(X, Y: Integer): TColor32;
+begin
+	if (X >= ClipRect.Left) and (X < ClipRect.Right) and
+		(Y >= ClipRect.Top) and (Y < ClipRect.Bottom) then
+		Result := Bits[X + Y * Width]
+	else
+		Result := 0;//OuterColor;
+end;
+
+procedure TBitmap32.SetPixelS(X, Y: Integer; Value: TColor32);
+begin
+  if (X >= ClipRect.Left) and (X < ClipRect.Right) and
+	(Y >= ClipRect.Top) and (Y < ClipRect.Bottom) then
+		Bits[X + Y * Width] := Value;
 end;
 
 procedure TBitmap32.LoadFromFile(const Filename: String);
@@ -336,6 +359,13 @@ begin
 	end;
 end;
 
+procedure TBitmap32.HorzLineS(X1, Y, X2: Integer; Value: TColor32);
+begin
+	if (Y >= ClipRect.Top) and (Y < ClipRect.Bottom) and
+		TestClip(X1, X2, ClipRect.Left, ClipRect.Right) then
+			HorzLine(X1, Y, X2, Value);
+end;
+
 procedure TBitmap32.VertLine(X, Y1, Y2: Integer; Value: TColor32);
 var
 	I, NH, NL: Integer;
@@ -361,6 +391,13 @@ begin
 			P^ := Value; Inc(P, Width);
 		end;
 	end;
+end;
+
+procedure TBitmap32.VertLineS(X, Y1, Y2: Integer; Value: TColor32);
+begin
+	if (X >= ClipRect.Left) and (X < ClipRect.Right) and
+		TestClip(Y1, Y2, ClipRect.Top, ClipRect.Bottom) then
+			VertLine(X, Y1, Y2, Value);
 end;
 
 procedure TBitmap32.Line(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
@@ -437,9 +474,192 @@ begin
     if L then P^ := Value;
 end;
 
+procedure TBitmap32.LineS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
+var
+  Dx2, Dy2,Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, rem, term, e: Integer;
+  OC: Int64;
+  Swapped, CheckAux: Boolean;
+  P: PColor32;
+  ChangedRect: TRect;
+begin
+    Dx := X2 - X1; Dy := Y2 - Y1;
+
+    // check for trivial cases...
+    if Dx = 0 then // vertical line?
+    begin
+      if Dy > 0 then VertLineS(X1, Y1, Y2 - 1, Value)
+      else if Dy < 0 then VertLineS(X1, Y2 + 1, Y1, Value);
+      if L then PixelS[X2, Y2] := Value;
+      Exit;
+    end
+    else if Dy = 0 then // horizontal line?
+    begin
+      if Dx > 0 then HorzLineS(X1, Y1, X2 - 1, Value)
+      else if Dx < 0 then HorzLineS(X2 + 1, Y1, X1, Value);
+      if L then PixelS[X2, Y2] := Value;
+      Exit;
+    end;
+
+    Cx1 := ClipRect.Left; Cx2 := ClipRect.Right - 1;
+    Cy1 := ClipRect.Top;  Cy2 := ClipRect.Bottom - 1;
+
+    if Dx > 0 then
+    begin
+      if (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
+      Sx := 1;
+    end
+    else
+    begin
+      if (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
+      Sx := -1;
+      X1 := -X1;   X2 := -X2;   Dx := -Dx;
+      Cx1 := -Cx1; Cx2 := -Cx2;
+      Swap(Cx1, Cx2);
+    end;
+
+    if Dy > 0 then
+    begin
+      if (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
+      Sy := 1;
+    end
+    else
+    begin
+      if (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
+      Sy := -1;
+      Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
+      Cy1 := -Cy1; Cy2 := -Cy2;
+      Swap(Cy1, Cy2);
+    end;
+
+    if Dx < Dy then
+    begin
+      Swapped := True;
+      Swap(X1, Y1); Swap(X2, Y2); Swap(Dx, Dy);
+      Swap(Cx1, Cy1); Swap(Cx2, Cy2); Swap(Sx, Sy);
+    end
+    else
+      Swapped := False;
+
+    // Bresenham's set up:
+    Dx2 := Dx shl 1; Dy2 := Dy shl 1;
+    xd := X1; yd := Y1; e := Dy2 - Dx; term := X2;
+    CheckAux := True;
+
+    // clipping rect horizontal entry
+    if Y1 < Cy1 then
+    begin
+      OC := Int64(Dx2) * (Cy1 - Y1) - Dx;
+      Inc(xd, OC div Dy2);
+      rem := OC mod Dy2;
+      if xd > Cx2 then Exit;
+      if xd >= Cx1 then
+      begin
+        yd := Cy1;
+        Dec(e, rem + Dx);
+        if rem > 0 then
+        begin
+          Inc(xd);
+          Inc(e, Dy2);
+        end;
+        CheckAux := False; // to avoid ugly goto we set this to omit the next check
+      end;
+    end;
+
+    // clipping rect vertical entry
+    if CheckAux and (X1 < Cx1) then
+    begin
+      OC := Int64(Dy2) * (Cx1 - X1);
+      Inc(yd, OC div Dx2);
+      rem := OC mod Dx2;
+      if (yd > Cy2) or (yd = Cy2) and (rem >= Dx) then Exit;
+      xd := Cx1;
+      Inc(e, rem);
+      if (rem >= Dx) then
+      begin
+        Inc(yd);
+        Dec(e, Dx2);
+      end;
+    end;
+
+    // set auxiliary var to indicate that term is not clipped, since
+    // term still has the unclipped value assigned at setup.
+    CheckAux := False;
+
+    // is the segment exiting the clipping rect?
+    if Y2 > Cy2 then
+    begin
+      OC := Int64(Dx2) * (Cy2 - Y1) + Dx;
+      term := X1 + OC div Dy2;
+      rem := OC mod Dy2;
+      if rem = 0 then Dec(term);
+      CheckAux := True; // set auxiliary var to indicate that term is clipped
+    end;
+
+    if term > Cx2 then
+    begin
+      term := Cx2;
+      CheckAux := True; // set auxiliary var to indicate that term is clipped
+    end;
+
+    Inc(term);
+
+    if Sy = -1 then
+      yd := -yd;
+
+    if Sx = -1 then
+    begin
+      xd := -xd;
+      term := -term;
+    end;
+
+    Dec(Dx2, Dy2);
+
+    if Swapped then
+    begin
+      PI := Sx * Width;
+      P := @Bits[yd + xd * Width];
+    end
+    else
+    begin
+      PI := Sx;
+      Sy := Sy * Width;
+      P := @Bits[xd + yd * Width];
+    end;
+
+    // do we need to skip the last pixel of the line and is term not clipped?
+    if not(L or CheckAux) then
+    begin
+      if xd < term then
+        Dec(term)
+      else
+        Inc(term);
+    end;
+
+    while xd <> term do
+    begin
+      Inc(xd, Sx);
+
+      P^ := Value;
+      Inc(P, PI);
+      if e >= 0 then
+      begin
+        Inc(P, Sy);
+        Dec(e, Dx2);
+      end
+      else
+        Inc(e, Dy2);
+    end;
+end;
+
 procedure TBitmap32.LineTo(X, Y: Integer; PenColor: TColor32);
 begin
 	Line(Raster.X, Raster.Y, X, Y, PenColor, False);
+	MoveTo(X, Y);
+end;
+
+procedure TBitmap32.LineToS(X, Y: Integer; PenColor: TColor32);
+begin
+	LineS(Raster.X, Raster.Y, X, Y, PenColor, False);
 	MoveTo(X, Y);
 end;
 

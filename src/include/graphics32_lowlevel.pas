@@ -140,6 +140,20 @@ function MirrorPow2(Value, Min, Max: Integer): Integer; {$IFDEF USEINLINING} inl
 { Fast Value div 255, correct result with Value in [0..66298] range }
 function Div255(Value: Cardinal): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 
+{ Exchange two 32-bit values }
+procedure Swap(var A, B: Pointer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: Integer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: Cardinal); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap32(var A, B); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+
+{ Exchange A <-> B only if B < A }
+procedure TestSwap(var A, B: Integer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+
+{ Exchange A <-> B only if B < A then restrict both to [0..Size-1] range }
+{ returns true if resulting range has common points with [0..Size-1] range }
+function TestClip(var A, B: Integer; const Size: Integer): Boolean; overload;
+function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean; overload;
+
 
 implementation
 
@@ -881,6 +895,73 @@ asm
 {$ENDIF}
 end;
 
+procedure Swap(var A, B: Pointer);
+var
+  T: Pointer;
+begin
+  T := A;
+  A := B;
+  B := T;
+end;
+
+procedure Swap(var A, B: Integer);
+var
+  T: Integer;
+begin
+  T := A;
+  A := B;
+  B := T;
+end;
+
+procedure Swap(var A, B: Cardinal);
+var
+  T: Cardinal;
+begin
+  T := A;
+  A := B;
+  B := T;
+end;
+
+procedure Swap32(var A, B);
+var
+  T: Integer;
+begin
+  T := Integer(A);
+  Integer(A) := Integer(B);
+  Integer(B) := T;
+end;
+
+procedure TestSwap(var A, B: Integer);
+var
+  T: Integer;
+begin
+  if B < A then
+  begin
+    T := A;
+    A := B;
+    B := T;
+  end;
+end;
+
+function TestClip(var A, B: Integer; const Size: Integer): Boolean;
+begin
+  TestSwap(A, B); // now A = min(A,B) and B = max(A, B)
+  if A < 0 then
+    A := 0;
+  if B >= Size then
+    B := Size - 1;
+  Result := B >= A;
+end;
+
+function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean;
+begin
+  TestSwap(A, B); // now A = min(A,B) and B = max(A, B)
+  if A < Start then
+    A := Start;
+  if B >= Stop then
+    B := Stop - 1;
+  Result := B >= A;
+end;
 
 end.
 
