@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="10"/>
+    <Version Value="11"/>
     <General>
       <Flags>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
@@ -146,16 +146,23 @@
     </PublishOptions>
     <RunParams>
       <local>
-        <FormatVersion Value="1"/>
         <CommandLineParams Value="--debug-log=C:/Projects/Propulse/debug.log"/>
       </local>
+      <FormatVersion Value="2"/>
+      <Modes Count="1">
+        <Mode0 Name="default">
+          <local>
+            <CommandLineParams Value="--debug-log=C:/Projects/Propulse/debug.log"/>
+          </local>
+        </Mode0>
+      </Modes>
     </RunParams>
     <RequiredPackages Count="1">
       <Item1>
         <PackageName Value="LazUtils"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="57">
+    <Units Count="58">
       <Unit0>
         <Filename Value="propulse.pas"/>
         <IsPartOfProject Value="True"/>
@@ -435,6 +442,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="CWE.ExternalAPI"/>
       </Unit56>
+      <Unit57>
+        <Filename Value="screen/fx.vectorlogo.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="FX.VectorLogo"/>
+      </Unit57>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
