@@ -1390,15 +1390,15 @@ begin
 		s.LoopStart  := ModFile.Read16R; // repeat
 		if (not mightBeSTK) then
 			s.LoopStart := s.LoopStart * 2;
-		s.LoopLength := Max(ModFile.Read16R * 2, 2); // replen
+		s.LoopLength := Max(ModFile.Read16R * 2, 1); // replen
 
 	//Log('Sam %.2d  Len=%8x  S=%7x  L=%7x',	[i+1, s.Length, s.LoopStart, s.LoopLength]);
 
 		// fix for poorly converted STK.PTMOD modules.
-		if (not mightBeSTK) and (s.LoopLength > 2) and (s.LoopStart + s.LoopLength > s.Length) then
+		if (not mightBeSTK) and (s.LoopLength > 1) and (s.LoopStart + s.LoopLength > s.Length) then
 		begin
 			WarnText := Format('Sample %d has illegal loop.', [i+1]);
-			if ((s.LoopStart div 2 + s.LoopLength) <= s.Length) then
+			if (((s.LoopStart div 2) + s.LoopLength) <= s.Length) then
 			begin
 				s.LoopStart := s.LoopStart div 2;
 				WarnText := WarnText + ' Loop start adjusted.';
@@ -1407,7 +1407,7 @@ begin
 
 		if mightBeSTK then
 		begin
-			if s.LoopLength > 2 then
+			if s.LoopLength > 1 then
 			begin
 				s.Length       := Max(s.Length - s.LoopStart, 0);
 				s.tmpLoopStart := s.LoopStart;
@@ -1417,7 +1417,7 @@ begin
 		end;
 
 		// some modules are broken like this, adjust sample length if possible
-		if (s.LoopLength > 2) and (s.LoopStart + s.LoopLength > s.Length) then
+		if (s.LoopLength > 1) and (s.LoopStart + s.LoopLength > s.Length) then
 		begin
 			WarnText := Format('Sample %d has illegal loop.', [i+1]);
 			loopOverflow := s.LoopStart + s.LoopLength - s.Length;
@@ -1439,24 +1439,20 @@ begin
 	//
 	if mightBeSTK and lateVerSTKFlag then
 	begin
-		//Log('Converting sample loops from STK.');
+		Log('Converting sample loops from STK.');
 		for i := 0 to 15 do
 		begin
 			if SamplesOnly then
 				s := ImportInfo.Samples[i]
 			else
 				s := Samples[i];
-			if s.LoopStart > 2 then
+			if s.LoopStart > 1 then
 			begin
-				s.Length := s.Length - s.tmpLoopStart;
-				s.tmpLoopStart := s.tmpLoopStart * 2;
+				s.Length -= s.tmpLoopStart;
+				s.tmpLoopStart *= 2;
 			end;
 		end;
 	end;
-
-
-	if mightBeSTK then log('mightBeSTK');
-	if lateVerSTKFlag then log('lateVerSTKFlag');
 
 	for i := 0 to 30 do
 	begin
@@ -1675,11 +1671,11 @@ begin
 		else
 			s := Samples[i];
 
-		if (mightBeSTK) and (s.LoopLength > 2) then
+		if (mightBeSTK) and (s.LoopLength > 1) then
 		begin
-			ModFile.Skip(s.tmpLoopStart * 2);
+			ModFile.Skip(s.tmpLoopStart);
 			j := (s.Length - (s.LoopStart)) * 2;
-			//Debug('Read STK sample %d, offset %d, %d bytes', [i+1, ModFile.Position, j]);
+			//Log('Read STK sample %d, offset %d, %d bytes', [i+1, ModFile.Position, j]);
 			s.LoadData(ModFile, j);
 		end
 		else
