@@ -1176,7 +1176,8 @@ begin
 	lateVerSTKFlag := False;
 	mightBeIT := False;
 
-	FreeAndNil(ImportedModule);
+	if ImportedModule <> nil then
+		FreeAndNil(ImportedModule);
 
 	// Read file data
 	//
@@ -1456,7 +1457,10 @@ begin
 
 	for i := 0 to 30 do
 	begin
-		s := Samples[i];
+		if SamplesOnly then
+			s := ImportInfo.Samples[i]
+		else
+			s := Samples[i];
 		s.Length := s.Length div 2;
 		s.LoopStart := s.LoopStart div 2;
 		s.LoopLength := s.LoopLength div 2;
