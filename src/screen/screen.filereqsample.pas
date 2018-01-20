@@ -280,7 +280,7 @@ begin
 			FileList.Items.Add(TCWEListItem.Create(
 				Format('%.2d ', [i]) +
 				S.GetName + COLUMNSEPARATOR +
-				{GetSize(S.Length * 1)} inttostr(s.Length) + COLUMNSEPARATOR + sModFile,
+				GetSize(S.Length * 2) + COLUMNSEPARATOR + sModFile,
 				LI_LOADABLE, Pointer(S), cf));
 			Inc(i);
 		end;
