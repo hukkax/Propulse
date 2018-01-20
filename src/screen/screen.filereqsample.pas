@@ -269,6 +269,7 @@ begin
 			'Back to directory', LI_UNENTER, nil, COLOR_UNENTER));
 		if (SampleMod = nil) or (SampleMod.ImportInfo.Samples = nil) then Exit;
 
+		i := 1;
 		for S in SampleMod.ImportInfo.Samples do
 		begin
 			if S.Length > 0 then
@@ -277,9 +278,11 @@ begin
 				cf := COLOR_FILE_EMPTYSAMPLE;
 
 			FileList.Items.Add(TCWEListItem.Create(
+				Format('%.2d ', [i]) +
 				S.GetName + COLUMNSEPARATOR +
-				GetSize(S.Length * 2) + COLUMNSEPARATOR + sModFile,
+				{GetSize(S.Length * 1)} inttostr(s.Length) + COLUMNSEPARATOR + sModFile,
 				LI_LOADABLE, Pointer(S), cf));
+			Inc(i);
 		end;
 		goto Done;
 	end
