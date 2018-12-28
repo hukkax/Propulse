@@ -35,8 +35,16 @@ Building on Linux:
 
 Building on Mac:
 
-- No idea for now, sorry; the source may need some additional work to
-  build/run on a Mac.
+- Install the Xcode command-line tools
+- Install SDL2 from Homebrew: brew install sdl2
+- Copy /usr/local/lib/libSDL2.dylib to the project's root directory (Propulse
+  will not run otherwise)
+- Download BASS for macOS from https://www.un4seen.com/ and copy libbass.dylib
+  into the project's root directory
+- Append this line to your /etc/fpc.cfg if you are running 10.14 (Mojave) or
+  newer:
+      -XR/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+- Follow the above instructions for building on Windows
 
 -- 
 hukka 2017-04-20 - hukkax@gmail.com - https://github.com/hukkax/Propulse
