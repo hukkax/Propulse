@@ -260,7 +260,7 @@ end;
 procedure TWindow.UpdateVUMeter(Len: DWord);
 var
 	InModal: Boolean;
-	{$IFDEF MIDI}
+	{$IFDEF MIDI_DISPLAY}
 	i: Integer;
 	Vol: Single;
 	{$ENDIF}
@@ -291,7 +291,7 @@ begin
 		CurrentScreen.Paint;
 	end;
 
-	{$IFDEF MIDI}
+	{$IFDEF MIDI_DISPLAY}
 	if (MIDI <> nil) and (Options.Midi.UseDisplay) then
 		for i := 0 to AMOUNT_CHANNELS-1 do
 		with Module.Channel[i].Paula do
@@ -405,8 +405,10 @@ begin
 		end;
 		Module := TempModule;
 
+		{$IFDEF BASS}
 		if Stream <> 0 then
 			BASS_ChannelPlay(Stream, True);
+		{$ENDIF}
 
 		Module.PlayPos.Order := 0;
 		CurrentPattern := Module.OrderList[0];
@@ -1321,6 +1323,8 @@ begin
 		.SetInfo('Restore samples when playback stopped', 0, 1, ['No', 'Yes']);
 		Cfg.AddBoolean(Sect, 'ResetTempo', @Tracker.ResetTempo, True)
 		.SetInfo('Reset tempo when playback stopped', 0, 1, ['No', 'Yes']);
+		Cfg.AddBoolean(Sect, 'HexRows', @Tracker.HexRows, True)
+		.SetInfo('Show row numbers in hex', 0, 1, ['No', 'Yes']);
 
 		Sect := 'Program';
 		Cfg.AddBoolean(Sect, 'HighPriority', @HighPriority, True)
@@ -1361,8 +1365,14 @@ begin
 		.SetInfo('Audio device', 0, AudioDeviceList.Count-1, AudioDeviceList);
 		Cfg.AddByte(Sect, 'Frequency', @Audio.Frequency, 1)
 		.SetInfo('Sampling rate (Hz)', 0, 2, ['32000', '44100', '48000'], nil);
-		Cfg.AddInteger(Sect, 'Buffer', @Audio.Buffer, 0)
-		.SetInfo('Audio buffer (ms)', 0, 500, ['Automatic']);
+		{$IFDEF BASS}
+			Cfg.AddInteger(Sect, 'Buffer', @Audio.Buffer, 0)
+			.SetInfo('Audio buffer (ms)', 0, 500, ['Automatic']);
+		{$ELSE}
+			Cfg.Addbyte(Sect, 'Buffer.SDL2', @Audio.BufferSamples, 2)
+			.SetInfo('Audio buffer (samples)', 0, 5,
+			['256', '512', '1024', '2048', '4096', '8192']);
+		{$ENDIF}
 		Cfg.AddFloat(Sect, 'Amplification', @Audio.Amplification, 4.00)
 		.SetInfo('Amplification', 0, 10, [], ApplyAudioSettings, '', -1);
 		Cfg.AddByte(Sect, 'StereoSeparation', @Audio.StereoSeparation, 15)
@@ -1384,11 +1394,13 @@ begin
 		Sect := 'MIDI';
 		Cfg.AddBoolean(Sect, 'Enabled', @Midi.Enabled, False)
 		.SetInfo('Enable MIDI input', 0, 1, ['No', 'Yes'], ApplyMIDISettings);
-		Cfg.AddBoolean(Sect, 'Display.Enabled', @Midi.UseDisplay, False)
-		.SetInfo('Enable LED matrix display', 0, 1, ['No', 'Yes'], ApplyMIDISettings);
-		Cfg.AddByte(Sect, 'Display.Effect', @Midi.DisplayEffect, 0)
-		.SetInfo('Display effect', MIDI_FX_SCROLLTEXT, MIDI_FX_VU_HORIZONTAL,
-		['Scrolltext', 'VU (vertical)', 'VU (horizontal)'], ApplyMIDISettings);
+			{$IFDEF MIDI_DISPLAY}
+			Cfg.AddBoolean(Sect, 'Display.Enabled', @Midi.UseDisplay, False)
+			.SetInfo('Enable LED matrix display', 0, 1, ['No', 'Yes'], ApplyMIDISettings);
+			Cfg.AddByte(Sect, 'Display.Effect', @Midi.DisplayEffect, 0)
+			.SetInfo('Display effect', MIDI_FX_SCROLLTEXT, MIDI_FX_VU_HORIZONTAL,
+			['Scrolltext', 'VU (vertical)', 'VU (horizontal)'], ApplyMIDISettings);
+			{$ENDIF}
 		{$ENDIF}
 
 		Sect := 'Directory';
@@ -1505,7 +1517,7 @@ begin
 	Log(TEXT_HEAD + 'Propulse Tracker v' + ProTracker.Util.VERSION + ' (built on ' +
 		Build.CompileDate + ' ' + Build.CompileTime + ')');
 	Log('');
-	Log(TEXT_LIGHT + '(C) 2016-2017 hukka (Joel Toivonen)');
+	Log(TEXT_LIGHT + '(C) 2016-2019 hukka (Joel Toivonen)');
 	Log(TEXT_LIGHT + URL);
 	Log(TEXT_LIGHT + 'Contains code based on work by 8bitbubsy (Olav Sorensen)');
 	Log('');
@@ -1535,7 +1547,12 @@ begin
 	end;
 
 	LogIfDebug('Initializing audio...');
+
+	{$IFDEF BASS}
 	if not AudioInit(i) then
+	{$ELSE}
+	if not AudioInit(i, Options.Audio.Device) then
+	{$ENDIF}
 	begin
 	    LogFatal('Could not initialize audio; quitting!');
 		QuitFlag := True;
