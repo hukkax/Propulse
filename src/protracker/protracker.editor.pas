@@ -67,7 +67,8 @@ type
 		keyBlockPaste,				keyBlockOverwrite,			keyBlockMix,
 		keyBlockPasteMasked,		keyBlockOverwriteMasked,	keyBlockMixMasked,
 		keyBlockDouble,				keyBlockHalve,
-		keyBlockSetSample,			keyBlockSlideWipeEffect,
+		keyBlockSetSample,			//keyBlockSlideWipeEffect,
+		keyBlockSlideEffect,		keyBlockWipeEffects,
 		keyBlockSwap,				keyToggleEditMask,
 		keyTransposeSemitoneUp,		keyTransposeSemitoneDown,
 		keyTransposeOctaveUp,		keyTransposeOctaveDown,
@@ -300,7 +301,9 @@ begin
 		Bind(keyBlockHalve,				'Block.Halve', 				'Alt+G');
 		Bind(keyBlockSetSample,			'Block.SetSample',			'Alt+S');
 		Bind(keyBlockSwap,				'Block.Swap',				'Alt+Y');
-		Bind(keyBlockSlideWipeEffect,	'Block.SlideOrWipeEffects',	'Alt+X');
+		//Bind(keyBlockSlideWipeEffect,	'Block.SlideOrWipeEffects',	'Alt+X');
+		Bind(keyBlockSlideEffect,		'Block.SlideEffect',		'Alt+X');
+		Bind(keyBlockWipeEffects,		'Block.WipeEffects',		'Alt+Shift+X');
 		Bind(keyTransposeSemitoneUp,	'Transpose.Semitone.Up',	'Alt+Q');
 		Bind(keyTransposeSemitoneDown,	'Transpose.Semitone.Down',	'Alt+A');
 		Bind(keyTransposeOctaveUp,		'Transpose.Octave.Up', 	 	'Shift+Alt+Q');
@@ -1669,16 +1672,18 @@ begin
 				BlockSwap;
 		end;
 
-		keyBlockSlideWipeEffect:
+		keyBlockSlideEffect:
 		begin
 			Result := True;
-{			if AllowEditing then
-			begin
-				if PreviousKeys.Counter > 1 then
-					BlockWipeEffects
-				else
-					BlockSlideEffect;
-			end; !!! }
+			if AllowEditing then
+				BlockSlideEffect;
+		end;
+
+		keyBlockWipeEffects:
+		begin
+			Result := True;
+			if AllowEditing then
+				BlockWipeEffects;
 		end;
 
 		// Transpose

@@ -1121,7 +1121,9 @@ begin
 		AddCmd(Ord(keyBlockSwap),				'Swap');
 		AddCmd(Ord(keyBlockDouble),				'Double size');
 		AddCmd(Ord(keyBlockHalve),				'Halve size');
-		AddCmd(Ord(keyBlockSlideWipeEffect),	'Slide effect values');
+		//AddCmd(Ord(keyBlockSlideWipeEffect),	'Slide effect values');
+		AddCmd(Ord(keyBlockSlideEffect),		'Slide effect values');
+		AddCmd(Ord(keyBlockWipeEffects),		'Wipe effects');
 		AddCmd(Ord(keyBlockSetSample),			'Replace sample');
 		AddCmd(Ord(keyTransposeSemitoneUp),		'Transpose semitone up');
 		AddCmd(Ord(keyTransposeSemitoneDown),	'Transpose semitone down');
