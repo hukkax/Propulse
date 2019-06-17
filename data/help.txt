@@ -13,7 +13,7 @@
 
 <#Main><h1>Propulse Tracker Help
 
-<c><f9>Last modified: 2017-11-02
+<c><f9>Last modified: 2019-01-05
 
 <h2>Global Keys:
 
@@ -295,8 +295,9 @@
  Sets the desired sampling rate for the audio device.
 
  <h3><#Audio.Buffer>Audio buffer: *
- This is the audio buffer size in milliseconds. Too low values will cause
- dropouts and crackling, while large values increase audio latency.
+ This is the audio buffer size in milliseconds (or samples if not using BASS
+ for audio output). Too low values will cause dropouts and crackling, while
+ large values increase audio latency.
  Defaults to the minimum recommended length for the selected audio device.
 
  <h3><#Audio.Amplification>Amplification:
@@ -746,12 +747,11 @@
 
 <#Splash><h1>Credits and acknowledgments
 
-<c><fB>(C) 2016-2017 Joel Toivonen
+<c><fB>(C) 2016-2019 Joel Toivonen
 <c><f2>(hukka of exec/void/svenonacid)
 
 <c><@https://github.com/hukkax/Propulse>
-<c><@http://hukka.yiff.fi/propulse>
-<c><@http://hukka.ncn.fi>
+<c><@http://hukka.ncn.fi/propulse>
 <c>email: <@hukkax@gmail.com>
 
 
