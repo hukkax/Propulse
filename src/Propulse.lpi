@@ -71,7 +71,6 @@
               <IgnoredMessages idx5057="True" idx5024="True" idx4080="True" idx4079="True"/>
             </CompilerMessages>
             <CustomOptions Value="-dRELEASE
--dBASS_DYNAMIC
 -OoFASTMATH
 -OoLOOPUNROLL
 -OoREMOVEEMPTYPROCS"/>
@@ -129,8 +128,7 @@
             <CompilerMessages>
               <IgnoredMessages idx5057="True" idx5024="True" idx4080="True" idx4079="True" idx4035="True"/>
             </CompilerMessages>
-            <CustomOptions Value="-dRELEASE
--dBASS_DYNAMIC"/>
+            <CustomOptions Value="-dRELEASE"/>
             <OtherDefines Count="4">
               <Define0 Value="RELEASE"/>
               <Define1 Value="BASS_DYNAMIC"/>
@@ -503,8 +501,7 @@
       </CompilerMessages>
       <CustomOptions Value="-al
 -gl
--dDEBUG
--dBASS_DYNAMIC"/>
+-dDEBUG"/>
       <OtherDefines Count="4">
         <Define0 Value="RELEASE"/>
         <Define1 Value="BASS_DYNAMIC"/>

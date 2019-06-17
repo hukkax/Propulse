@@ -20,15 +20,14 @@ program Propulse;
 *)
 
 {$R propulse.res}
+{$I propulse.inc}
 
 uses
 	{$IFDEF UNIX}
 	cthreads, //cmem,
 	Classes, SysUtils,
 	{$ENDIF}
-	{$IFDEF BASS_DYNAMIC}
-	lazdynamic_bass,
-	{$ENDIF}
+	{$IFDEF BASS_DYNAMIC}lazdynamic_bass,{$ENDIF}
 	MainWindow;
 
 	{$IFDEF UNIX}

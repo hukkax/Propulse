@@ -4,6 +4,10 @@
 {$ENDIF}
 
 {$IFDEF WINDOWS}
-	{.$DEFINE MIDI} // enable MIDI input support
+	{.$DEFINE MIDI}						// enable MIDI input support
+	{.$DEFINE MIDI_DISPLAY}				// test code to show fx on an APC Key25 led matrix
 {$ENDIF}
+
+{$DEFINE BASS}
+{.$DEFINE BASS_DYNAMIC}
 
