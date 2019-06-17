@@ -7,23 +7,20 @@
 
 unit ProTracker.Player;
 
+{$I propulse.inc}
+
 interface
 
 uses
-	{$IFDEF BASS_DYNAMIC}
-		lazdynamic_bass,
-	{$ELSE}
-		BASS,
-	{$ENDIF}
-	SysUtils,
-	Generics.Collections,
+	SysUtils, Generics.Collections,
 	ProTracker.Messaging,
-	SDL.Api.libSDL2, SDL.Api.Types, SDL.API.Events,
-	ProTracker.Util,
-	ProTracker.Sample,
-	ProTracker.Paula,
-	ProTracker.Filters;
-
+	SDL.Api.libSDL2, SDL.Api.Types, SDL.Api.Events,
+	{$IFDEF BASS}
+	{$IFDEF BASS_DYNAMIC}lazdynamic_bass,{$ELSE}BASS,{$ENDIF}
+	{$ELSE}
+	SDL.Api.Audio,
+	{$ENDIF}
+	ProTracker.Util, ProTracker.Sample, ProTracker.Paula, ProTracker.Filters;
 
 const
     MINIMUM_AUDIOBUFFER_LENGTH = 45; // in milliseconds
@@ -54,11 +51,11 @@ const
 	MSG_ORDERCHANGE	= 21;
 
 type
-	TModuleEvent   		= procedure of Object;
-	TSpeedChangeEvent	= procedure (Speed, Tempo: Byte) of Object;
-	TProgressEvent 		= procedure (Progress: Cardinal) of Object;
-	TProgressInitEvent 	= procedure (Max: Cardinal; const Title: String) of Object;
-	TModifiedEvent 		= procedure (B: Boolean = True; Force: Boolean = False) of Object;
+	TModuleEvent   	    = procedure of Object;
+	TSpeedChangeEvent   = procedure (Speed, Tempo: Byte) of Object;
+	TProgressEvent      = procedure (Progress: Cardinal) of Object;
+	TProgressInitEvent  = procedure (Max: Cardinal; const Title: String) of Object;
+	TModifiedEvent      = procedure (B: Boolean = True; Force: Boolean = False) of Object;
 
 	TModuleFormat = (
 		FORMAT_MK,     // ProTracker 1.x
@@ -72,11 +69,11 @@ type
 	);
 
 	TNote = packed record
-		Sample:			Byte;	// 8 bits
-		Command:		Byte;	// 4 bits
-		Parameter:		Byte;	// 8 bits
-		Pitch:			Byte;	// index to NoteText[]
-		//Period:		Word;	// 12 bits (Period)
+		Sample:	        Byte;	// 8 bits
+		Command:        Byte;	// 4 bits
+		Parameter:      Byte;	// 8 bits
+		Pitch:          Byte;	// index to NoteText[]
+		//Period:       Word;	// 12 bits (Period)
 	end;
 	PNote = ^TNote;
 
@@ -334,13 +331,20 @@ type
 	end;
 
 
+	{$IFDEF BASS}
 	function	AudioInit(Frequency: Cardinal): Boolean;
+	{$ELSE}
+	function	AudioInit({Callback: TSDL_AudioCallback;}
+				Frequency: Word = 0; Device: AnsiString = ''): Boolean;
+	{$ENDIF}
 	procedure	AudioClose;
 
 
 var
-	Module: 		TPTModule;
+	{$IFDEF BASS}
 	Stream: 		HSTREAM;
+	{$ENDIF}
+	Module: 		TPTModule;
 	VUbuffer: 		array of SmallInt;
 	ScopeBuffer: 	array[0..AMOUNT_CHANNELS-1] of array of SmallInt;
 	VUhandled: 		Boolean;
@@ -349,14 +353,12 @@ var
 implementation
 
 uses
-	{$IFDEF WINDOWS}
-	Windows,
-	{$ENDIF}
+	{$IFDEF WINDOWS}Windows,{$ENDIF}
 	Classes, Math,
 	MainWindow,
 	FileStreamEx, fpwavwriter, fpwavformat,
-	ProTracker.Editor,
-	ProTracker.Import, ProTracker.Format.IT, ProTracker.Format.S3M, ProTracker.Format.P61,
+	ProTracker.Editor, ProTracker.Import,
+	ProTracker.Format.IT, ProTracker.Format.S3M, ProTracker.Format.P61,
 	CWE.Dialogs;
 
 var
@@ -421,14 +423,20 @@ end;
 
 // 16-bit integer mixer
 //
+{$IFDEF BASS}
 function AudioCallback(Handle: HSTREAM; Buffer: Pointer; Len: DWord; User: Pointer)
 : DWord; {$IFDEF WINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+{$ELSE}
+procedure AudioCallback_SDL2(Data: Pointer; Buffer: PUInt8; Len: Integer); cdecl;
+{$ENDIF}
 var
 	outStream: ^TArrayOfSmallInt absolute Buffer;
 	pos, sampleBlock, samplesTodo: Integer;
 	event: SDL_Event;
 begin
+	{$IFDEF BASS}
 	Result := Len;
+	{$ENDIF}
 	FillChar(Buffer^, Len, 0);
 
 	if (Module = nil) or (Module.RenderMode <> RENDER_NONE) then Exit;
@@ -490,6 +498,47 @@ begin
 	Mixing := False;
 end;
 
+
+// init SDL2 audio
+//
+{$IFNDEF BASS}
+function AudioInit({Callback: TSDL_AudioCallback;}
+	Frequency: Word = 0; Device: AnsiString = ''): Boolean;
+const
+	Buffersizes: array[0..5] of Word = ( 256, 512, 1024, 2048, 4096, 8192 );
+var
+	desiredSpec, obtainedSpec: SDL_AudioSpec;
+	//AudioDevice: TSDL_AudioDeviceID;
+begin
+	if Frequency < 11025 then Frequency := 44100;
+
+	desiredSpec.freq     := Frequency;
+	desiredSpec.format   := AUDIO_S16;
+	desiredSpec.channels := 2;
+	desiredSpec.samples  := Buffersizes[Min(High(Buffersizes), Options.Audio.BufferSamples)];
+	desiredSpec.callback := @AudioCallback_SDL2;
+	desiredSpec.userdata := nil;
+
+	MainWindow.SDL.Audio.Init;
+
+	// you might want to look for errors here
+	Result := (MainWindow.SDL.Audio.SDL_OpenAudio(@desiredSpec, @obtainedSpec) = 0);
+
+	if Result then
+	begin
+		outputFreq := obtainedSpec.freq;
+		Log(TEXT_INIT + 'Audio: SDL2 (%d Hz, 16 bit stereo, buffer: %d samples)',
+			[outputFreq, obtainedSpec.samples]);
+		MainWindow.SDL.Audio.SDL_PauseAudio(0); // start playing
+	end
+	else
+		LogError('Audio initialization failed!');
+
+	Initialized := Result;
+end;
+{$ENDIF}
+
+{$IFDEF BASS}
 function AudioInit(Frequency: Cardinal): Boolean;
 var
 	device: BASS_DEVICEINFO;
@@ -582,13 +631,18 @@ begin
 
 	RegisterMessages(MSG_TIMERTICK, 4);
 end;
+{$ENDIF}
 
 procedure AudioClose;
 begin
+	{$IFDEF BASS}
 	if Stream <> 0 then
 		BASS_StreamFree(Stream);
 
 	BASS_Free;
+	{$ELSE}
+	MainWindow.SDL.Audio.SDL_CloseAudio;
+	{$ENDIF}
 end;
 
 // ==========================================================================
@@ -814,7 +868,7 @@ begin
 
 	// write song title
 	//
-	for i := High(Info.Title) to Low(Info.Title) do
+	for i := High(Info.Title) downto Low(Info.Title) do
 		if Info.Title[i] = ' ' then
 			Info.Title[i] := #0
 		else
@@ -1917,8 +1971,10 @@ begin
 
 	PlayMode := PLAY_STOPPED;
 
+	{$IFDEF BASS}
 	if (Self = Module) and (IsMaster) and (Stream <> 0) then
 		BASS_ChannelStop(Stream);
+	{$ENDIF}
 end;
 
 procedure TPTModule.IndexSamples;
@@ -2991,6 +3047,9 @@ begin
 		for i := 0 to Samples.Count-1 do
 			Samples[i].StoreBackup;
 
+	for i := 0 to Samples.Count-1 do
+		Samples[i].MaxPlayPos := 0;
+
 	RenderInfo.SamplesRendered := 0;
 	RenderInfo.RowsRendered := 0;
 	RenderInfo.OrderChanges := 0;
@@ -3094,6 +3153,7 @@ begin
 	sample := Samples[Note.Sample-1];
 	if (sample.Length = 0) or (Note.Pitch = 0) then
 	begin
+		sample.MaxPlayPos := 0;
 		ch.Paula.Kill;
 		Exit;
 	end;
@@ -3158,6 +3218,7 @@ begin
 
 	Dec(_sample);
 	S := Samples[_sample];
+	S.MaxPlayPos := 0;
 
 	with Channel[_channel] do
 	begin
@@ -3326,10 +3387,18 @@ begin
 							v.PlayPos := -1
 						else
 							v.PlayPos := v.QueuedOffset;
+						if v.PlayPos > Sam.MaxPlayPos then
+							Sam.MaxPlayPos := v.PlayPos;
 					end
 					else
-					if v.PlayPos >= 0 then
-						Inc(v.PlayPos);
+					begin
+						if v.PlayPos >= 0 then
+						begin
+							Inc(v.PlayPos);
+							if v.PlayPos > Sam.MaxPlayPos then
+								Sam.MaxPlayPos := v.PlayPos;
+						end;
+					end;
 				end;
 			end;
 		end;
