@@ -87,8 +87,10 @@ begin
 	begin
 		with Module.Samples[Sample] do
 		begin
-			PlayPos := QueuedOffset;
 			Age := 6;//Trunc(6 * SRC_VOL) + 2;
+			PlayPos := QueuedOffset;
+			if PlayPos > MaxPlayPos then
+				MaxPlayPos := PlayPos;
 		end;
 	end;
 

@@ -81,6 +81,7 @@ type
 		Volume:			Byte;
 		Length:			Cardinal;		// data length in words
 		BackupLength:	Word;
+		MaxPlayPos,
 		LoopStart,
 		LoopLength,
 		TempLoopStart,
@@ -397,6 +398,7 @@ begin
 	Volume     := 64;
 	Finetune   := 0;
 	Age        := -1;
+	MaxPlayPos := 0;
 	ZeroFirstWord;
 end;
 
