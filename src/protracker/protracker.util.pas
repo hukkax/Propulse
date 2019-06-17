@@ -86,13 +86,14 @@ type
 		end;
 
 		Tracker: packed record
-			VolumeColumn:			Boolean;
+			//VolumeColumn:			Boolean;
 			AltHomeEndBehavior:		Boolean;
 			NoteB3Warning:			Boolean;
 			ShowEmptyParamZeroes: 	Boolean;
 			CenterPlayback:			Boolean;
 			RestoreSamples:			Boolean;
 			ResetTempo:				Boolean;
+			HexRows:				Boolean;
 		end;
 
 		Display: packed record
@@ -122,6 +123,7 @@ type
 			Device: 				AnsiString;	// audio device
 			Frequency: 				Byte;		// 11025/22050/44100/48000
 			Buffer: 				Integer;	// audio buffer in milliseconds, 0 = detect minimum
+			BufferSamples:			Integer;
 			Amplification: 			Single;		// default: 3.25
 			StereoSeparation: 		Byte;		// 0..100%, 0=mono
 			FilterLowPass: 			Boolean;
@@ -159,12 +161,15 @@ type
 		end;
 	end;
 
+	TTextVals = array [0..255] of AnsiString;
+	PTextVals = ^TTextVals;
+
 var
 	AppPath, DataPath, ConfigPath: String;
 	Locked, FollowPlayback: Boolean;
 	Options: TPoroTrackerConfiguration;
 	ConfigManager: TConfigurationManager;
-	TextVals, TextVals3, HexVals: array [0..255] of AnsiString;
+	TextVals, TextVals3, HexVals: TTextVals;
 
 const
 	VSYNC_AUTO	= 0;

@@ -185,6 +185,9 @@ uses
 	//ClipBrd,
 	SDL.Api.Types,
 	ProTracker.Util,
+	{$IFDEF DEBUG}
+	ProTracker.Sample,
+	{$ENDIF}
 	Screen.Log,
 	Screen.FileReq,
 	Screen.Editor,
@@ -361,6 +364,14 @@ end;
 procedure TPatternEditor.SaveModule(const Filename: String = '');
 var
 	Dir, Fn: String;
+	{$IFDEF DEBUG}
+	S: String;
+	sl: TStringList;
+	patt, row, ch: Integer;
+	Sam: TSample;
+const
+	DC_B = #9'dc.b'#9;
+	{$ENDIF}
 begin
 	if Filename <> '' then
 		Fn := Filename
@@ -384,6 +395,68 @@ begin
 			Dialog_Render(False, Fn);
 	end
 	else
+	{$IFDEF DEBUG}
+	if LowerCase(ExtractFileExt(Fn)) = '.asm' then
+	begin
+		sl := TStringList.Create;
+
+		sl.Add(Format('; %s (%s)', [Module.Info.Title, Module.Info.Filename]));
+
+		sl.Add('; ');
+		sl.Add('; Patterns');
+		sl.Add('; --------');
+
+		for patt := 0 to Module.Info.PatternCount do
+		begin
+			sl.Add(Format('; Pattern %.2d', [patt]));
+
+			for ch := 0 to 3 do
+			begin
+				S := Format('P%.2d_%.1d:', [patt, ch]) + DC_B;
+				for row := 0 to 63 do
+				begin
+					S := S + Format('%.3d,', [Module.Notes[patt, ch, row].Pitch]);
+					if (row+1) mod 16 = 0 then
+					begin
+						sl.Add(Copy(S, 1, Length(S)-1));
+						S := DC_B;
+					end;
+				end;
+
+			end;
+		end;
+
+		sl.Add('; ');
+		sl.Add('; Samples');
+		sl.Add('; -------');
+
+		for row := 0 to Module.Samples.Count-1 do
+		begin
+			Sam := Module.Samples[row];
+			if not (Sam.IsEmpty) and (Sam.ByteLength <= 256) then
+			begin
+				sl.Add(Format('; Sample %.2d (%d words, %d bytes): "%s"', [Sam.Index, Sam.Length, Sam.ByteLength, Sam.GetName]));
+				S := Format('S%.2d:', [Sam.Index]) + DC_B;
+
+				for ch := 0 to Sam.ByteLength-1 do
+				begin
+					S := S + Format('%.3d,', [Sam.Data[ch]]);
+					if (ch+1) mod 16 = 0 then
+					begin
+						sl.Add(Copy(S, 1, Length(S)-1));
+						S := DC_B;
+					end;
+				end;
+				if S <> DC_B then
+					sl.Add(Copy(S, 1, Length(S)-1));
+			end;
+		end;
+
+		sl.SaveToFile(Fn);
+		sl.Free;
+	end
+	else
+	{$ENDIF}
 	begin
 		Module.SaveToFile(Fn);
 		Module.SetModified(False, True);
@@ -1958,6 +2031,7 @@ var
 	FirstInvalidNote: Byte;
 	ScrPos: Integer;
 //	UseVolumeColumn: Boolean;
+	Text_Vals: PTextVals;
 begin
 	if (Drawing) or (not Assigned(Module)) then Exit;
 
@@ -1984,6 +2058,11 @@ begin
 		ScrPos := ScrollPos;
 	end;
 
+	if Options.Tracker.HexRows then
+		Text_Vals := @HexVals
+	else
+		Text_Vals := @TextVals;
+
 	for i := 0 to Height do
 	begin
 		row := ScrPos + i;
@@ -1999,7 +2078,7 @@ begin
 		if (row < 0) or (row > 63) then
 			Console.Write('  ', Rect.Left, Rect.Top + i, c)
 		else
-			Console.Write(TextVals[row], Rect.Left, Rect.Top + i, c);
+			Console.Write(Text_Vals[row], Rect.Left, Rect.Top + i, c);
 	end;
 
 	for c := 0 to AMOUNT_CHANNELS - 1 do
