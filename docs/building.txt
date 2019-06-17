@@ -1,25 +1,31 @@
 Propulse Tracker build instructions
-===================================
-
+-------------------------------------------------------------------------------
 Requirements:
 
 - FreePascal 3.0+: http://www.freepascal.org/
-- Lazarus: http://www.lazarus-ide.org/ (CodeTyphon works too)
+- Lazarus: http://www.lazarus-ide.org/ (or CodeTyphon)
 
-The following required headers are contained in the src/include directory:
+The following headers are contained in the src/include directory:
 
-- SDL2: http://libsdl.org/ - the Pascal headers I use in Propulse for loading
-  SDL2 dynamically: https://sourceforge.net/projects/lazsdl2/
-- BASS: http://www.un4seen.com/
-- Generics.Collections for FreePascal (may already be integrated to current
-  FPC trunk):  https://github.com/dathox/generics.collections
-- libSOXR (optional for resampling functionality):
-  https://sourceforge.net/p/soxr/wiki/Home/
+ Required:
+
+ - SDL2: http://libsdl.org/ 
+
+ Optional (but strongly recommended):
+
+ - used to load SDL2 dynamically: https://sourceforge.net/projects/lazsdl2/
+ - BASS: http://www.un4seen.com/ (required for mp3/ogg/other sample import)
+ - libSOXR for resampling: https://sourceforge.net/p/soxr/wiki/Home/
+ - Generics.Collections for FreePascal, if using an old version where they are
+   not included by default: https://github.com/dathox/generics.collections
+
+-------------------------------------------------------------------------------
 
 Building on Windows:
 
 - Install FreePascal 3.x and Lazarus
 - Open Propulse.lps in Lazarus or Propulse.ctpr in CodeTyphon
+- Open propulse.inc and modify options if required
 - Press Shift-F9 to build
 - Probably complain to me if it didn't work
 
@@ -29,14 +35,20 @@ Building on Linux:
 - Download the "stuff" Linux build of BASS (the official 2.4.12 Linux build
   has a crash bug on some systems, including mine):
   http://www.un4seen.com/stuff/bass-linux.zip
-- Extract the appropriate libbass.so into the project's root directory 
-  (not src!)
+- Extract the appropriate libbass.so into the project's root dir (not src!)
 - Follow the above instructions for building on Windows
 
-Building on Mac:
+Building on Mac (courtesy of @nilsding):
 
-- No idea for now, sorry; the source may need some additional work to
-  build/run on a Mac.
+- Install the Xcode command-line tools
+- Install SDL2 from Homebrew: brew install sdl2
+- Copy /usr/local/lib/libSDL2.dylib to the project's root directory (Propulse
+  will not run otherwise)
+- Download BASS for macOS from http://www.un4seen.com/ and copy libbass.dylib
+  into the project's root directory
+- Append this line to your /etc/fpc.cfg if you are running 10.14 (Mojave) or
+  newer: -XR/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+- Follow the above instructions for building on Windows
 
--- 
-hukka 2017-04-20 - hukkax@gmail.com - https://github.com/hukkax/Propulse
+-------------------------------------------------------------------------------
+hukka 2019-01-05 - hukkax@gmail.com - https://github.com/hukkax/Propulse
