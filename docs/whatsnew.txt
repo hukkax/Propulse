@@ -1,5 +1,5 @@
 Propulse Tracker 0.9.6.0
-
+------------------------
 Important playroutine and sample-related fixes and features.
 
 Additions:
@@ -12,6 +12,9 @@ Additions:
 - You can now click on a row number to the left of the pattern view to jump
   to that row; use right mouse button to center the clicked row
 - Improved orderlist coloring
+- Added option to display pattern row numbers in hexadecimal
+- BASS is no longer required, SDL2 can be used for audio instead (but requires
+  a recompile; also support for mp3/ogg/other samples will be missing)
 
 Fixes:
 
@@ -25,7 +28,7 @@ Fixes:
 - Pattern view is now properly restored upon stopping song playback
 
 Propulse Tracker 0.9.5.5
-
+------------------------
 Fixes bugs caused by pattern and replayer code simplifications in v0.9.5.0.
 
 - Regression fix: off-by-one error when modifying a note's octave via editing
@@ -41,6 +44,7 @@ Fixes bugs caused by pattern and replayer code simplifications in v0.9.5.0.
 - Added config option for muted channel colors in quadrascope
 
 Propulse Tracker 0.9.5.2
+------------------------
 
 - New option to center the currently playing row like in Impulse Tracker
 - New option to reset song tempo when stopping playback like in Impulse
@@ -54,7 +58,7 @@ Propulse Tracker 0.9.5.2
 - Added new fonts
 
 Propulse Tracker 0.9.5.0
-
+------------------------
 New features
 
 - S3M import
