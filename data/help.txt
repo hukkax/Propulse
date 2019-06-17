@@ -13,7 +13,7 @@
 
 <#Main><h1>Propulse Tracker Help
 
-<c><f9>Last modified: 2019-01-05
+<c><f9>Last modified: 2019-06-17
 
 <h2>Global Keys:
 
@@ -167,7 +167,7 @@
     Alt-Z            Cut block  (*)
     Alt-Y            Swap block (*)
     Alt-X            Slide effect value   (*)
-  2*Alt-X            Wipe all effect data (*)
+    Shift-Alt-X      Wipe all effect data (*)
  
     Alt-C            Copy block into clipboard
 ;   Shift-L          Copy block to clipboard honoring current mute-settings
