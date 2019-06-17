@@ -128,7 +128,7 @@ end;
 // ============================================================================
 
 procedure TSplashScreen.Show;
-{$IFDEF MIDI}
+{$IFDEF MIDI_DISPLAY}
 var
 	Ctrl: TMIDIController;
 {$ENDIF}
@@ -137,7 +137,7 @@ begin
 	ScrollText := StringReplace(Scroll_Text, '§', SCRSEP, [rfReplaceAll]);
 	ScrollChar := 0;
 
-	{$IFDEF MIDI}
+	{$IFDEF MIDI_DISPLAY}
 //	if (Options.Midi.Enabled) and
 	for Ctrl in MIDI.Controllers do
 		if (Ctrl <> nil) and (Ctrl.ScrollText <> nil) then
@@ -230,7 +230,7 @@ begin
 
 	Y := Console.Height - 9;
 
-	Console.WriteCentered(' (C) 2016-2018 hukka (Joel Toivonen)', Y+0);
+	Console.WriteCentered(' (C) 2016-2019 hukka (Joel Toivonen)', Y+0);
 	Console.WriteCentered(' Original playroutine by 8bitbubsy (Olav Sorensen)', Y+2);
 
 	inherited;
