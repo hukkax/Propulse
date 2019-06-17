@@ -451,9 +451,7 @@ var
 begin
 	{$IFNDEF WINDOWS}
 	ModalDialog.ShowMessage('Delete Directory', 'Not implemented on non-Windows platforms!');
-	Exit;
-	{$ENDIF}
-
+	{$ELSE}
 	Dir := IncludeTrailingPathDelimiter(Directory) +
 		DirList.Items[DirList.ItemIndex].Captions[0];
 
@@ -474,6 +472,7 @@ begin
 		DeleteToBin(Dir); //FileUtil.DeleteDirectory
 		SetDirectory(Directory);
 	end;
+	{$ENDIF}
 end;
 
 procedure TFileScreen.CopyFile(const DestDir: String; MoveFile: Boolean = False);
