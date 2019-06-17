@@ -43,7 +43,7 @@ type
 		keyNoteC_hi,	keyNoteCChi,	keyNoteD_hi,	keyNoteDDhi,
 		keyNoteE_hi,	keyNoteF_hi,	keyNoteFFhi,	keyNoteG_hi,
 		keyNoteGGhi,	keyNoteA_hi,	keyNoteAAhi,	keyNoteB_hi,
-		keyNoteModifierPreview,		keyNoteClear,
+		keyNoteModifierPreview,		keyNoteClear,		keyNoteFullClear,
 		keyNoteDelete,				keyNoteInsert,
 		keyNoteDeleteRow,			keyNoteInsertRow,
 		keyNoteUseLast,				keyNoteGetLast,
@@ -252,6 +252,7 @@ begin
 		//Bind(keyNoteModifierPreview,	'Note.Modifier.Preview',	'Shift', True);
 		Bind(keyToggleEditMask,			'Toggle.EditMask',			',');
 		Bind(keyNoteClear,				'Note.Clear', 				'.');
+		Bind(keyNoteFullClear,			'Note.FullClear',			'Shift+.');
 		Bind(keyNoteDelete,				'Note.Delete', 				'Delete');
 		Bind(keyNoteInsert,				'Note.Insert', 				'Insert');
 		Bind(keyNoteDeleteRow,			'Note.DeleteRow', 			'Alt+Delete');
@@ -1471,6 +1472,7 @@ begin
 				end;
 
 				COL_COMMAND:
+				if Cursor.Note.Command <> $C then
 				begin
 					Cursor.Note.Command := 0;
 					if EditMask[EM_EFFECT] then
@@ -1478,12 +1480,30 @@ begin
 				end;
 
 				COL_PARAMETER_1, COL_PARAMETER_2:
+				if Cursor.Note.Command <> $C then
 				begin
 					Cursor.Note.Parameter := 0;
 					if EditMask[EM_EFFECT] then
 						LastNote.Parameter := 0;
 				end;
 			end;
+
+			Module.SetModified;
+			Advance;
+			Result := True;
+		end;
+
+		keyNoteFullClear:
+		if AllowEditing then
+		begin
+			if Cursor.Column <= COL_OCTAVE then
+				Cursor.Note.Pitch := 0;
+
+			if Cursor.Column <= COL_SAMPLE_2 then
+				Cursor.Note.Sample := 0;
+
+			Cursor.Note.Command := 0;
+			Cursor.Note.Parameter := 0;
 
 			Module.SetModified;
 			Advance;
@@ -1845,6 +1865,8 @@ begin
 				o := Pos(chrKey, KeyboardNumbers) - 1;
 				if o >= 0 then
 				begin
+					if Cursor.Note.Command <> $C then
+						Cursor.Note.Parameter := 0;
 					Cursor.Note.Command := $C;
 					Cursor.Note.Parameter := Min( (o * 10) + (Cursor.Note.Parameter mod 10), 64);
 					LastNote.Command := $C;
@@ -1860,6 +1882,8 @@ begin
 				o := Pos(chrKey, KeyboardNumbers) - 1;
 				if o >= 0 then
 				begin
+					if Cursor.Note.Command <> $C then
+						Cursor.Note.Parameter := 0;
 					Cursor.Note.Command := $C;
 					Cursor.Note.Parameter := Min( (Cursor.Note.Parameter div 10 * 10) + o, 64);
 					LastNote.Command := $C;
@@ -1876,9 +1900,12 @@ begin
 				o := Pos(chrKey, CmdChars) - 1;
 				if o >= 0 then
 				begin
+					if Cursor.Note.Command = $C then
+						Cursor.Note.Parameter := 0;
+
 					Cursor.Note.Command := o;
-					if o = $C then
-						Cursor.Note.Parameter := Min(64, Cursor.Note.Parameter);
+					{if o = $C then
+						Cursor.Note.Parameter := Min(64, Cursor.Note.Parameter);}
 
 					LastNote.Command := Cursor.Note.Command;
 					LastNote.Pitch := Cursor.Note.Pitch;
