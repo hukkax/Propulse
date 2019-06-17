@@ -86,3 +86,5 @@ src/include/bass/delphi/
 src/include/bass/bass\.chm
 
 src/include/bass/bass\.txt
+
+src/screen/fx\.plasma\.pas
