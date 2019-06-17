@@ -328,6 +328,15 @@ begin
 			end;
 		end;
 
+		{$IFDEF DEBUG}
+		if Sample.MaxPlayPos > 0 then
+		begin
+			x := Cardinal(x1 + SampleToPixelPos(Sample.MaxPlayPos));
+			if x < x2 then
+				Console.Bitmap.VertLine(x, y1, y2, $FFFF00FF);
+		end;
+		{$ENDIF}
+
 		// Done painting
 		Console.Bitmap.ResetClipRect;
 	end;
