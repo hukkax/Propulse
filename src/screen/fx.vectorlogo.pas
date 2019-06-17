@@ -267,7 +267,8 @@ begin
 
 	Letters := TObjectList<TVectorItem>.Create;
 
-	CreateVector('A', [04,20,44,NEW,12,32]);
+	CreateVector('A', [04,20,44]);
+//	CreateVector('A', [04,20,44,NEW,12,32]);
 	CreateVector('B', [04,00,40,22,44,04,NEW,02,22]);
 	CreateVector('C', [44,04,00,40]);
 	CreateVector('D', [04,00,20,42,24,04]);
