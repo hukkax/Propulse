@@ -37,9 +37,11 @@ const
 	MIDIACTION_PLAY_SONG    = 'toggleplay.song';
 	MIDIACTION_EDITMODE     = 'editmode';
 
+	{$IFDEF MIDI_DISPLAY}
 	MIDI_FX_SCROLLTEXT		= 0;
 	MIDI_FX_VU_VERTICAL     = 1;
 	MIDI_FX_VU_HORIZONTAL   = 2;
+	{$ENDIF}
 
 type
 	TMIDIHandler    = class;
@@ -79,6 +81,7 @@ type
 		function OpenDevice(const Name: AnsiString): Integer;
 	end;
 
+	{$IFDEF MIDI_DISPLAY}
 	TMIDIScreenPixel = record
 		Color,
 		Index:      Byte;
@@ -119,6 +122,7 @@ type
 		constructor	Create;
 		destructor  Destroy; override;
 	end;
+	{$ENDIF}
 
 	TMIDIController = class
 	private
@@ -136,17 +140,20 @@ type
 			Note: TNote;
 		end;
 
-		ScrollText: TScrollText;
-
 		InputControls: array [0..$FFFF] of TInputControl;
 
+		{$IFDEF MIDI_DISPLAY}
+		ScrollText: TScrollText;
 		Screen:        TMIDIScreen;
+		{$ENDIF}
 
 		procedure 	MidiCallback_Button(var Ctrl: TInputControl; const Status, Data1, Data2: Byte);
 		procedure 	MidiCallback_Slider(var Ctrl: TInputControl; const Status, Data1, Data2: Byte);
 
+		{$IFDEF MIDI_DISPLAY}
 		procedure	UpdateScrollText;
 		procedure 	UpdateVUMeter(Channel: Byte; Volume: Single);
+		{$ENDIF}
 
 		function    InitIO: Integer;
 		function    InitMidiControl(const aIndex, aKind: Byte;
@@ -170,7 +177,9 @@ type
 		Output:           TMidiOutput;
 
 		procedure   OnMidiInput(const DeviceIndex: Integer; const Status, Data1, Data2: Byte);
+		{$IFDEF MIDI_DISPLAY}
 		procedure 	UpdateVUMeter(Channel: Byte; Volume: Single);
+		{$ENDIF}
 		procedure 	InitShortcuts;
 		procedure	SettingsChanged;
 
@@ -216,6 +225,8 @@ begin
 		Sl.EndUpdate;
 	end;
 end;
+
+{$IFDEF MIDI_DISPLAY}
 
 { TScrollText }
 
@@ -297,6 +308,8 @@ begin
 	end;
 end;
 
+{$ENDIF}
+
 { TInputControl }
 
 procedure TInputControl.DoAction(NoteOn: Boolean);
@@ -369,18 +382,22 @@ begin
 
 	MIDINotes.First := 255; // disable
 
+	{$IFDEF MIDI_DISPLAY}
 	Screen := TMIDIScreen.Create;
 	Screen.Enabled := False;
 	ScrollText := nil;
+	{$ENDIF}
 end;
 
 destructor TMIDIController.Destroy;
 var
 	i: Integer;
 begin
+	{$IFDEF MIDI_DISPLAY}
 	if Assigned(ScrollText) then ScrollText.Free;
 	Screen.Clear;
 	Screen.Free;
+	{$ENDIF}
 
 	for i := 0 to High(InputControls) do
 		if InputControls[i] <> nil then
@@ -460,6 +477,7 @@ begin
 }
 end;
 
+{$IFDEF MIDI_DISPLAY}
 procedure TMIDIController.UpdateScrollText; inline;
 begin
 	if ScrollText <> nil then
@@ -517,6 +535,7 @@ begin
 
 	end;
 end;
+{$ENDIF}
 
 function TMIDIController.InitIO: Integer;
 begin
@@ -535,12 +554,17 @@ begin
 	{$ENDIF}
 
 	ShiftDown := False;
+
+	{$IFDEF MIDI_DISPLAY}
 	Screen.Controller := Self;
+	{$ENDIF}
 
 	Result := InputIndex;
 	if Result >= 0 then
 	begin
+		{$IFDEF MIDI_DISPLAY}
 		Screen.Clear;
+		{$ENDIF}
 		FillKeyShortcuts;
 	end;
 end;
@@ -733,7 +757,7 @@ begin
 			(Data1 >= Cont.MIDINotes.First) and (Data1 <= Cont.MIDINotes.First + 35) then
 			with Cont.MIDINotes do
 			begin
-				Note.Period := PeriodTable[Data1 - First];
+				Note.Pitch := {PeriodTable[}Data1 - First + 1;
 				Note.Sample := CurrentSample;
 				if IgnoreVolume then
 					Vol := 255
@@ -751,6 +775,7 @@ begin
 	{$ENDIF}
 end;
 
+{$IFDEF MIDI_DISPLAY}
 procedure TMIDIHandler.UpdateVUMeter(Channel: Byte; Volume: Single);
 var
 	Cont: TMIDIController;
@@ -760,6 +785,7 @@ begin
 		if Cont.Screen.Enabled then
 			Cont.UpdateVUMeter(Channel, Volume);
 end;
+	{$ENDIF}
 
 procedure TMIDIHandler.InitShortcuts;
 var
@@ -775,8 +801,10 @@ var
 begin
 	for Cont in Controllers do
 	begin
+		{$IFDEF MIDI_DISPLAY}
 		if Cont.Screen.Enabled then
 			Cont.Screen.Clear;
+		{$ENDIF}
 	end;
 end;
 
@@ -826,6 +854,7 @@ begin
 
 			for Section in Sections do
 			begin
+				{$IFDEF MIDI_DISPLAY}
 				if Section = 'Screen' then
 				begin
 					if not Options.Midi.UseDisplay then Continue;
@@ -884,6 +913,7 @@ begin
 					{$ENDIF}
 				end
 				else
+				{$ENDIF}
 				if Section = 'Notes' then
 				begin
 					MIDINotes.First := Ini.ReadInteger(Section, 'First', 36);
@@ -974,8 +1004,12 @@ begin
 						Callback := nil;
 						Controller := Cont;
 
-						if Name = '' then Name := Actions[0].StringData;
-						if Name = '' then Name := Format('Unnamed:%d', [Index]);
+						if Name = '' then
+						begin
+							Name := Actions[0].StringData;
+							if Name = '' then
+								Name := Format('Unnamed:%d', [Index]);
+						end;
 
 					end; // InputControls[]
 
@@ -1017,6 +1051,8 @@ end;
 
 { TMIDIScreen }
 
+{$IFDEF MIDI_DISPLAY}
+
 procedure TMIDIScreen.Clear;
 var
 	X, Y: Integer;
@@ -1047,6 +1083,8 @@ begin
 			Controller.OutputIndex, MIDICMD_KEY_ON, Pixel^.Index, Col);
 	end;
 end;
+
+{$ENDIF}
 
 end.
 
