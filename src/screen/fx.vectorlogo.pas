@@ -9,11 +9,13 @@ uses
 	Graphics32, Screen.Splash;
 
 type
-	TVector = packed record
+	TVector = class
 		X, Y, Z,
 		sx, sy:		Integer;
 		NewLine:	Boolean;
 	end;
+
+	TVectorList = TObjectList<TVector>;
 
 	TVectorObject = class
 	const
@@ -23,7 +25,7 @@ type
 		X, Y, Z:	Integer;
 		DegX, DegY, DegZ: Single;
 		Limits:		TRect;
-		Segments:	TList<TVector>;
+		Segments:	TVectorList;
 
 		function	GetSegmentCoords(Index: Integer; var XX, YY: Integer): Boolean;
 		procedure	Paint(const Buffer: TBitmap32; DestX, DestY: Integer);
@@ -34,7 +36,10 @@ type
 
 	TVectorItem = class
 		Name:		AnsiString;
-		Segments:	TList<TVector>;
+		Segments:	TVectorList;
+
+		constructor Create(const AName: AnsiString); overload;
+		destructor  Destroy; override;
 	end;
 
 	TStar = record
@@ -77,6 +82,7 @@ const
 var
 	Letters: TObjectList<TVectorItem>;
 	ScreenCenter: TPoint;
+	TempVector: TVector;
 
 // ============================================================================
 // Utility
@@ -128,6 +134,21 @@ begin
 	Result := nil;
 end;
 
+{ TVectorItem }
+
+constructor TVectorItem.Create(const AName: AnsiString);
+begin
+	inherited Create;
+	Name := AName;
+	Segments := TVectorList.Create;
+end;
+
+destructor TVectorItem.Destroy;
+begin
+	Segments.Free;
+	inherited;
+end;
+
 // ============================================================================
 // TStar
 // ============================================================================
@@ -148,16 +169,14 @@ end;
 // ============================================================================
 
 function TVectorObject.GetSegmentCoords(Index: Integer; var XX, YY: Integer): Boolean;
-var
-	Vec: TVector;
 begin
 	if (Index < 0) or (Index >= Segments.Count) then Exit(False);
 
-	RotatePoint(Segments[Index], Vec, DegX, DegY, DegZ);
-	PointProject(Vec, Z);
+	RotatePoint(Segments[Index], TempVector, DegX, DegY, DegZ);
+	PointProject(TempVector, Z);
 
-	XX := Vec.sX + X;
-	YY := Vec.sY + Y;
+	XX := TempVector.sX + X;
+	YY := TempVector.sY + Y;
 	Result := not Segments[Index].NewLine;
 end;
 
@@ -198,7 +217,7 @@ constructor TVectorObject.Create(const Text: AnsiString);
 var
 	i, p, x, maxx, maxy: Integer;
 	Letter: TVectorItem;
-	Seg: TVector;
+	Seg, NewSeg: TVector;
 const
 	ScaleX = 12;
 	ScaleY = 16;
@@ -206,7 +225,7 @@ const
 begin
 	inherited Create;
 
-	Segments := TList<TVector>.Create;
+	Segments := TVectorList.Create;
 	x := 0;
 
 	for i := 1 to Length(Text) do
@@ -219,10 +238,17 @@ begin
 		begin
 			Seg := Letter.Segments[p];
 			if Seg.X > maxx then maxx := Seg.X;
-			Seg.X := Seg.X * ScaleX + x;
-			Seg.Y := Seg.Y * ScaleY;
-			Seg.Z := 0;
-			Segments.Add(Seg);
+
+			NewSeg := TVector.Create;
+
+			NewSeg.X := Seg.X * ScaleX + x;
+			NewSeg.Y := Seg.Y * ScaleY;
+			NewSeg.Z := 0;
+			NewSeg.sx := Seg.sx;
+			NewSeg.sy := Seg.sy;
+			NewSeg.NewLine := Seg.NewLine;
+
+			Segments.Add(NewSeg);
 		end;
 
 		Inc(x, maxx * ScaleX + Spacing);
@@ -243,7 +269,6 @@ begin
 		Seg := Segments[p];
 		Seg.X := Seg.X - maxx;
 		Seg.Y := Seg.Y - maxy;
-		Segments[p] := Seg;
 	end;
 end;
 
@@ -263,9 +288,10 @@ var
 begin
 	inherited Create(R, W, H);
 
+	TempVector := TVector.Create;
 	ScreenCenter := Point(R.Width div 2 + R.Left, R.Height div 2 + R.Top);
 
-	Letters := TObjectList<TVectorItem>.Create;
+	Letters := TObjectList<TVectorItem>.Create(True);
 
 	CreateVector('A', [04,20,44]);
 //	CreateVector('A', [04,20,44,NEW,12,32]);
@@ -326,6 +352,7 @@ destructor TSplashEffectVector.Destroy;
 begin
 	Vector1.Free;
 	Vector2.Free;
+	TempVector.Free;
 	inherited Destroy;
 end;
 
@@ -336,9 +363,7 @@ var
 	IsNew: Boolean;
 	Seg: TVector;
 begin
-	Result := TVectorItem.Create;
-	Result.Name := Name;
-	Result.Segments := TList<TVector>.Create;
+	Result := TVectorItem.Create(Name);
 
 	IsNew := True;
 	for i := 0 to Length(Segments)-1 do
@@ -349,6 +374,7 @@ begin
 		else
 		begin
 			Num := Format('%.2d', [c]); // stupid :D
+			Seg := TVector.Create;
 			with Seg do
 			begin
 				X := StrToInt(Num[1]);
