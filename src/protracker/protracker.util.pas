@@ -448,11 +448,17 @@ end;
 
 procedure Log(const S: AnsiString); overload;
 begin
+	{$IFDEF DEBUG}
+	WriteLn(S);
+	{$ENDIF}
+
 	if Assigned(OnLog) then
 		OnLog(S)
 	{$IFDEF UNIX}
+	{$IFNDEF DEBUG}
 	else
 		WriteLn(S)
+	{$ENDIF}
 	{$ENDIF};
 	if (Assigned(Module)) and (AnsiStartsText(TEXT_ERROR, S)) then
 		Module.Warnings := True;
