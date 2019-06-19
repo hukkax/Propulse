@@ -835,169 +835,180 @@ begin
 		if Result then Exit;
 	end;
 
-	FileAcc := TFileStreamEx.Create(Filename, fmOpenRead, fmShareDenyNone);
-
-	ID := FileAcc.ReadString(False, 4);
-
-	if ID = 'RIFF' then	// WAV
-	begin
-		Wav := TWavReader.Create;
-		FileAcc.SeekTo(0);
-		Wav.LoadFromStream(FileAcc);
-
-        SupportedFormat := True;
-
-		case Wav.fmt.Channels of
-			1:  LastSampleFormat.isStereo := False;
-			2:  LastSampleFormat.isStereo := True;
-		else
-			SupportedFormat := False;
-		end;
-
-        if SupportedFormat then
-		case Wav.fmt.BitsPerSample of
-			8:  LastSampleFormat.is16Bit := False;
-			16:
-			begin
-				LastSampleFormat.is16Bit := True;
-				SupportedFormat := False; // load 16-bit samples via BASS
-			end;
-		else
-			SupportedFormat := False;
-		end;
-
-		if not SupportedFormat then
-		begin
-			FileAcc.Free;
-			Wav.Free;
-			// use BASS to decode unsupported wav format
-			Exit(LoadWithBASS(Filename));
-		end;
-
-		WavLen := Min(Wav.dataSize, 1024*1024*MAX_IMPORTED_SAMPLESIZE);
-		Len := WavLen;
-
-		if LastSampleFormat.isStereo then Len := Len div 2;
-		if LastSampleFormat.is16Bit  then Len := Len div 2;
-
-		SetLength(Data, Len + 1);
-		Self.Length := Len div 2;
-
-		if (not LastSampleFormat.isStereo) and (not LastSampleFormat.is16Bit) then
-		begin
-			// mono 8-bit
-			Wav.ReadBuf(Data[0], WavLen);
-			for X := 0 to WavLen-1 do
-				Data[X] := Byte(127 - Data[X]);
-		end
-		else
-		if LastSampleFormat.is16Bit then
-		begin
-			SetLength(Buf, WavLen + 1);
-			Wav.ReadBuf(Buf[0], WavLen);
-			if LastSampleFormat.isStereo then
-			begin
-				// stereo 16-bit
-				for X := 0 to Len-1 do
-					Data[X] := Byte((Buf[X*2] + Buf[X*2+1]) div 512);
-			end
-			else
-				// mono 16-bit
-				for X := 0 to Len-1 do
-					Data[X] := Byte(Buf[X] div 256);
-		end
-		else
-		begin
-			// stereo 8-bit UNTESTED
-			SetLength(Buf, WavLen + 1);
-			Wav.ReadBuf(Buf[0], WavLen);
-			for X := 0 to Len do
-				Data[X] := Buf[X] and $FF;
-		end;
-
-		if (Wav.smpl.Exists) and (wav.smpl.MainChunk.NumSampleLoops > 0) then
-		begin
-			LoopStart  := wav.smpl.LoopInfo.LoopStart and $FFFFFFFE;
-			LoopLength := ((wav.smpl.LoopInfo.LoopEnd + 1) and $FFFFFFFE) - LoopStart;
-			Validate;
-		end;
-
-		Wav.Free;
-	end
-	else
-	if ID = 'FORM' then	// IFF 8SVX
-	begin
-		// Should be the size of the file minus 4+4 ( 'FORM'+size )
-		Len := FileAcc.Read32R;
-		ID := FileAcc.ReadString(False, 4);
-		if ID <> '8SVX' then Exit;
-		i := 0;
-
-		while (ID <> 'BODY') and (i < 30) do
-		begin
-			ID := FileAcc.ReadString(False, 4);
-			Inc(i); // iterations
-			Len := FileAcc.Read32R;
-
-			if ID = 'VHDR' then
-			begin
-				// # samples in the high octave 1-shot part
-				Self.LoopStart  := FileAcc.Read32R div 2;
-				// # samples in the high octave repeat part
-				Self.LoopLength := FileAcc.Read32R div 2;
-				if Self.LoopLength < 1 then
-					Self.LoopLength := 1;
-				FileAcc.Read32;				// # samples/cycle in high octave, else 0
-				FileAcc.Read16;				// samples per second
-				FileAcc.Read8;				// # octaves of waveforms
-				if FileAcc.Read8 <> 0 then	// # data compression technique used
-					Exit;
-				Self.Volume := Trunc((FileAcc.Read32R / 1024) + 0.5);	// playback volume
-			end
-			else
-			if ID = 'BODY' then
-			begin
-				// 8-bit sample data
-				Resize(Len);
-				FileAcc.Read(Data[0], Len-1);
-
-				if 	(Self.LoopStart > Self.Length) or
-					((Self.LoopStart + Self.LoopLength) > Self.Length) then
-				begin
-					Self.LoopStart  := 0;
-					Self.LoopLength := 1;
-				end;
-			end
-			else
-			if ID = 'NAME' then
-			begin
-				sName := FileAcc.ReadString(False, Len);
-				Self.SetName(sName);
-				if Len mod 2 = 1 then FileAcc.Read8;
-			end
-			else
-			begin
-				if (Len and 1) <> 0 then Inc(Len);	// padding
-				// skip the remaining bytes of this chunk
-				if (Len <> 0) then FileAcc.Skip(Len);
-			end;
-		end;
-	end
-	else
-	if ID = 'IMPS' then	// Impulse Tracker sample
-	begin
-		ips := nil;
-		ReadITSample(Module, FileAcc, Self.Index-1, ips);
-	end
-	else
-	begin				// read file as raw 8-bit mono sample data
-		Len := FileAcc.Size;
-		Resize(Len);
-		FileAcc.Read(Data[0], Len-1);
+	try
+		FileAcc := nil;
+		FileAcc := TFileStreamEx.Create(Filename, fmOpenRead, fmShareDenyNone);
+	except
+		Log(TEXT_WARNING + 'Could not open file for reading!');
+		if Assigned(FileAcc) then FileAcc.Free;
+		Exit;
 	end;
 
-	ZeroFirstWord;
-	FileAcc.Free;
+	try
+		ID := FileAcc.ReadString(False, 4);
+
+		if ID = 'RIFF' then	// WAV
+		begin
+			Wav := TWavReader.Create;
+			FileAcc.SeekTo(0);
+			Wav.LoadFromStream(FileAcc);
+
+	        SupportedFormat := True;
+
+			case Wav.fmt.Channels of
+				1:  LastSampleFormat.isStereo := False;
+				2:  LastSampleFormat.isStereo := True;
+			else
+				SupportedFormat := False;
+			end;
+
+	        if SupportedFormat then
+			case Wav.fmt.BitsPerSample of
+				8:  LastSampleFormat.is16Bit := False;
+				16:
+				begin
+					LastSampleFormat.is16Bit := True;
+					SupportedFormat := False; // load 16-bit samples via BASS
+				end;
+			else
+				SupportedFormat := False;
+			end;
+
+			if not SupportedFormat then
+			begin
+				FileAcc.Free;
+				Wav.Free;
+				// use BASS to decode unsupported wav format
+				Exit(LoadWithBASS(Filename));
+			end;
+
+			WavLen := Min(Wav.dataSize, 1024*1024*MAX_IMPORTED_SAMPLESIZE);
+			Len := WavLen;
+
+			if LastSampleFormat.isStereo then Len := Len div 2;
+			if LastSampleFormat.is16Bit  then Len := Len div 2;
+
+			SetLength(Data, Len + 1);
+			Self.Length := Len div 2;
+
+			if (not LastSampleFormat.isStereo) and (not LastSampleFormat.is16Bit) then
+			begin
+				// mono 8-bit
+				Wav.ReadBuf(Data[0], WavLen);
+				for X := 0 to WavLen-1 do
+					Data[X] := Byte(127 - Data[X]);
+			end
+			else
+			if LastSampleFormat.is16Bit then
+			begin
+				SetLength(Buf, WavLen + 1);
+				Wav.ReadBuf(Buf[0], WavLen);
+				if LastSampleFormat.isStereo then
+				begin
+					// stereo 16-bit
+					for X := 0 to Len-1 do
+						Data[X] := Byte((Buf[X*2] + Buf[X*2+1]) div 512);
+				end
+				else
+					// mono 16-bit
+					for X := 0 to Len-1 do
+						Data[X] := Byte(Buf[X] div 256);
+			end
+			else
+			begin
+				// stereo 8-bit UNTESTED
+				SetLength(Buf, WavLen + 1);
+				Wav.ReadBuf(Buf[0], WavLen);
+				for X := 0 to Len do
+					Data[X] := Buf[X] and $FF;
+			end;
+
+			if (Wav.smpl.Exists) and (wav.smpl.MainChunk.NumSampleLoops > 0) then
+			begin
+				LoopStart  := wav.smpl.LoopInfo.LoopStart and $FFFFFFFE;
+				LoopLength := ((wav.smpl.LoopInfo.LoopEnd + 1) and $FFFFFFFE) - LoopStart;
+				Validate;
+			end;
+
+			Wav.Free;
+		end
+		else
+		if ID = 'FORM' then	// IFF 8SVX
+		begin
+			// Should be the size of the file minus 4+4 ( 'FORM'+size )
+			Len := FileAcc.Read32R;
+			ID := FileAcc.ReadString(False, 4);
+			if ID <> '8SVX' then Exit;
+			i := 0;
+
+			while (ID <> 'BODY') and (i < 30) do
+			begin
+				ID := FileAcc.ReadString(False, 4);
+				Inc(i); // iterations
+				Len := FileAcc.Read32R;
+
+				if ID = 'VHDR' then
+				begin
+					// # samples in the high octave 1-shot part
+					Self.LoopStart  := FileAcc.Read32R div 2;
+					// # samples in the high octave repeat part
+					Self.LoopLength := FileAcc.Read32R div 2;
+					if Self.LoopLength < 1 then
+						Self.LoopLength := 1;
+					FileAcc.Read32;				// # samples/cycle in high octave, else 0
+					FileAcc.Read16;				// samples per second
+					FileAcc.Read8;				// # octaves of waveforms
+					if FileAcc.Read8 <> 0 then	// # data compression technique used
+						Exit;
+					Self.Volume := Trunc((FileAcc.Read32R / 1024) + 0.5);	// playback volume
+				end
+				else
+				if ID = 'BODY' then
+				begin
+					// 8-bit sample data
+					Resize(Len);
+					FileAcc.Read(Data[0], Len-1);
+
+					if 	(Self.LoopStart > Self.Length) or
+						((Self.LoopStart + Self.LoopLength) > Self.Length) then
+					begin
+						Self.LoopStart  := 0;
+						Self.LoopLength := 1;
+					end;
+				end
+				else
+				if ID = 'NAME' then
+				begin
+					sName := FileAcc.ReadString(False, Len);
+					Self.SetName(sName);
+					if Len mod 2 = 1 then FileAcc.Read8;
+				end
+				else
+				begin
+					if (Len and 1) <> 0 then Inc(Len);	// padding
+					// skip the remaining bytes of this chunk
+					if (Len <> 0) then FileAcc.Skip(Len);
+				end;
+			end;
+		end
+		else
+		if ID = 'IMPS' then	// Impulse Tracker sample
+		begin
+			ips := nil;
+			ReadITSample(Module, FileAcc, Self.Index-1, ips);
+		end
+		else
+		begin				// read file as raw 8-bit mono sample data
+			Len := FileAcc.Size;
+			Resize(Len);
+			FileAcc.Read(Data[0], Len-1);
+		end;
+
+		ZeroFirstWord;
+
+	finally
+		FileAcc.Free;
+	end;
 
 	if (Self is TImportedSample) then
 	begin
