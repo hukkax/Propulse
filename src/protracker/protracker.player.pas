@@ -1114,7 +1114,8 @@ begin
 		for p := 0 to 30 do
 			FreeSlots[p] := Samples[p].IsEmpty;
 		for p := 0 to 30 do
-			FreeSlots[DestSlot[p]] := False;
+			if DestSlot[p] >= 0 then
+				FreeSlots[DestSlot[p]] := False;
 
 		c := 0; // count samples to be added
 		for p := 0 to 30 do
