@@ -7,6 +7,8 @@ uses
 	ProTracker.Util,
 	FileStreamEx;
 
+{$I propulse.inc}
+
 const
 	BASSSupportedFormats = '[.mp3][.ogg][.aiff]';
 

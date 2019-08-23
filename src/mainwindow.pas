@@ -63,7 +63,7 @@ type
 
 		function 	GetMaxScaling(MaxScale: Byte = 0): Byte;
 		function 	SetupVideo: Boolean;
-		procedure	SetFullScreen(B: Boolean);
+		procedure	SetFullScreen(WantFullScreen: Boolean; Force: Boolean = False);
 		procedure 	InitConfiguration;
 
 		procedure 	HandleInput;
@@ -556,8 +556,10 @@ begin
 	SetHint(SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4, True);
 
 	{$IFDEF UNIX}
-	SetHint('SDL_VIDEO_X11_XRANDR',   False);
-	SetHint('SDL_VIDEO_X11_XVIDMODE', True);
+		{$IFDEF DISABLE_FULLSCREEN}
+		SetHint('SDL_VIDEO_X11_XRANDR',   False);
+		SetHint('SDL_VIDEO_X11_XVIDMODE', True);
+		{$ENDIF}
 	{$ENDIF}
 
 	if not Initialized then
@@ -578,7 +580,7 @@ begin
 		SDL.Video.SDL_DestroyWindow(Video.Window);
 	end;
 
-    Video.HaveVSync := False;
+	Video.HaveVSync := False;
 	Video.SyncRate := 0;
 
 	if Options.Display.VSyncMode <> VSYNC_OFF then
@@ -621,7 +623,7 @@ begin
 	if (Video.Renderer = nil) and (Video.HaveVSync) then
 	begin
 		// try again without vsync flag
-        Video.HaveVSync := False;
+		Video.HaveVSync := False;
 		rendererFlags.Value := rendererFlags.Value and not UInt32(SDL_RENDERER_PRESENTVSYNC);
 		Video.Renderer := SDL.Render.SDL_CreateRenderer(Video.Window, -1, rendererFlags);
 		if Video.Renderer = nil then
@@ -640,13 +642,15 @@ begin
 		LogFatal('Error setting renderer size: ' + SDL.Error.SDL_GetError);
 		Exit;
 	end;
+
 	{$IFNDEF DISABLE_SDL2_2_0_5}
-    if Video.NewSDL then
+	if Video.NewSDL then
 		SDL.Render.SDL_RenderSetIntegerScale(Video.Renderer, SDL_TRUE);
 	{$ENDIF}
 
 	Video.Texture := SDL.Render.SDL_CreateTexture(Video.Renderer,
-		SDL_UInt32(SDL_PIXELFORMAT_ARGB8888), SDL_SInt32(SDL_TEXTUREACCESS_STREAMING), screenW, screenH);
+		SDL_UInt32(SDL_PIXELFORMAT_ARGB8888),
+		SDL_SInt32(SDL_TEXTUREACCESS_STREAMING), screenW, screenH);
 	if Video.Texture = nil then
 	begin
 		LogFatal('Error initializing streaming texture: ' + SDL.Error.SDL_GetError);
@@ -655,7 +659,7 @@ begin
 	SDL.Render.SDL_SetTextureBlendMode(Video.Texture, SDL_BLENDMODE_NONE);
 
 	Fn := GetDataFile('icon.bmp');
-	if Fn <> '' then
+	if (Fn <> '') and FileExists(Fn) then
 	begin
 		Icon := SDL.Surface.SDL_LoadBMP(PAnsiChar(Fn));
 		SDL.Video.SDL_SetWindowIcon(Video.Window, Icon);
@@ -723,32 +727,38 @@ begin
 	Result := Max(MaxScale, 1);
 end;
 
-procedure TWindow.SetFullScreen(B: Boolean);
+procedure TWindow.SetFullScreen(WantFullScreen: Boolean; Force: Boolean = False);
 var
 	w, h: Integer;
 	X, Y: SDL_Float;
 	{$IFDEF DISABLE_FULLSCREEN}
 	R: SDL_Rect;
-    {$ENDIF}
+	{$ENDIF}
+label
+	GetMouseScale;
 begin
+	if (Locked) or ((not Force) and (Video.IsFullScreen = WantFullScreen)) then goto GetMouseScale;
+
 	Locked := True;
 	Visible := True;
-    Video.IsFullScreen := B;
+	Video.IsFullScreen := WantFullScreen;
 
 	with SDL.Video do
-	if B then
+	if WantFullScreen then
 	begin
     	{$IFNDEF DISABLE_FULLSCREEN}
+		//SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_FULLSCREEN);
 		SDL.Video.SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-		SDL.Video.SDL_SetWindowGrab(Video.Window, SDL_TRUE);
+		//SDL.Video.SDL_SetWindowGrab(Video.Window, SDL_TRUE);
     	{$ELSE}
+		{$IFNDEF DISABLE_SDL2_2_0_5}
 		if Video.NewSDL then
 	        SDL_GetDisplayUsableBounds(SDL_GetWindowDisplayIndex(Video.Window), R)
 		else
+		{$ENDIF}
 			SDL_GetDisplayBounds(SDL_GetWindowDisplayIndex(Video.Window), R);
         SDL_SetWindowSize(Video.Window, R.w, R.h);
-		SDL_SetWindowPosition(Video.Window,
-			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		SDL_SetWindowPosition(Video.Window, R.x, R.y);
         {$ENDIF}
 	end
 	else
@@ -758,15 +768,12 @@ begin
 		h := Console.Bitmap.Height * h;
 
 		SDL_SetWindowFullscreen(Video.Window, SDL_WINDOW_WINDOWED);
+		SDL_SetWindowBordered(Video.Window, SDL_TRUE);
 		SDL_SetWindowSize(Video.Window, w, h);
 		SDL_SetWindowPosition(Video.Window,
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 		SDL_SetWindowGrab(Video.Window, SDL_FALSE);
 	end;
-
-	SDL.Render.SDL_RenderGetScale(Video.Renderer, X, Y);
-	w := Max(Trunc(x), 1); h := Max(Trunc(y), 1);
-	MouseCursor.Scaling := Types.Point(w, h);
 
 	{$IFNDEF DISABLE_SDL2_2_0_5}
 	if Video.NewSDL then
@@ -775,6 +782,12 @@ begin
 
     ClearMessageQueue;
     Locked := False;
+
+GetMouseScale:
+	SDL.Render.SDL_RenderGetScale(Video.Renderer, X, Y);
+	w := Max(Trunc(X), 1); h := Max(Trunc(Y), 1);
+	w := Min(w, w);
+	MouseCursor.Scaling := Types.Point(w, w);
 end;
 
 procedure TWindow.SetTitle(const Title: AnsiString);
@@ -889,7 +902,7 @@ begin
 
 		// toggle fullscreen with alt-enter
 		keyProgramFullscreen:
-				SetFullScreen(not Video.IsFullScreen);
+			SetFullScreen(not Video.IsFullScreen);
 
 		keyScreenLog:
 			ChangeScreen(TCWEScreen(LogScreen));
@@ -1683,7 +1696,7 @@ begin
 		SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
 	{$ENDIF}
 
-	SetFullScreen(Video.IsFullScreen);
+	SetFullScreen(Video.IsFullScreen, True);
 
 	{$IFDEF MIDI}
 	if MIDI <> nil then MIDI.InitShortcuts;
