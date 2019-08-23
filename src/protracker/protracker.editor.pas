@@ -1475,6 +1475,7 @@ begin
 				if Cursor.Note.Command <> $C then
 				begin
 					Cursor.Note.Command := 0;
+					Cursor.Note.Parameter := 0;
 					if EditMask[EM_EFFECT] then
 						LastNote.Command := 0;
 				end;
