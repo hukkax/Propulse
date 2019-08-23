@@ -517,7 +517,7 @@ procedure TEditorScreen.UpdateVUMeter(Len: Integer);
 var
 	p: Single;
 	C: TColor32;
-	ch, X, Y, ox, oy, w, h, hh, wh: Integer;
+	ch, X, Y, ox, oy, w, h, hh, wh, re: Integer;
 	R: TRect;
 begin
 	// Channel VUmeters
@@ -566,10 +566,10 @@ begin
 	w := R.Right - R.Left - 1;
 	h := R.Bottom - R.Top - 1;
 	hh := h div 2;
-	wh := w div 4 + 1;
 
 	if Options.Display.ScopePerChannel then // Quadrascope
 	begin
+		wh := w div 4 + 1;
 		Inc(hh, oy);
 		if Len > 0 then
 			p := (Len div 4 - 1) / wh; // step
@@ -581,14 +581,16 @@ begin
 			else
 				C := Console.Palette[Options.Display.Colors.Scope.Muted];
 
+			re := Min(ox+wh, R.Right)-1;
+
 			if Len > 0 then
 			begin
-				for X := 0 to wh-1 do
-					Console.Bitmap.Pixel[ox + X,
-						hh + Trunc(ScopeBuffer[ch, Trunc({%H-}p * X)] / 65536 * h)] := C;
+				for X := ox to re do
+					Console.Bitmap.Pixel[X,
+						hh + Trunc(ScopeBuffer[ch, Trunc({%H-}p * (X-ox))] / 65536 * h)] := C;
 			end
 			else
-				Console.Bitmap.HorzLine(ox, hh, ox+wh-1, C);
+				Console.Bitmap.HorzLine(ox, hh, re, C);
 
 			if ch > 0 then
 			begin
