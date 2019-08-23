@@ -19,9 +19,11 @@ Additions:
   column and all the columns following it on the channel
 - BASS is no longer required; SDL2 can be used for audio instead (but requires
   a recompile; also support for mp3/ogg/other samples will be missing)
+- Added a 7x7 font
 
 Fixes:
 
+- Fixed fullscreen on Linux
 - Brought the playroutine more in line with ProTracker Clone behavior:
   - Fixed invalid notes and some effects producing sound when they shouldn't
   - Reset Paula properly when changing patterns on the fly while playing
@@ -29,13 +31,17 @@ Fixes:
     unmuting channels and for display on quadrascopes
 - Fixed invalid sample loop handling which could cause the playroutine to crash
 - Fixed selection not getting drawn on the rightmost pixels in sample waveform
+- Fixed quadrascope getting drawn out of bounds on certain font sizes
 - Pattern view is now properly restored upon stopping song playback
 - Fixed some bad behavior when editing the effect or volume columns when there
   already was data in the other column
+- Fixed a crash when attempting to merge modules
+- Fixed a crash on loading/browsing sample files if the file couldn't be opened
 - Fixes and improvements for loading samples from inside modules:
   - Fixed an issue with loading looped samples from SoundTracker modules
   - Fixed file size display
   - Show sample numbers
+
 
 Propulse Tracker 0.9.5.5
 ------------------------
