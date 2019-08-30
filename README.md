@@ -5,7 +5,7 @@ tracker modules using an Impulse/Schism Tracker style user interface.
 
 Should build and run on Windows, Linux and macOS.
 
-[[https://github.com/hukkax/Propulse/blob/trunk/docs/images/ss1.png|alt=Editor screenshot]]
+![Editor screenshot](https://github.com/hukkax/Propulse/blob/trunk/docs/images/ss1.png)
 
 Features:
 
@@ -22,6 +22,6 @@ Supported formats:
 - IT and S3M  - Imports Impulse Tracker and Scream Tracker 3 modules
 - Samples: raw, IFF 8SVX, WAV, MP3 & Ogg Vorbis (when using BASS)
 
-[[https://github.com/hukkax/Propulse/blob/trunk/docs/images/ss2.png|alt=Sample Editor screenshot]]
+![Sample Editor screenshot](https://github.com/hukkax/Propulse/blob/trunk/docs/images/ss2.png)
 
-[[https://github.com/hukkax/Propulse/blob/trunk/docs/images/ss3.png|alt=Settings screen screenshot]]
+![Settings screen screenshot](https://github.com/hukkax/Propulse/blob/trunk/docs/images/ss3.png)
