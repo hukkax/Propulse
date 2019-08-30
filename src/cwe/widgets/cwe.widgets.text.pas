@@ -267,7 +267,8 @@ type
 implementation
 
 uses
-	{$IFDEF WINDOWS}Windows, ShellAPI,{$ENDIF}
+	{$IFDEF WINDOWS}Windows,{$ENDIF}
+	LCLIntf,
 	MainWindow, DateUtils,
 	CWE.ExternalAPI, CWE.Dialogs,
 	TextMode, Math,
@@ -553,10 +554,9 @@ begin
 	begin
 		if Pos('://', Data) > 3 then
 		begin
-			{$IFDEF WINDOWS}
-			ShellExecute(0, 'open', PChar(Data), nil, nil, SW_SHOW);
+			//ShellExecute(0, 'open', PChar(Data), nil, nil, SW_SHOW);
+			OpenURL(Data);
 			Exit(True);
-			{$ENDIF}
 		end
 		else
 			Line.Memo.JumpToSection(Data);
@@ -665,13 +665,9 @@ begin
 	ColorFore := TConsole.COLOR_LINK;
 end;
 
-function TCWEURLLabel.MouseDown(Button: TMouseButton; X, Y: Integer;
-	P: TPoint): Boolean;
+function TCWEURLLabel.MouseDown(Button: TMouseButton; X, Y: Integer; P: TPoint): Boolean;
 begin
-	{$IFDEF WINDOWS}
-	if Button = mbLeft then
-		ShellExecute(0, 'open', PChar(String(Caption)), nil, nil, SW_SHOW);
-	{$ENDIF}
+	if Button = mbLeft then OpenURL(Caption);
 	Result := inherited;
 end;
 
@@ -1406,7 +1402,6 @@ begin
 	Result := Lines[Y].OnClick(X);
 	if Result then Exit;
 
-	{$IFDEF WINDOWS}
 	S := Lines[Y].GetText;
 	if (X > Length(S)) or (S[X] = ' ') then Exit;
 
@@ -1418,9 +1413,7 @@ begin
 	W := Trim(Copy(S, X1+1, X2-X1));
 
 	// if it's a hyperlink, open it
-	if Pos('://', W) > 3 then
-		ShellExecute(0, 'open', PChar(W), nil, nil, SW_SHOW);
-	{$ENDIF}
+	if Pos('://', W) > 3 then OpenURL(W);
 
 	Result := True;
 end;
