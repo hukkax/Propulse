@@ -788,6 +788,7 @@ GetMouseScale:
 	w := Max(Trunc(X), 1); h := Max(Trunc(Y), 1);
 	w := Min(w, h);
 	MouseCursor.Scaling := Types.Point(w, w);
+	if WantFullScreen then MouseCursor.InWindow := True;
 end;
 
 procedure TWindow.SetTitle(const Title: AnsiString);
