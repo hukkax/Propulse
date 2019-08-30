@@ -343,7 +343,6 @@ var
 	OnLog: procedure (const Msg: AnsiString) of Object;
 
 
-
 implementation
 
 uses
@@ -351,6 +350,8 @@ uses
 	lazlogger,
     {$IFDEF WINDOWS}
     Windows, ShellAPI,
+	{$ELSE}
+	LCLIntf,
     {$ENDIF}
 	ProTracker.Player,
 	CWE.Dialogs;
@@ -439,6 +440,8 @@ begin
 	{$IFDEF WINDOWS}
 	ShellExecute(0, 'open', 'explorer.exe',
 		PChar('/select,"' + Fn + '"'), nil, SW_NORMAL);
+	{$ELSE}
+	OpenDocument(ExtractFilePath(Fn));
 	{$ENDIF}
 end;
 

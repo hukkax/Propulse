@@ -120,7 +120,7 @@ uses
 	{$ELSE}
 	BASS,
 	{$ENDIF}
-    BuildInfo, Math, soxr,
+	FileUtil, BuildInfo, Math, soxr,
 	ProTracker.Messaging, ProTracker.Import,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
@@ -786,7 +786,7 @@ begin
 GetMouseScale:
 	SDL.Render.SDL_RenderGetScale(Video.Renderer, X, Y);
 	w := Max(Trunc(X), 1); h := Max(Trunc(Y), 1);
-	w := Min(w, w);
+	w := Min(w, h);
 	MouseCursor.Scaling := Types.Point(w, w);
 end;
 
@@ -1457,11 +1457,10 @@ begin
 
 	// Init application directories
 	//
-	AppPath := ExtractFilePath(ParamStr(0));
+	AppPath := IncludeTrailingPathDelimiter(ProgramDirectory);
 	DataPath := AppPath + 'data/';
 	ConfigPath := GetAppConfigDir(False);
-	if ConfigPath = '' then
-		ConfigPath := DataPath;
+	if ConfigPath = '' then ConfigPath := DataPath;
 	ConfigPath := IncludeTrailingPathDelimiter(ConfigPath);
 	ForceDirectories(ConfigPath);
 	DefaultFormatSettings.DecimalSeparator := '.';
@@ -1705,7 +1704,7 @@ begin
 	SDL.Timer.SDL_AddTimer(TimerInterval, TimerTickCallback, nil);
 
 	LogIfDebug('OK.');
-	Log(TEXT_SUCCESS + 'Program started at ' + DateTimeToStr(Now) + '.');
+	Log(TEXT_SUCCESS + 'Program started at ' + FormatDateTime('YYYY-mm-dd hh:nn.', Now));
 	Log('-');
 
     if Warnings then

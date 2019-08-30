@@ -322,9 +322,7 @@ begin
 
 				AddSection('File operations');
 
-				{$IFDEF WINDOWS}
 				AddCmdEx(FILE_EXPLORE,				'Show file in Explorer');
-				{$ENDIF}
 				AddCmdEx(FILE_RENAME, 				'Rename file');
 				AddCmdEx(FILE_COPY,					'Copy file to directory');
 				AddCmdEx(FILE_MOVE, 				'Move file to directory');
@@ -375,9 +373,7 @@ begin
 
 						AddCmdEx(FILE_RENAME, 				'Rename directory');
 						AddCmdEx(FILE_CREATEDIR, 			'Create directory');
-						{$IFDEF WINDOWS}
 						AddCmdEx(FILE_DELETE, 				'Delete directory');
-						{$ENDIF}
 						AddCmdEx(FILE_BOOKMARK, 			'Bookmark directory');
 					end;
 
@@ -449,11 +445,7 @@ procedure TFileScreen.DeleteDir(DoDialog: Boolean = True);
 var
 	Dir: String;
 begin
-	{$IFNDEF WINDOWS}
-	ModalDialog.ShowMessage('Delete Directory', 'Not implemented on non-Windows platforms!');
-	{$ELSE}
-	Dir := IncludeTrailingPathDelimiter(Directory) +
-		DirList.Items[DirList.ItemIndex].Captions[0];
+	Dir := IncludeTrailingPathDelimiter(Directory) + DirList.Items[DirList.ItemIndex].Captions[0];
 
 	if (Dir = '') or (DirectoryExists(Dir) = False) then
 	begin
@@ -469,10 +461,13 @@ begin
 	end
 	else
 	begin
-		DeleteToBin(Dir); //FileUtil.DeleteDirectory
+		{$IFDEF WINDOWS}
+		DeleteToBin(Dir);
+		{$ELSE}
+		RemoveDir(Dir);
+		{$ENDIF}
 		SetDirectory(Directory);
 	end;
-	{$ENDIF}
 end;
 
 procedure TFileScreen.CopyFile(const DestDir: String; MoveFile: Boolean = False);
