@@ -10,7 +10,9 @@ uses
 {$I propulse.inc}
 
 const
+	{$IFDEF BASS}
 	BASSSupportedFormats = '[.mp3][.ogg][.aiff]';
+	{$ENDIF}
 
 	MAX_IMPORTED_SAMPLESIZE = 6; // load max. 6 megabytes of 8-bit mono sample data
 
@@ -169,10 +171,12 @@ var
 implementation
 
 uses
-	{$IFDEF BASS_DYNAMIC}
-		lazdynamic_bass,
-	{$ELSE}
-		BASS,
+	{$IFDEF BASS}
+		{$IFDEF BASS_DYNAMIC}
+			lazdynamic_bass,
+		{$ELSE}
+			BASS,
+		{$ENDIF}
 	{$ENDIF}
 	Math, Classes, SysUtils,
 	fpwavformat, fpwavreader, fpwavwriter,
@@ -622,52 +626,19 @@ end;
 
 function TSample.GetNormalizationValue(X1: Integer = 0; X2: Integer = -1): Single;
 var
-	x: Integer;
-	ndone, numstat: LongWord;
-	minp, maxp: Smallint;
-	normpercent, peakpercent: Single;
-	stats: array[0..255] of Cardinal;
+	X: Integer;
+	maxp: Smallint;
 begin
 	ValidateCoords(X1, X2);
+	maxp := 0;
 
-	Result := 1.0;
-	normpercent := 100.0;
-	peakpercent := 100.0;
-	numstat := 0;
-	for x := Low(stats) to High(stats) do
-		stats[x] := 0;
+	for X := X1 to X2 do
+		maxp := Max(Abs(ShortInt(Data[X])), maxp);
 
-	for x := X1 to X2 do
-	begin
-		Inc(stats[Data[x]]);
-		Inc(numstat);
-	end;
-
-	// find how many samples is <percent> of the max
-	numstat := Round( numstat * (1.0 - (peakpercent / 100.0)) );
-	// use this to accumulate values
-	ndone := 0;
-	// count the min sample value that has the given percentile
-	for x := 0 to 255 do
-	begin
-		if ndone > numstat then Break;
-		Inc(ndone, stats[x]);
-	end;
-	minp := x - 129;
-	// count the max sample value that has the given percentile
-	ndone := 0;
-	for x := 255 downto 0 do
-	begin
-		if ndone > numstat then Break;
-		Inc(ndone, stats[x]);
-	end;
-
-	maxp := x - 127;
-	if minp = -128  then minp := -127;
-	if -minp > maxp then maxp := -minp;
-	if maxp = 0 then Exit;
-
-	Result := (127.0 * normpercent) / (maxp * 100.0);
+	if (maxp = 0) or (maxp >= 127) then
+		Result := 1.0
+	else
+		Result := 127 / maxp;
 end;
 
 procedure TSample.Normalize(NormalizationValue: Single = -100;
@@ -714,6 +685,7 @@ begin
 end;
 
 function TSample.LoadWithBASS(const Filename: String): Boolean;
+{$IFDEF BASS}
 var
 	DataLength: QWord;
 	Stream: HSTREAM;
@@ -722,9 +694,11 @@ var
 	S: AnsiString;
 	Channels, V: Int64;
 	i, Freq: Cardinal;
+{$ENDIF}
 begin
 	Result := False;
 
+	{$IFDEF BASS}
 	Stream := BASS_StreamCreateFile(False, PChar(Filename), 0, 0,
 		BASS_SAMPLE_FLOAT or BASS_STREAM_DECODE);
 	if Stream = 0 then
@@ -802,6 +776,7 @@ begin
 	LastSampleFormat.Length := Length;
 
 	Result := True;
+	{$ENDIF}
 end;
 
 function TSample.LoadFromFile(const Filename: String): Boolean;
@@ -829,6 +804,7 @@ begin
 	Self.LoopLength := 1;
 	Self.SetName(ExtractFileName(Filename));
 
+	{$IFDEF BASS}
 	// let BASS decode the file contents unless we have our own loader for it
 	ID := '[' + LowerCase(ExtractFileExt(Filename)) + ']';
 	if Pos(ID, BASSSupportedFormats) > 0 then
@@ -836,6 +812,7 @@ begin
 		Result := LoadWithBASS(Filename);
 		if Result then Exit;
 	end;
+	{$ENDIF}
 
 	try
 		FileAcc := nil;
