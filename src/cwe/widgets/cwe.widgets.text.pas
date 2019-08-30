@@ -1340,7 +1340,7 @@ begin
 			Offset := Max(0, Integer(Offset - Height));
 
 		ctrlkeyPGDN:
-			Offset := Min(Max(Lines.Count - Height - 1, 0), Offset + Height);
+			Offset := Min(Max(Lines.Count - Height - 1, 0), Integer(Offset + Height));
 
 	else
 		Exit(False);

@@ -15,7 +15,7 @@ type
 	TByteDataReader = class
 	private
 		Pos,
-		Size:		QWord;
+		Size:		Int64;
 	public
 		Data:		array of Byte;
 
@@ -33,7 +33,7 @@ type
 		procedure	Skip(Len: Int64); inline;
 		procedure	SeekTo(Offset: Int64); inline;
 
-		property 	Position: QWord read Pos;
+		property 	Position: Int64 read Pos;
 	end;
 
 	{ TFileStreamEx }
