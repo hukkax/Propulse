@@ -1,9 +1,10 @@
 Propulse Tracker 0.9.6.0
 ------------------------
-Important playroutine and sample-related fixes and features.
+Big update; important playroutine and sample-related fixes and features.
 
 Additions:
 
+- Implemented "Browse to File" and "Delete Directory" on all platforms
 - Added "Insert pattern" and "Delete pattern" (Ctrl+Insert, Ctrl+Delete)
 - Added "Truncate samples at loop end" in Cleanup dialog
 - Doubleclicking on the sample waveform now selects the sample, loop, pre-loop
@@ -23,6 +24,7 @@ Additions:
 
 Fixes:
 
+- Fixed compile errors on newer FPC versions
 - Fixed fullscreen on Linux
 - Brought the playroutine more in line with ProTracker Clone behavior:
   - Fixed invalid notes and some effects producing sound when they shouldn't

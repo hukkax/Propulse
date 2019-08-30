@@ -14,9 +14,8 @@ To be fixed:
 Platform specific:
 
 - Setting "task priority" only available on Windows
-- Exploring to a file's location or launching URLs only functional on Windows
-- File operations (move/copy/delete file/folder in file requesters) untested
-  on non-Windows platforms
+- Some file operations (move/copy/delete file/folder in file requesters) 
+  untested on non-Windows platforms
 
 
 Regressions/changes from PoroTracker 0.8.9.3
