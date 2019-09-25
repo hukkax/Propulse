@@ -505,7 +505,7 @@ function AudioInit({Callback: TSDL_AudioCallback;}
 const
 	Buffersizes: array[0..5] of Word = ( 256, 512, 1024, 2048, 4096, 8192 );
 var
-	desiredSpec, obtainedSpec: SDL_AudioSpec;
+	desiredSpec, obtainedSpec: TSDL_AudioSpec;
 	//AudioDevice: TSDL_AudioDeviceID;
 begin
 	if Frequency < 11025 then Frequency := 44100;
