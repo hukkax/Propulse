@@ -141,7 +141,7 @@ procedure TSampleFileScreen.FileOrDirSelected(Sender: TCWEControl);
 var
 	Item: TCWEListItem;
 	S: AnsiString;
-	//Sam: TImportedSample;
+	Sam: TImportedSample;
 begin
 	if Sender <> FileList then Exit;
 
@@ -172,7 +172,7 @@ begin
 	if Item.Data = LI_UNENTER then
 		S := 'Back to dir. list'
 	else
-{	if Item.ObjData <> nil then
+	if Item.ObjData <> nil then // browsing samples inside a module
 	begin
 		Sam := TImportedSample(Item.ObjData);
 		if Sam.Length < 2 then
@@ -189,21 +189,28 @@ begin
 				S := S + ' mono';
 		end;
 	end
-	else}
+	else
 	if (Waveform.Sample <> nil) and (Waveform.Sample.Length > 1) then
 	begin
 		if LastSampleFormat.Length < 2 then
 			S := '(empty)'
 		else
 		begin
-			if LastSampleFormat.Is16Bit then
-				S := '16-bit'
+			if LastSampleFormat.Bitness < 0 then
+				S := Abs(LastSampleFormat.Bitness).ToString + 'kbps '
 			else
-				S := '8-bit';
+			if LastSampleFormat.Bitness >= 8 then
+				S := LastSampleFormat.Bitness.ToString + '-bit '
+			else
+				S := '';
+
 			if LastSampleFormat.IsStereo then
-				S := S + ' stereo'
+				S := S + 'stereo'
 			else
-				S := S + ' mono';
+				S := S + 'mono';
+
+			if LastSampleFormat.Format <> '' then
+				S := S + ' ' + LastSampleFormat.Format;
 		end;
 	end
 	else
