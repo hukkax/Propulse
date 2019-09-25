@@ -6,7 +6,7 @@ uses
 	ConfigurationManager, Types;
 
 const
-	VERSION  =  '0.9.6.0';
+	VERSION  =  '0.9.6.1';
 
 	URL = 'http://hukka.ncn.fi/propulse/';
 
@@ -359,13 +359,31 @@ uses
 
 procedure LogDebug(const Msg: AnsiString);
 begin
-	DebugLn(Msg);
+	if Length(Msg) <= 1 then Exit;
+
 	{$IFDEF UNIX}
-	writeln(Msg);
+		if Copy(Msg, 1, 1) = '$' then
+		begin
+		    {$IFDEF DEBUG}
+			DebugLn(Copy(Msg, 3, MaxInt));
+			{$ENDIF}
+			Writeln(Copy(Msg, 3, MaxInt));
+		end
+		else
+			Writeln(Msg);
     {$ELSE}
-    {$IFDEF DEBUG}
-//	writeln(Msg);
-	{$ENDIF}
+	    {$IFDEF DEBUG}
+		if Copy(Msg, 1, 1) = '$' then
+		begin
+			DebugLn(Copy(Msg, 3, MaxInt));
+			Writeln(Copy(Msg, 3, MaxInt));
+		end
+		else
+		begin
+			DebugLn(Msg);
+			Writeln(Msg);
+		end;
+		{$ENDIF}
 	{$ENDIF}
 end;
 
@@ -452,7 +470,7 @@ end;
 procedure Log(const S: AnsiString); overload;
 begin
 	{$IFDEF DEBUG}
-	WriteLn(S);
+	LogDebug(S);
 	{$ENDIF}
 
 	if Assigned(OnLog) then
@@ -460,7 +478,7 @@ begin
 	{$IFDEF UNIX}
 	{$IFNDEF DEBUG}
 	else
-		WriteLn(S)
+		LogDebug(S)
 	{$ENDIF}
 	{$ENDIF};
 	if (Assigned(Module)) and (AnsiStartsText(TEXT_ERROR, S)) then
