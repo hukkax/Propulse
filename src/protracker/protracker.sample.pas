@@ -161,11 +161,21 @@ type
 	function IsEmptySample(const Sam: TSample): Boolean; inline;
 	function GetCurrentSample: TSample; inline;
 
+const
+	SampleFmt_Unknown = '';
+	SampleFmt_RAW     = 'raw';
+	SampleFmt_WAV     = 'WAV';
+	SampleFmt_IFF     = '8SVX';
+	SampleFmt_MP3     = 'MP3';
+	SampleFmt_OGG     = 'Vorbis';
+
+
 var
-	LastSampleFormat: packed record
-		Length:		Cardinal;
-		isStereo,
-		is16Bit: 	Boolean;
+	LastSampleFormat: record
+		Length:   Cardinal;
+		Bitness:  Integer;
+		isStereo: Boolean;
+		Format:	  AnsiString;
 	end;
 
 implementation
@@ -692,22 +702,25 @@ var
 	Info: BASS_CHANNELINFO;
 	Buf: TFloatArray;
 	S: AnsiString;
-	Channels, V: Int64;
+	bitrate: Single;
+	{Channels,} V: Int64;
 	i, Freq: Cardinal;
 {$ENDIF}
 begin
 	Result := False;
 
 	{$IFDEF BASS}
+	{$IFDEF DEBUG}Log('LoadWithBASS()');{$ENDIF}
+
 	Stream := BASS_StreamCreateFile(False, PChar(Filename), 0, 0,
-		BASS_SAMPLE_FLOAT or BASS_STREAM_DECODE);
+		BASS_SAMPLE_MONO or BASS_SAMPLE_FLOAT or BASS_STREAM_DECODE);
 	if Stream = 0 then
 	begin
 		case BASS_ErrorGetCode() of
-			BASS_ERROR_FILEOPEN:	S := 'The file could not be opened.';
-			BASS_ERROR_FILEFORM:	S := 'File format not recognised or supported.';
-			BASS_ERROR_CODEC:		S := 'Unavailable or unsupported codec.';
-			BASS_ERROR_MEM:			S := 'Insufficient memory.';
+			BASS_ERROR_FILEOPEN: S := 'The file could not be opened.';
+			BASS_ERROR_FILEFORM: S := 'File format not recognised or supported.';
+			BASS_ERROR_CODEC:    S := 'Unavailable or unsupported codec.';
+			BASS_ERROR_MEM:      S := 'Insufficient memory.';
 		else
 			S := 'Unknown problem!';
 		end;
@@ -716,32 +729,56 @@ begin
 	end;
 
 	DataLength := BASS_ChannelGetLength(Stream, BASS_POS_BYTE);
+	{$IFDEF DEBUG}Log('DataLength: %d', [DataLength]);{$ENDIF}
 	if DataLength < 2 then
 	begin
+		LogIfDebug('BASS_ChannelGetLength() < 2!');
 		BASS_StreamFree(Stream);
 		Exit;
 	end;
 
+	LastSampleFormat.Format := SampleFmt_Unknown;
+
 	if BASS_ChannelGetInfo(Stream, Info) then
-		Channels := Info.chans
+	begin
+		case Info.ctype of
+			BASS_CTYPE_STREAM_WAV_PCM,
+			BASS_CTYPE_STREAM_WAV_FLOAT,
+			BASS_CTYPE_STREAM_WAV:	LastSampleFormat.Format := SampleFmt_WAV;
+			BASS_CTYPE_STREAM_MP3:	LastSampleFormat.Format := SampleFmt_MP3;
+			BASS_CTYPE_STREAM_OGG:	LastSampleFormat.Format := SampleFmt_OGG;
+		end;
+		i := Info.origres and $FF;
+		if i < 8 then
+		begin
+			BASS_ChannelGetAttribute(Stream, BASS_ATTRIB_BITRATE, bitrate);
+			i := 0 - Trunc(bitrate);
+		end;
+		LastSampleFormat.Bitness := i;
+	end
 	else
-		Channels := 1;
+	begin
+		LogIfDebug('BASS_ChannelGetInfo() failed!');
+		Info.freq := 44100;
+		Info.ctype := 0;
+		Info.chans := 1;
+		//Channels := 1;
+	end;
 
-	DataLength := Min(DataLength, 1024*1024*Channels*MAX_IMPORTED_SAMPLESIZE);
-
+	DataLength := Min(DataLength, 1024*1024{*Channels}*MAX_IMPORTED_SAMPLESIZE);
 	SetLength(Buf, DataLength div 4);
 	DataLength := BASS_ChannelGetData(Stream, @Buf[0], DataLength or BASS_DATA_FLOAT) div 4;
 
 	if 	(SOXRLoaded) and (Options.Import.Resampling.Enable) and
 		(Info.freq >= Options.Import.Resampling.ResampleFrom) then
 	begin
-		if Channels > 1 then
+		{if Channels > 1 then
 		begin
 			DataLength := DataLength div Channels;
 			for i := 0 to DataLength-1 do
 				Buf[i] := Buf[i * Channels];
 			SetLength(Buf, DataLength);
-		end;
+		end;}
 		if Options.Import.Resampling.Normalize then
 			FloatSampleEffects.Normalize(Buf);
 
@@ -755,12 +792,12 @@ begin
 	end
 	else
 	begin
-		DataLength := DataLength div Channels div 4;
+		//DataLength := DataLength div Channels;
 		Self.Resize(DataLength);
 
 		for i := 0 to DataLength-1 do
 		begin
-			V := Trunc(Buf[i * Channels] * 127);
+			V := Trunc(Buf[i {* Channels}] * 127);
 			if V < -128 then V := -128 else if V > 127 then V := 127;
 			ShortInt(Data[i]) := ShortInt(V);
 		end;
@@ -770,9 +807,10 @@ begin
 
 	if (Self is TImportedSample) then
 	begin
-		TImportedSample(Self).isStereo := (Channels > 1);
+		TImportedSample(Self).isStereo := (info.chans > 1);
 		TImportedSample(Self).is16Bit  := True; // !!!
 	end;
+
 	LastSampleFormat.Length := Length;
 
 	Result := True;
@@ -787,9 +825,11 @@ var
 	X, i: Integer;
 	Len, WavLen: Cardinal;
 	ips: TImportedSample;
-	Buf: array of SmallInt;
+	Buf: array of ShortInt;
     SupportedFormat: Boolean;
 begin
+	{$IFDEF DEBUG}Log('LoadFromFile: ' + Filename);{$ENDIF}
+
 	Result := False;
 
 	if not FileExists(Filename) then
@@ -823,6 +863,8 @@ begin
 		Exit;
 	end;
 
+	LastSampleFormat.Format := SampleFmt_Unknown;
+
 	try
 		ID := FileAcc.ReadString(False, 4);
 
@@ -840,66 +882,93 @@ begin
 			else
 				SupportedFormat := False;
 			end;
+			LastSampleFormat.Bitness := Wav.fmt.BitsPerSample;
 
 	        if SupportedFormat then
-			case Wav.fmt.BitsPerSample of
-				8:  LastSampleFormat.is16Bit := False;
-				16:
-				begin
-					LastSampleFormat.is16Bit := True;
-					SupportedFormat := False; // load 16-bit samples via BASS
-				end;
-			else
-				SupportedFormat := False;
-			end;
+				{$IFDEF BASS}
+				SupportedFormat := Wav.fmt.BitsPerSample = 8;
+				{$ELSE}
+				SupportedFormat := Wav.fmt.BitsPerSample in [8, 16, 24, 32];
+				{$ENDIF}
 
 			if not SupportedFormat then
 			begin
-				FileAcc.Free;
 				Wav.Free;
 				// use BASS to decode unsupported wav format
 				Exit(LoadWithBASS(Filename));
 			end;
 
-			WavLen := Min(Wav.dataSize, 1024*1024*MAX_IMPORTED_SAMPLESIZE);
+			WavLen := Min(Wav.dataSize, 1024 *1024 * MAX_IMPORTED_SAMPLESIZE);
 			Len := WavLen;
 
+			{$IFDEF DEBUG}
+			Log('Channels: %d', [Wav.fmt.Channels]);
+			Log('BitsPerSample: %d', [Wav.fmt.BitsPerSample]);
+			Log('Len: %d', [WavLen]);
+			{$ENDIF}
+
 			if LastSampleFormat.isStereo then Len := Len div 2;
-			if LastSampleFormat.is16Bit  then Len := Len div 2;
+			case Wav.fmt.BitsPerSample of
+				16: Len := Len div 2;
+				24: Len := Len div 3;
+				32: Len := Len div 4;
+			end;
 
 			SetLength(Data, Len + 1);
+			SetLength(Buf, WavLen + 1);
+			Wav.ReadBuf(Buf[0], WavLen);
 			Self.Length := Len div 2;
 
-			if (not LastSampleFormat.isStereo) and (not LastSampleFormat.is16Bit) then
-			begin
-				// mono 8-bit
-				Wav.ReadBuf(Data[0], WavLen);
-				for X := 0 to WavLen-1 do
-					Data[X] := Byte(127 - Data[X]);
-			end
-			else
-			if LastSampleFormat.is16Bit then
-			begin
-				SetLength(Buf, WavLen + 1);
-				Wav.ReadBuf(Buf[0], WavLen);
-				if LastSampleFormat.isStereo then
+			case Wav.fmt.BitsPerSample of
+
+				8:
 				begin
-					// stereo 16-bit
-					for X := 0 to Len-1 do
-						Data[X] := Byte((Buf[X*2] + Buf[X*2+1]) div 512);
-				end
-				else
-					// mono 16-bit
-					for X := 0 to Len-1 do
-						Data[X] := Byte(Buf[X] div 256);
-			end
-			else
-			begin
-				// stereo 8-bit UNTESTED
-				SetLength(Buf, WavLen + 1);
-				Wav.ReadBuf(Buf[0], WavLen);
-				for X := 0 to Len do
-					Data[X] := Buf[X] and $FF;
+					if not LastSampleFormat.isStereo then
+						// mono 8-bit
+						for X := 0 to Len-1 do
+							Data[X] := Byte(Buf[X])
+					else
+						// stereo 8-bit UNTESTED
+						for X := 0 to Len-1 do
+							Data[X] := Buf[X] and $FF;
+				end;
+
+				16:
+				begin
+					if LastSampleFormat.isStereo then
+						// stereo 16-bit
+						for X := 0 to Len-1 do
+							Data[X] := Byte(Buf[X*4+1])
+					else
+						// mono 16-bit
+						for X := 0 to Len-1 do
+							Data[X] := Byte(Buf[X*2+1]);
+				end;
+
+				24:
+				begin
+					if LastSampleFormat.isStereo then
+						// stereo 24-bit
+						for X := 0 to Len-1 do
+							Data[X] := Byte(Buf[X*6+2])
+					else
+						// mono 24-bit
+						for X := 0 to Len-1 do
+							Data[X] := Byte(Buf[X*3+2]);
+				end;
+
+				32:
+				begin
+					if LastSampleFormat.isStereo then
+						// stereo 32-bit
+						for X := 0 to Len-1 do
+							Data[X] := Byte(Buf[X*8+3])
+					else
+						// mono 32-bit
+						for X := 0 to Len-1 do
+							Data[X] := Byte(Buf[X*4+3]);
+				end;
+
 			end;
 
 			if (Wav.smpl.Exists) and (wav.smpl.MainChunk.NumSampleLoops > 0) then
@@ -908,6 +977,8 @@ begin
 				LoopLength := ((wav.smpl.LoopInfo.LoopEnd + 1) and $FFFFFFFE) - LoopStart;
 				Validate;
 			end;
+
+			LastSampleFormat.Format := SampleFmt_WAV;
 
 			Wav.Free;
 		end
@@ -919,6 +990,7 @@ begin
 			ID := FileAcc.ReadString(False, 4);
 			if ID <> '8SVX' then Exit;
 			i := 0;
+			LastSampleFormat.Format := SampleFmt_IFF;
 
 			while (ID <> 'BODY') and (i < 30) do
 			begin
@@ -981,6 +1053,10 @@ begin
 			Len := FileAcc.Size;
 			Resize(Len);
 			FileAcc.Read(Data[0], Len-1);
+
+			LastSampleFormat.isStereo := False;
+			LastSampleFormat.Bitness := 8;
+			LastSampleFormat.Format := SampleFmt_RAW;
 		end;
 
 		ZeroFirstWord;
@@ -992,10 +1068,11 @@ begin
 	if (Self is TImportedSample) then
 	begin
 		TImportedSample(Self).isStereo := LastSampleFormat.isStereo;
-		TImportedSample(Self).is16Bit  := LastSampleFormat.is16Bit;
+		TImportedSample(Self).is16Bit  := LastSampleFormat.Bitness > 8;
 	end;
 	LastSampleFormat.Length := Length;
 
+	{$IFDEF DEBUG}Log('Done.');{$ENDIF}
 	Result := True;
 end;
 
