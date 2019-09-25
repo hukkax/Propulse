@@ -14,11 +14,9 @@ interface
 uses
 	SysUtils, Generics.Collections,
 	ProTracker.Messaging,
-	SDL.Api.libSDL2, SDL.Api.Types, SDL.Api.Events,
+	SDL2,
 	{$IFDEF BASS}
 	{$IFDEF BASS_DYNAMIC}lazdynamic_bass,{$ELSE}BASS,{$ENDIF}
-	{$ELSE}
-	SDL.Api.Audio,
 	{$ENDIF}
 	ProTracker.Util, ProTracker.Sample, ProTracker.Paula, ProTracker.Filters;
 
@@ -432,7 +430,7 @@ procedure AudioCallback_SDL2(Data: Pointer; Buffer: PUInt8; Len: Integer); cdecl
 var
 	outStream: ^TArrayOfSmallInt absolute Buffer;
 	pos, sampleBlock, samplesTodo: Integer;
-	event: SDL_Event;
+	event: TSDL_Event;
 begin
 	{$IFDEF BASS}
 	Result := Len;
@@ -489,10 +487,10 @@ begin
 	if (not VUhandled) {and (not Module.DisableMixer)} then
 	begin
 		Move(Buffer^, VUbuffer[0], Len);
-		event._type := SDL_USEREVENT_EV;
+		event.type_ := SDL_USEREVENT;
 		event.user.code := MSG_VUMETER;
-		event.user.data1 := SDL_Data(Len);
-		MainWindow.SDL.Events.SDL_PushEvent(@event);
+		event.user.data1 := Pointer(Len);
+		SDL_PushEvent(@event);
 	end;
 
 	Mixing := False;
@@ -519,17 +517,15 @@ begin
 	desiredSpec.callback := @AudioCallback_SDL2;
 	desiredSpec.userdata := nil;
 
-	MainWindow.SDL.Audio.Init;
-
 	// you might want to look for errors here
-	Result := (MainWindow.SDL.Audio.SDL_OpenAudio(@desiredSpec, @obtainedSpec) = 0);
+	Result := (SDL_OpenAudio(@desiredSpec, @obtainedSpec) = 0);
 
 	if Result then
 	begin
 		outputFreq := obtainedSpec.freq;
 		Log(TEXT_INIT + 'Audio: SDL2 (%d Hz, 16 bit stereo, buffer: %d samples)',
 			[outputFreq, obtainedSpec.samples]);
-		MainWindow.SDL.Audio.SDL_PauseAudio(0); // start playing
+		SDL_PauseAudio(0); // start playing
 	end
 	else
 		LogError('Audio initialization failed!');
@@ -641,7 +637,7 @@ begin
 
 	BASS_Free;
 	{$ELSE}
-	MainWindow.SDL.Audio.SDL_CloseAudio;
+	SDL_CloseAudio;
 	{$ENDIF}
 end;
 

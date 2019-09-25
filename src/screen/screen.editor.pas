@@ -151,7 +151,7 @@ implementation
 uses
 	MainWindow, BuildInfo, ShortcutManager, Layout,
 	CWE.MainMenu, Dialog.ValueQuery,
-	SDL.Api.Types, Graphics32,
+	SDL2, Graphics32,
 	ProTracker.Sample, ProTracker.Util,
 	Screen.Samples, Screen.Help;
 

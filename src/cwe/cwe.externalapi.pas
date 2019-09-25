@@ -9,7 +9,7 @@ interface
 
 uses
 	Classes, SysUtils,
-	SDL.Api.Types,
+	SDL2,
 	CWE.Widgets.Text;
 
 const
@@ -27,24 +27,23 @@ implementation
 
 uses
 	Math,
-	SDL.Api.libSDL2,
 	MainWindow;
 
 procedure ClipboardCopy(Sender: TCWEEdit);
 begin
-	MainWindow.SDL.Clipboard.SDL_SetClipboardText(PChar(Sender.Caption));
+	SDL_SetClipboardText(PChar(Sender.Caption));
 end;
 
 procedure ClipboardPaste(Sender: TCWEEdit);
 var
-	S: SDL_String;
+	S: PAnsiChar;
 	Text, Dest: AnsiString;
 	X: Integer;
 begin
-	if MainWindow.SDL.Clipboard.SDL_HasClipboardText = SDL_TRUE then
+	if SDL_HasClipboardText = SDL_TRUE then
 	begin
 		if Sender.AllowedChars <> '' then Exit;
-		S := MainWindow.SDL.Clipboard.SDL_GetClipboardText;
+		S := SDL_GetClipboardText;
 		Text := StrPas(S);
 		if Text <> '' then
 		begin
@@ -56,7 +55,7 @@ begin
 			Sender.Paint;
 			Sender.Change(Sender.ReportAnyChange);
 		end;
-		//MainWindow.SDL.StdInc.SDL_Free(S); // crashes
+		//SDL_Free(S); // crashes
 	end;
 end;
 

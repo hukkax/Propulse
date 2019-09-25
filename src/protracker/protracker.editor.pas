@@ -184,7 +184,7 @@ uses
 	TimeMeasurer,
 	{$ENDIF}
 	//ClipBrd,
-	SDL.Api.Types,
+	SDL2,
 	ProTracker.Util,
 	{$IFDEF DEBUG}
 	ProTracker.Sample,

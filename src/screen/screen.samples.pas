@@ -153,7 +153,7 @@ var
 implementation
 
 uses
-	MainWindow, SDL.Api.Types,
+	MainWindow, SDL2,
 	Math, Layout,
     soxr, SampleEditor,
 	Screen.FileReqSample, Screen.Editor, Screen.Config,

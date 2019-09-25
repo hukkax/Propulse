@@ -34,7 +34,7 @@ implementation
 
 uses
 	MainWindow,
-	TextMode, SDL.Api.Types,
+	TextMode, SDL2,
 	ProTracker.Util, CWE.Dialogs;
 
 { TCWEMainMenu }

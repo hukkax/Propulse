@@ -6,10 +6,10 @@ interface
 
 uses
 	Classes, SysUtils,
-	SDL.Api.libSDL2, SDL.Api.Types, SDL.API.Events;
+	SDL2;
 
 	function RegisterMessages(Message, Count: Integer): Integer;
-	function GetMessageValue(const InputEvent: SDL_Event): Integer; inline;
+	function GetMessageValue(const InputEvent: TSDL_Event): Integer; inline;
 	procedure PostMessagePtr(EventType: Byte; Data: Pointer);
 	procedure PostMessageValue(EventType: Byte; Data: Integer);
 
@@ -24,32 +24,32 @@ function RegisterMessages(Message, Count: Integer): Integer;
 var
 	i: Integer;
 begin
-	Result := Integer(MainWindow.SDL.Events.SDL_RegisterEvents(Count));
+	Result := Integer(SDL_RegisterEvents(Count));
 end;
 
-function GetMessageValue(const InputEvent: SDL_Event): Integer; inline;
+function GetMessageValue(const InputEvent: TSDL_Event): Integer; inline;
 begin
 	Result := PtrInt(InputEvent.user.data1);
 end;
 
 procedure PostMessagePtr(EventType: Byte; Data: Pointer);
 var
-	event: SDL_Event;
+	event: TSDL_Event;
 begin
-	event._type := SDL_USEREVENT_EV;
+	event.type_ := SDL_USEREVENT;
 	event.user.code := EventType;
 	event.user.data1 := Data;
-	MainWindow.SDL.Events.SDL_PushEvent(@event);
+	SDL_PushEvent(@event);
 end;
 
 procedure PostMessageValue(EventType: Byte; Data: Integer);
 var
-	event: SDL_Event;
+	event: TSDL_Event;
 begin
-	event._type := SDL_USEREVENT_EV;
+	event.type_ := SDL_USEREVENT;
 	event.user.code := EventType;
 	event.user.data1 := Pointer(Data);
-	MainWindow.SDL.Events.SDL_PushEvent(@event);
+	SDL_PushEvent(@event);
 end;
 
 end.

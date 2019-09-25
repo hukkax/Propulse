@@ -79,6 +79,7 @@ implementation
 uses
 	MainWindow,
 	StrUtils, SysUtils, IniFiles,
+	SDL2,
 	ProTracker.Util;
 
 
@@ -90,7 +91,7 @@ end;
 
 function ShortCutToText(ShortCut: TShortCut): String;
 begin
-	Result := SDL.Keyboard.SDL_GetKeyName(Shortcut.Key);
+	Result := SDL_GetKeyName(Shortcut.Key);
 	if Shortcut.Shift <> [] then
 	begin
 		if ssShift in Shortcut.Shift then
@@ -151,7 +152,7 @@ begin
 		//GetShift('NumLock',	ssNum);
 	end;
 
-	Result.Key := SDL.Keyboard.SDL_GetKeyFromName(PAnsiChar(S));
+	Result.Key := SDL_GetKeyFromName(PAnsiChar(S));
 
 	{$IFDEF DEBUG_KEYS}
 	Log('  Key: "%s" => %d', [S, Result.Key]);
