@@ -14,7 +14,6 @@
       <Title Value="Propulse"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
-      <Icon Value="0"/>
     </General>
     <i18n>
       <EnableI18N LFM="False"/>
@@ -56,6 +55,7 @@
             </Debugging>
             <LinkSmart Value="True"/>
             <Options>
+              <PassLinkerOptions Value="True"/>
               <LinkerOptions Value="-rpath=."/>
               <Win32>
                 <GraphicApplication Value="True"/>
@@ -74,12 +74,6 @@
 -OoFASTMATH
 -OoLOOPUNROLL
 -OoREMOVEEMPTYPROCS"/>
-            <OtherDefines Count="4">
-              <Define0 Value="RELEASE"/>
-              <Define1 Value="BASS_DYNAMIC"/>
-              <Define2 Value="DISABLE_SDL2_2_0_5"/>
-              <Define3 Value="DISABLE_SDL2_2_0_4"/>
-            </OtherDefines>
           </Other>
         </CompilerOptions>
       </Item2>
@@ -487,6 +481,7 @@
         <UseExternalDbgSyms Value="True"/>
       </Debugging>
       <Options>
+        <PassLinkerOptions Value="True"/>
         <LinkerOptions Value="-rpath=."/>
       </Options>
     </Linking>
