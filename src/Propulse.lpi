@@ -30,7 +30,7 @@
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
             <Libraries Value=".."/>
-            <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\bass;midi"/>
+            <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\sdl2;include\bass"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -453,7 +453,7 @@
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
       <Libraries Value=".."/>
-      <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\generics.collections\src;include\lazsdl2\source\api;include\bass;midi"/>
+      <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\sdl2;include\bass"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
