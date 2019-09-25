@@ -374,12 +374,21 @@ const
 	BASS_ATTRIB_VOL                   = 2;
 	BASS_ATTRIB_PAN                   = 3;
 	BASS_ATTRIB_EAXMIX                = 4;
+	BASS_ATTRIB_NOBUFFER              = 5;
+	BASS_ATTRIB_VBR                   = 6;
+	BASS_ATTRIB_CPU                   = 7;
+	BASS_ATTRIB_SRC                   = 8;
+	BASS_ATTRIB_NET_RESUME            = 9;
+	BASS_ATTRIB_SCANINFO              = 10;
+	BASS_ATTRIB_NORAMP                = 11;
+	BASS_ATTRIB_BITRATE               = 12;
 	BASS_ATTRIB_MUSIC_AMPLIFY         = $100;
 	BASS_ATTRIB_MUSIC_PANSEP          = $101;
 	BASS_ATTRIB_MUSIC_PSCALER         = $102;
 	BASS_ATTRIB_MUSIC_BPM             = $103;
 	BASS_ATTRIB_MUSIC_SPEED           = $104;
 	BASS_ATTRIB_MUSIC_VOL_GLOBAL      = $105;
+	BASS_ATTRIB_MUSIC_ACTIVE          = $106;
 	BASS_ATTRIB_MUSIC_VOL_CHAN        = $200; // + channel #
 	BASS_ATTRIB_MUSIC_VOL_INST        = $300; // + instrument #
 
