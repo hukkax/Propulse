@@ -15,9 +15,7 @@ uses
 	SysUtils, Generics.Collections,
 	ProTracker.Messaging,
 	SDL2,
-	{$IFDEF BASS}
-	{$IFDEF BASS_DYNAMIC}lazdynamic_bass,{$ELSE}BASS,{$ENDIF}
-	{$ENDIF}
+	{$IFDEF BASS} BASS, {$ENDIF}
 	ProTracker.Util, ProTracker.Sample, ProTracker.Paula, ProTracker.Filters;
 
 const
@@ -329,12 +327,7 @@ type
 	end;
 
 
-	{$IFDEF BASS}
 	function	AudioInit(Frequency: Cardinal): Boolean;
-	{$ELSE}
-	function	AudioInit({Callback: TSDL_AudioCallback;}
-				Frequency: Word = 0; Device: AnsiString = ''): Boolean;
-	{$ENDIF}
 	procedure	AudioClose;
 
 
@@ -500,13 +493,12 @@ end;
 // init SDL2 audio
 //
 {$IFNDEF BASS}
-function AudioInit({Callback: TSDL_AudioCallback;}
-	Frequency: Word = 0; Device: AnsiString = ''): Boolean;
+function AudioInit(Frequency: Cardinal): Boolean;
 const
 	Buffersizes: array[0..5] of Word = ( 256, 512, 1024, 2048, 4096, 8192 );
 var
 	desiredSpec, obtainedSpec: TSDL_AudioSpec;
-	//AudioDevice: TSDL_AudioDeviceID;
+	AudioDevice: TSDL_AudioDeviceID;
 begin
 	if Frequency < 11025 then Frequency := 44100;
 
@@ -517,15 +509,21 @@ begin
 	desiredSpec.callback := @AudioCallback_SDL2;
 	desiredSpec.userdata := nil;
 
-	// you might want to look for errors here
-	Result := (SDL_OpenAudio(@desiredSpec, @obtainedSpec) = 0);
+	if (Options.Audio.Device = '') or (LowerCase(Options.Audio.Device) = 'default') then
+		AudioDevice := SDL_OpenAudioDevice(nil, 0,
+			@desiredSpec, @obtainedSpec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE)
+	else
+		AudioDevice := SDL_OpenAudioDevice(PAnsiChar(Options.Audio.Device), 0,
+			@desiredSpec, @obtainedSpec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+
+	Result := (AudioDevice <> 0);
 
 	if Result then
 	begin
 		outputFreq := obtainedSpec.freq;
 		Log(TEXT_INIT + 'Audio: SDL2 (%d Hz, 16 bit stereo, buffer: %d samples)',
 			[outputFreq, obtainedSpec.samples]);
-		SDL_PauseAudio(0); // start playing
+		SDL_PauseAudioDevice(AudioDevice, 0); // start playing
 	end
 	else
 		LogError('Audio initialization failed!');

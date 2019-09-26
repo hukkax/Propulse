@@ -114,12 +114,9 @@ implementation
 
 uses
 	{$IFDEF WINDOWS}Windows,{$ENDIF}
-	{$IFDEF BASS_DYNAMIC}
-	lazdynamic_bass,
-	{$ELSE}
-	BASS,
-	{$ENDIF}
-	FileUtil, BuildInfo, Math, soxr,
+	FileUtil, BuildInfo, Math,
+	{$IFDEF BASS}BASS,{$ENDIF}
+	{$IFDEF SOXR}soxr,{$ENDIF}
 	ProTracker.Messaging, ProTracker.Import,
 	Screen.Editor, Screen.Samples, Screen.FileReq, Screen.FileReqSample,
 	Screen.Log, Screen.Help, Screen.Config, Screen.Splash,
@@ -805,8 +802,8 @@ begin
 
 	InModal := InModalDialog;
 
-	case GlobalKeyNames(Shortcuts.Find(GlobalKeys, Key, Shift))
-	of
+	case GlobalKeyNames(Shortcuts.Find(GlobalKeys, Key, Shift))	of
+
 		keyNONE:
 			Exit;
 
@@ -1295,19 +1292,27 @@ var
 	Sect: AnsiString;
 	i: Integer;
 	AudioDeviceList: TStringList;
-	device: BASS_DEVICEINFO;
+	{$IFDEF BASS}device: BASS_DEVICEINFO;{$ENDIF}
 begin
+	AudioDeviceList := TStringList.Create;
+
 	// Init list of audio devices
 	//
+	{$IFDEF BASS}
 	BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
-
-	AudioDeviceList := TStringList.Create;
 
 	for i := 1 to 99 do
 		if BASS_GetDeviceInfo(i, device) then
 			AudioDeviceList.Add(device.name)
 		else
 			Break;
+	{$ELSE}
+	SDL_Init(SDL_INIT_AUDIO);
+
+	AudioDeviceList.Add('Default');
+	for i := 0 to SDL_GetNumAudioDevices(0)-1 do
+		AudioDeviceList.Add(SDL_GetAudioDeviceName(i, 0));
+	{$ENDIF}
 
 	// Init configuration
 	//
@@ -1366,20 +1371,25 @@ begin
 		.SetInfo('Splash screen', 0, 1, ['Disabled', 'Enabled']);
 
 		Sect := 'Audio';
-{		Cfg.AddByte(Sect, 'Device', @Audio.Device, 1)
-		.SetInfo('Audio device', 1, 10, AudioDeviceList);}
+		{$IFDEF BASS}
 		Cfg.AddString(Sect, 'Device', @Audio.Device, 'Default')
+		{$ELSE}
+		Cfg.AddString(Sect, 'Device.SDL2', @Audio.Device, 'Default')
+		{$ENDIF}
 		.SetInfo('Audio device', 0, AudioDeviceList.Count-1, AudioDeviceList);
+
 		Cfg.AddByte(Sect, 'Frequency', @Audio.Frequency, 1)
 		.SetInfo('Sampling rate (Hz)', 0, 2, ['32000', '44100', '48000'], nil);
+
 		{$IFDEF BASS}
-			Cfg.AddInteger(Sect, 'Buffer', @Audio.Buffer, 0)
-			.SetInfo('Audio buffer (ms)', 0, 500, ['Automatic']);
+		Cfg.AddInteger(Sect, 'Buffer', @Audio.Buffer, 0)
+		.SetInfo('Audio buffer (ms)', 0, 500, ['Automatic']);
 		{$ELSE}
-			Cfg.Addbyte(Sect, 'Buffer.SDL2', @Audio.BufferSamples, 2)
-			.SetInfo('Audio buffer (samples)', 0, 5,
-			['256', '512', '1024', '2048', '4096', '8192']);
+		Cfg.Addbyte(Sect, 'Buffer.SDL2', @Audio.BufferSamples, 2)
+		.SetInfo('Audio buffer (samples)', 0, 5,
+		['256', '512', '1024', '2048', '4096', '8192']);
 		{$ENDIF}
+
 		Cfg.AddFloat(Sect, 'Amplification', @Audio.Amplification, 4.00)
 		.SetInfo('Amplification', 0, 10, [], ApplyAudioSettings, '', -1);
 		Cfg.AddByte(Sect, 'StereoSeparation', @Audio.StereoSeparation, 15)
@@ -1548,28 +1558,30 @@ begin
 
 	LogIfDebug('Initializing audio...');
 
-	{$IFDEF BASS}
 	if not AudioInit(i) then
-	{$ELSE}
-	if not AudioInit(i, Options.Audio.Device) then
-	{$ENDIF}
 	begin
 	    LogFatal('Could not initialize audio; quitting!');
 		QuitFlag := True;
 		Exit;
 	end;
 
-	Options.Features.SOXR := (soxr_version <> '');
+	Options.Features.SOXR := {$IFDEF SOXR} (soxr_version <> ''); {$ELSE} False; {$ENDIF}
+
 	if not Options.Features.SOXR then
 	begin
-		{$IFDEF UNIX}
-	    Log(TEXT_WARNING + 'SOXR support not compiled in!');
+	    Log(TEXT_WARNING +
+		{$IFNDEF SOXR}
+		'SOXR support not compiled in! ' +
+		{$ELSE}
+	    'SOXR library not found - ' +
 		{$ENDIF}
-	    Log(TEXT_WARNING + 'Resampling features disabled.');
+		'Resampling features disabled.');
 		Warnings := True;
 	end
 	else
-		Log(TEXT_INIT + 'Other: Using ' + soxr_version + ' for resampling');
+		{$IFDEF SOXR}
+		Log(TEXT_INIT + 'Other: Using ' + soxr_version + ' for resampling')
+		{$ENDIF};
 
 	Log('');
 
