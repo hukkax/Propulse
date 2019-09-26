@@ -74,6 +74,12 @@ src/include/lazsdl2/java_templates/
 src/include/generics\.collections/
 src/include/_generics\.collections/
 Propulse\.app/
+!bin/
+!bin/*
+!bin/linux-64bit/
+!bin/linux-64bit/*
+!bin/windows-32bit/
+!bin/windows-32bit/*
 
 *.log
 
