@@ -351,7 +351,7 @@ uses
     {$IFDEF WINDOWS}
     Windows, ShellAPI,
 	{$ELSE}
-	LCLIntf,
+	Process,
     {$ENDIF}
 	ProTracker.Player,
 	CWE.Dialogs;
@@ -454,12 +454,17 @@ begin
 end;
 
 procedure SelectFileInExplorer(const Fn: String);
+{$IFNDEF WINDOWS}
+var
+	Foo: String;
+{$ENDIF}
 begin
 	{$IFDEF WINDOWS}
 	ShellExecute(0, 'open', 'explorer.exe',
 		PChar('/select,"' + Fn + '"'), nil, SW_NORMAL);
 	{$ELSE}
-	OpenDocument(ExtractFilePath(Fn));
+	//OpenDocument(ExtractFilePath(Fn));
+	RunCommand('xdg-open', [ExtractFilePath(Fn)], Foo);
 	{$ENDIF}
 end;
 

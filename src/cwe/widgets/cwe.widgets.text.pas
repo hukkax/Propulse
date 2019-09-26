@@ -267,8 +267,7 @@ type
 implementation
 
 uses
-	{$IFDEF WINDOWS}Windows,{$ENDIF}
-	LCLIntf,
+	{$IFDEF WINDOWS}Windows{$ELSE}Process{$ENDIF},
 	MainWindow, DateUtils,
 	CWE.ExternalAPI, CWE.Dialogs,
 	TextMode, Math,
@@ -548,13 +547,25 @@ begin
 		Result := False;
 end;
 
+procedure OpenURL(const URL: String);
+{$IFNDEF WINDOWS}
+var
+	Foo: String;
+{$ENDIF}
+begin
+	{$IFDEF WINDOWS}
+	ShellExecute(0, 'open', PChar(Data), nil, nil, SW_SHOW);
+	{$ELSE}
+	RunCommand('xdg-open', [URL], Foo);
+	{$ENDIF}
+end;
+
 function TTextObject.OnClick: Boolean;
 begin
 	if Kind = txtLink then
 	begin
 		if Pos('://', Data) > 3 then
 		begin
-			//ShellExecute(0, 'open', PChar(Data), nil, nil, SW_SHOW);
 			OpenURL(Data);
 			Exit(True);
 		end
