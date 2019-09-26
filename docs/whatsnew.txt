@@ -1,3 +1,17 @@
+Propulse Tracker 0.9.6.1
+------------------------
+Maintenance update.
+
+- Correct bitdepth and audio format are now shown in sample file requester
+- Fixed a double-free bug which could cause a crash on sample import
+- Improved and corrected audio initialization/playback via SDL2
+  - Device can be chosen instead of always using the default output device
+  - Audio device setting is stored separately from BASS audio device setting
+  - No longer using deprecated API calls
+- Improved the way libraries are loaded on Linux
+  - Set RPATH in binary, don't use custom dynamic loader code/APIs
+- Removed some dependencies for a smaller binary and cleaner code
+
 Propulse Tracker 0.9.6.0
 ------------------------
 Big update; important playroutine and sample-related fixes and features.
@@ -43,7 +57,6 @@ Fixes:
   - Fixed an issue with loading looped samples from SoundTracker modules
   - Fixed file size display
   - Show sample numbers
-
 
 Propulse Tracker 0.9.5.5
 ------------------------
