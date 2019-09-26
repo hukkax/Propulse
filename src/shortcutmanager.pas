@@ -77,7 +77,6 @@ var
 implementation
 
 uses
-	MainWindow,
 	StrUtils, SysUtils, IniFiles,
 	SDL2,
 	ProTracker.Util;

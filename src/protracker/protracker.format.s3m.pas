@@ -23,7 +23,6 @@ implementation
 
 uses
 	SysUtils, Math,
-	//soxr,
 	CWE.Core, Screen.Log;
 
 const

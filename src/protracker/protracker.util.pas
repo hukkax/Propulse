@@ -447,10 +447,15 @@ end;
 
 function SOXRLoaded(sFeature: AnsiString = ''): Boolean;
 begin
-	Result := Options.Features.SOXR;
+	{Result := Options.Features.SOXR;
 	if (not Result) and (sFeature <> '') then
 		ModalDialog.ShowMessage(sFeature,
-			'libsoxr.dll missing, feature disabled!');
+			'libsoxr.dll missing, feature disabled!');}
+	{$IFDEF SOXR}
+	Result := True;
+	{$ELSE}
+	Result := False;
+	{$ENDIF}
 end;
 
 procedure SelectFileInExplorer(const Fn: String);
@@ -463,7 +468,6 @@ begin
 	ShellExecute(0, 'open', 'explorer.exe',
 		PChar('/select,"' + Fn + '"'), nil, SW_NORMAL);
 	{$ELSE}
-	//OpenDocument(ExtractFilePath(Fn));
 	RunCommand('xdg-open', [ExtractFilePath(Fn)], Foo);
 	{$ENDIF}
 end;

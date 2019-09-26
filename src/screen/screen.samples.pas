@@ -155,7 +155,8 @@ implementation
 uses
 	MainWindow, SDL2,
 	Math, Layout,
-    soxr, SampleEditor,
+	{$IFDEF SOXR}soxr,{$ENDIF}
+	SampleEditor,
 	Screen.FileReqSample, Screen.Editor, Screen.Config,
 	CWE.MainMenu, Dialog.ValueQuery;
 
@@ -625,6 +626,7 @@ begin
 	if IsEmptySample(GetCurrentSample) then Exit;
 	if not SOXRLoaded('Resample') then Exit;
 
+	{$IFDEF SOXR}
 	if not ShowDialog then
 	begin
 		// just resample using default config
@@ -638,6 +640,7 @@ begin
 		UpdateSampleInfo;
 		Exit;
 	end;
+	{$ENDIF}
 
 	Dlg := ModalDialog.CreateDialog(ACTION_RESAMPLE, Bounds(
 		(Console.Width div 2) - (W div 2),
@@ -710,11 +713,13 @@ begin
 	else
 		HzTo := PeriodToHz(PeriodTable[DialogBytes[CFG_TO]]);
 
+	{$IFDEF SOXR}
 	Sample.Resample(HzFrom, HzTo,
 		SOXRQuality[DialogBytes[CFG_QUALITY]],
 		DialogBooleans[CFG_NORMALIZE],
 		DialogBooleans[CFG_BOOSTHIGHS]
 	);
+	{$ENDIF}
 
 	UpdateSampleInfo;
 end;

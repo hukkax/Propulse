@@ -2,12 +2,12 @@ unit ProTracker.Sample;
 
 interface
 
+{$I propulse.inc}
+
 uses
-    soxr,
+	{$IFDEF SOXR}soxr,{$ENDIF}
 	ProTracker.Util,
 	FileStreamEx;
-
-{$I propulse.inc}
 
 const
 	{$IFDEF BASS}
@@ -72,6 +72,10 @@ const
 	RS_IT21416S	= (ST_IT214 or ST_16 or ST_STEREO);
 	RS_IT2158S	= (ST_IT215 or ST_8  or ST_STEREO);
 	RS_IT21516S	= (ST_IT215 or ST_16 or ST_STEREO);
+
+	{$IFNDEF SOXR}
+	SOXR_VHQ = 0;
+	{$ENDIF}
 
 type
 	TSampleFormat = ( SamFmtRAW, SamFmtIFF, SamFmtWAV, SamFmtITS, SamFmtFromExt );
@@ -181,13 +185,7 @@ var
 implementation
 
 uses
-	{$IFDEF BASS}
-		{$IFDEF BASS_DYNAMIC}
-			lazdynamic_bass,
-		{$ELSE}
-			BASS,
-		{$ENDIF}
-	{$ENDIF}
+	{$IFDEF BASS} BASS, {$ENDIF}
 	Math, Classes, SysUtils,
 	fpwavformat, fpwavreader, fpwavwriter,
 	FloatSampleEffects,
@@ -492,6 +490,7 @@ procedure TSample.ResampleFromBuffer(var iBuf: TFloatArray;
 	RsQuality: Integer = SOXR_VHQ;
 	DoNormalize: Boolean = True;
 	DoHighBoost: Boolean = True);
+{$IFDEF SOXR}
 var
 	success: soxr_error_t;
 	odone, ilen, olen: size_t;
@@ -501,9 +500,11 @@ var
 	quality: soxr_quality_spec_t;
 	runtime: soxr_runtime_spec_t;
 	loopL, loopR: Single;
+{$ENDIF}
 begin
 	if not SOXRLoaded then Exit;
 
+	{$IFDEF SOXR}
 	if (ibuf = nil) or (System.Length(ibuf) < 1) then Exit;
 
 	ilen := System.Length(ibuf);
@@ -578,6 +579,7 @@ begin
 		ShortInt(Data[i]) := ShortInt(Trunc(obuf[i] * 127));
 
 	ZeroFirstWord;
+	{$ENDIF}
 end;
 
 procedure TSample.Resample(OrigHz, DestHz: Cardinal;
@@ -589,6 +591,7 @@ var
 	i: Integer;
 	divider: Single;
 begin
+	{$IFDEF SOXR}
 	if (not SOXRLoaded) or (ByteLength < 1) then Exit;
 
 	SetLength(ibuf, System.Length(Data));
@@ -599,6 +602,7 @@ begin
 
 	ResampleFromBuffer(iBuf, OrigHz, DestHz,
 		RsQuality, DoNormalize, DoHighBoost);
+	{$ENDIF}
 end;
 
 procedure TSample.Downsample;
@@ -782,6 +786,7 @@ begin
 		if Options.Import.Resampling.Normalize then
 			FloatSampleEffects.Normalize(Buf);
 
+		{$IFDEF SOXR}
 		// resample automatically
 		Freq := PeriodToHz(PeriodTable[Options.Import.Resampling.ResampleTo]);
 		//Log('Resampling from %d to %d Hz', [Info.freq, Freq]);
@@ -789,6 +794,7 @@ begin
 			SOXRQuality[Options.Import.Resampling.Quality],
 			Options.Import.Resampling.Normalize,
 			Options.Import.Resampling.HighBoost);
+		{$ENDIF}
 	end
 	else
 	begin

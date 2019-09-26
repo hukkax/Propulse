@@ -30,8 +30,8 @@ implementation
 
 uses
 	SysUtils, Math,
-	CWE.Core, Screen.Log,
-	soxr;
+	{$IFDEF SOXR}soxr,{$ENDIF}
+	CWE.Core, Screen.Log;
 
 const
 	// Pattern unpacking
@@ -368,6 +368,7 @@ begin
 		if 	(SOXRLoaded) and (Options.Import.Resampling.Enable) and
 			(c5speed >= Options.Import.Resampling.ResampleFrom) then
 		begin
+			{$IFDEF SOXR}
 			// resample automatically
 			s.LoadDataFloat(ModFile, numsamples, sflag, FloatBuf);
 			sflag := PeriodToHz(PeriodTable[Options.Import.Resampling.ResampleTo]);
@@ -377,6 +378,7 @@ begin
 				Options.Import.Resampling.Normalize,
 				Options.Import.Resampling.HighBoost
 				);
+			{$ENDIF}
 		end
 		else
 			s.LoadData(ModFile, numsamples, sflag);
