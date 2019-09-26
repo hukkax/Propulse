@@ -2,8 +2,7 @@ Propulse Tracker current status
 ===============================
 
 - Basically operational on Win/Linux/Mac
-- Would prefer someone else to do the Linux and Mac binary builds because
-  it's inconvenient for me
+- Need someone else to do the Mac binary builds
 
 To be fixed:
 
@@ -14,8 +13,7 @@ To be fixed:
 Platform specific:
 
 - Setting "task priority" only available on Windows
-- Some file operations (move/copy/delete file/folder in file requesters) 
-  untested on non-Windows platforms
+- Some file operations are untested on non-Windows platforms
 
 
 Regressions/changes from PoroTracker 0.8.9.3
@@ -53,5 +51,5 @@ Bugs fixed from PoroTracker 0.8.9.3
 - Other stuff I forgot to write down
 
 -- 
-hukka 2017-07-27 - hukkax@gmail.com 
-http://hukka.yiff.fi/propulse/ - https://github.com/hukkax/Propulse
+hukka 2019-09-26 - hukkax@gmail.com 
+http://hukka.ncn.fi/propulse/ - https://github.com/hukkax/Propulse
