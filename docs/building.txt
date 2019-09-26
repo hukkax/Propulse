@@ -9,22 +9,25 @@ The following headers are contained in the src/include directory:
 
  Required:
 
- - SDL2: http://libsdl.org/ 
+ - SDL2: http://libsdl.org/
+ - Generics.Collections for FreePascal, if using an old version where they are
+   not included by default: https://github.com/dathox/generics.collections
 
  Optional (but strongly recommended):
 
- - used to load SDL2 dynamically: https://sourceforge.net/projects/lazsdl2/
  - BASS: http://www.un4seen.com/ (required for mp3/ogg/other sample import)
  - libSOXR for resampling: https://sourceforge.net/p/soxr/wiki/Home/
- - Generics.Collections for FreePascal, if using an old version where they are
-   not included by default: https://github.com/dathox/generics.collections
+
+   The prebuilt binaries require these libraries in order to run.
 
 -------------------------------------------------------------------------------
 
 Building on Windows:
 
-- Install FreePascal 3.x and Lazarus
-- Open Propulse.lps in Lazarus or Propulse.ctpr in CodeTyphon
+- Install the latest FreePascal and Lazarus (e.g. using fpcupdeluxe)
+- Place sdl2.dll/bass.dll/soxr.dll from the Propulse binary distribution
+  in the project's root dir if not already there
+- Open Propulse.lps in Lazarus or Propulse.ctpr (outdated) in CodeTyphon
 - Open propulse.inc and modify options if required
 - Press Shift-F9 to build
 - Probably complain to me if it didn't work
@@ -32,10 +35,10 @@ Building on Windows:
 Building on Linux:
 
 - Install SDL2 development packages
-- Download the "stuff" Linux build of BASS (the official 2.4.12 Linux build
-  has a crash bug on some systems, including mine):
-  http://www.un4seen.com/stuff/bass-linux.zip
-- Extract the appropriate libbass.so into the project's root dir (not src!)
+- Download the latest Linux build of BASS
+- Install/build libSOXR
+- Extract the appropriate libbass.so/libsoxr.so.0 into Propulse's root dir
+  or the default library path
 - Follow the above instructions for building on Windows
 
 Building on Mac (courtesy of @nilsding):
