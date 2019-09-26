@@ -2,7 +2,7 @@ program Propulse;
 
 (*	Propulse - a ProTracker clone with an Impulse Tracker-style interface
 
-	Copyright 2016, 2017 Joel Toivonen (hukka)
+	Copyright 2016-2019 Joel Toivonen (hukka)
 	Portions of code adapted from pt2play.c Copyright Olav Sørensen (8bitbubsy)
 
     This program is free software: you can redistribute it and/or modify
@@ -23,11 +23,7 @@ program Propulse;
 {$I propulse.inc}
 
 uses
-	{$IFDEF UNIX}
-	cthreads, //cmem,
-	Classes, SysUtils,
-	{$ENDIF}
-	{$IFDEF BASS_DYNAMIC}lazdynamic_bass,{$ENDIF}
+	{$IFDEF UNIX} cthreads, Classes, SysUtils, {$ENDIF}
 	MainWindow;
 
 	{$IFDEF UNIX}
@@ -57,32 +53,11 @@ begin
 	SetHeapTraceOutput('trace.log');
 	{$ENDIF}
 
-	{$IFDEF BASS_DYNAMIC}
-		// load the BASS library dynamically at runtime
-		{$IFDEF WINDOWS}
-		if not Load_BASSDLL('bass.dll') then
-		{$ENDIF}
-		{$IFDEF LINUX}
-        if not Load_BASSDLL(ExtractFilePath(ParamStr(0)) + 'libbass.so') then
-		{$ENDIF}
-		{$IFDEF DARWIN}
-        if not Load_BASSDLL(ExtractFilePath(ParamStr(0)) + 'libbass.dylib') then
-		{$ENDIF}
-        begin
-			writeln('Could not init BASS library!');
-			HALT;
-		end;
-	{$ENDIF}
-
 	Window := TWindow.Create;
 
 		while not QuitFlag do
 			Window.ProcessFrame;
 
 	Window.Free;
-
-	{$IFDEF BASS_DYNAMIC}
-	Unload_BASSDLL;
-	{$ENDIF}
 end.
 
