@@ -1483,6 +1483,58 @@ begin
 	if Options.Dirs.Samples = '' then
 		Options.Dirs.Samples := Options.Dirs.Modules;
 
+
+	// Init keyboard commands now so we can log any possible errors with
+	// the initialization of subsequent screens
+	//
+	with Shortcuts do
+	begin
+		GlobalKeys := SetContext('Global');
+
+		Bind(keyMainMenu,				'Program.Menu',				'Escape');
+		Bind(keyProgramQuit, 			'Program.Quit', 			'Ctrl+Q');
+		Bind(keyProgramFullscreen, 		'Program.Fullscreen', 		'Alt+Return');
+		Bind(keyScreenHelp, 			'Screen.Help', 				'F1');
+		Bind(keyScreenPatternEditor, 	'Screen.PatternEditor', 	'F2');
+		Bind(keyScreenSamples, 			'Screen.Samples', 			'F3');
+		Bind(keyScreenLoad, 			'Screen.Load', 				['F9', 'Ctrl+L', 'Ctrl+O']);
+		Bind(keyScreenSave, 			'Screen.Save', 				['F10', 'Ctrl+W']);
+		Bind(keyCleanup, 				'Song.Cleanup',				'Ctrl+Shift+C');
+		Bind(keyScreenOrderList, 		'Screen.OrderList', 		'F11');
+		Bind(keyScreenLog, 				'Screen.Log', 				['F4', 'Ctrl+F11']);
+		Bind(keyScreenAbout, 			'Screen.About', 			'Ctrl+F1');
+		Bind(keyScreenConfig, 			'Screen.Config', 			'F12');
+		Bind(keyPlaybackSong, 			'Playback.Song', 			'F5');
+		Bind(keyPlaybackPattern, 		'Playback.Pattern', 		'F6');
+		Bind(keyPlaybackPlayFrom, 		'Playback.PlayFrom', 		'F7');
+		Bind(keyPlaybackStop, 			'Playback.Stop', 			'F8');
+		Bind(keyPlaybackPrevPattern, 	'Playback.PrevPattern', 	'Ctrl+Left');
+		Bind(keyPlaybackNextPattern, 	'Playback.NextPattern', 	'Ctrl+Right');
+		Bind(keySongLength, 			'Song.Length', 				'Ctrl+P');
+		Bind(keyJumpToTime, 			'Song.JumpToTime', 			'Ctrl+Shift+P');
+		Bind(keySongNew, 				'Song.New', 				'Ctrl+N');
+		Bind(keyRenderToSample, 		'Song.RenderToSample',		'Shift+F10');
+		Bind(keySaveCurrent, 			'Song.SaveCurrent', 		'Ctrl+S');
+		Bind(keyMouseCursor, 			'Program.MouseCursor', 		'Ctrl+M');
+		Bind(keyToggleChannel1, 		'Playback.ToggleChannel.1',	'Ctrl+1');
+		Bind(keyToggleChannel2, 		'Playback.ToggleChannel.2',	'Ctrl+2');
+		Bind(keyToggleChannel3, 		'Playback.ToggleChannel.3',	'Ctrl+3');
+		Bind(keyToggleChannel4, 		'Playback.ToggleChannel.4',	'Ctrl+4');
+
+		FileOpKeys := SetContext('FileOperations');
+
+		Bind(filekeyRename,				'File.Rename',				'Shift+F2');
+		Bind(filekeyCopy,				'File.Copy',				'Shift+F5');
+		Bind(filekeyMove,				'File.Move',				'Shift+F6');
+		Bind(filekeyDelete,				'File.Delete',				['Shift+F8', 'Delete']);
+		Bind(filekeyCreate,				'File.CreateDir',			'Shift+F7');
+		Bind(filekeyModMerge,			'File.MergeModule',			'Shift+Return');
+	end;
+
+	// Load any user-defined shortcuts
+	Shortcuts.Load(GetDataFile(FILENAME_KEYBOARD));
+
+
 	// Create fake text mode console and init SDL
 	//
 	LogIfDebug('Setting up video...');
@@ -1585,53 +1637,6 @@ begin
 
 	Log('');
 
-	// Init keyboard commands now so we can log any possible errors with
-	// the initialization of subsequent screens
-	//
-	with Shortcuts do
-	begin
-		GlobalKeys := SetContext('Global');
-
-		Bind(keyMainMenu,				'Program.Menu',				'Escape');
-		Bind(keyProgramQuit, 			'Program.Quit', 			'Ctrl+Q');
-		Bind(keyProgramFullscreen, 		'Program.Fullscreen', 		'Alt+Return');
-		Bind(keyScreenHelp, 			'Screen.Help', 				'F1');
-		Bind(keyScreenPatternEditor, 	'Screen.PatternEditor', 	'F2');
-		Bind(keyScreenSamples, 			'Screen.Samples', 			'F3');
-		Bind(keyScreenLoad, 			'Screen.Load', 				['F9', 'Ctrl+L', 'Ctrl+O']);
-		Bind(keyScreenSave, 			'Screen.Save', 				['F10', 'Ctrl+W']);
-		Bind(keyCleanup, 				'Song.Cleanup',				'Ctrl+Shift+C');
-		Bind(keyScreenOrderList, 		'Screen.OrderList', 		'F11');
-		Bind(keyScreenLog, 				'Screen.Log', 				['F4', 'Ctrl+F11']);
-		Bind(keyScreenAbout, 			'Screen.About', 			'Ctrl+F1');
-		Bind(keyScreenConfig, 			'Screen.Config', 			'F12');
-		Bind(keyPlaybackSong, 			'Playback.Song', 			'F5');
-		Bind(keyPlaybackPattern, 		'Playback.Pattern', 		'F6');
-		Bind(keyPlaybackPlayFrom, 		'Playback.PlayFrom', 		'F7');
-		Bind(keyPlaybackStop, 			'Playback.Stop', 			'F8');
-		Bind(keyPlaybackPrevPattern, 	'Playback.PrevPattern', 	'Ctrl+Left');
-		Bind(keyPlaybackNextPattern, 	'Playback.NextPattern', 	'Ctrl+Right');
-		Bind(keySongLength, 			'Song.Length', 				'Ctrl+P');
-		Bind(keyJumpToTime, 			'Song.JumpToTime', 			'Ctrl+Shift+P');
-		Bind(keySongNew, 				'Song.New', 				'Ctrl+N');
-		Bind(keyRenderToSample, 		'Song.RenderToSample',		'Shift+F10');
-		Bind(keySaveCurrent, 			'Song.SaveCurrent', 		'Ctrl+S');
-		Bind(keyMouseCursor, 			'Program.MouseCursor', 		'Ctrl+M');
-		Bind(keyToggleChannel1, 		'Playback.ToggleChannel.1',	'Ctrl+1');
-		Bind(keyToggleChannel2, 		'Playback.ToggleChannel.2',	'Ctrl+2');
-		Bind(keyToggleChannel3, 		'Playback.ToggleChannel.3',	'Ctrl+3');
-		Bind(keyToggleChannel4, 		'Playback.ToggleChannel.4',	'Ctrl+4');
-
-		FileOpKeys := SetContext('FileOperations');
-
-		Bind(filekeyRename,				'File.Rename',				'Shift+F2');
-		Bind(filekeyCopy,				'File.Copy',				'Shift+F5');
-		Bind(filekeyMove,				'File.Move',				'Shift+F6');
-		Bind(filekeyDelete,				'File.Delete',				['Shift+F8', 'Delete']);
-		Bind(filekeyCreate,				'File.CreateDir',			'Shift+F7');
-		Bind(filekeyModMerge,			'File.MergeModule',			'Shift+Return');
-	end;
-
 	{$IFDEF MIDI}
 	if Options.Midi.Enabled then
 	begin
@@ -1671,9 +1676,6 @@ begin
 
 	// Init context menu
 	ContextMenu := TCWEMainMenu.Create;
-
-	// Load any user-defined shortcuts
-	Shortcuts.Load(GetDataFile(FILENAME_KEYBOARD));
 
 	Log('');
 
