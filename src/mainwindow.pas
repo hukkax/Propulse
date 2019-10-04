@@ -1694,7 +1694,7 @@ begin
 
 	{$IFDEF WINDOWS}
 	if Options.HighPriority then
-		SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
+		SetPriorityClass(GetCurrentProcess, ABOVE_NORMAL_PRIORITY_CLASS);
 	{$ENDIF}
 
 	SetFullScreen(Video.IsFullScreen, True);
