@@ -28,6 +28,7 @@ type
 		Section: 	String;
 		Keys: 		TObjectList<TKeyBinding>;
 
+		function	AddKey(var Binding: TKeyBinding): Boolean;
 		function	FindKey(const ID: Word): TKeyBinding; overload;
 		function	FindKey(const sKey: String): TKeyBinding; overload;
 
@@ -185,6 +186,26 @@ begin
 	inherited;
 end;
 
+function TKeyBindings.AddKey(var Binding: TKeyBinding): Boolean;
+var
+	i: Integer;
+	KB: TKeyBinding;
+begin
+	//writeln('AddKey ', Self.Section, '::', Binding.Name, ' = ', ShortCutToText(Binding.Shortcut));
+
+	for i := Keys.Count-1 downto 0 do
+	begin
+		KB := Keys[i];
+		if	(KB.Name = Binding.Name) and
+			(KB.Shortcut.Key   = Binding.Shortcut.Key)   and
+			(KB.Shortcut.Shift = Binding.Shortcut.Shift) then
+				Keys.Delete(i);
+	end;
+
+	Keys.Add(Binding);
+	Result := True;
+end;
+
 function TKeyBindings.FindKey(const ID: Word): TKeyBinding;
 var
 	KB: TKeyBinding;
@@ -209,6 +230,7 @@ end;
 
 constructor TShortcutManager.Create;
 begin
+	inherited;
 	Sections := TObjectList<TKeyBindings>.Create(True);
 	CurrentSection := nil;
 end;
@@ -446,7 +468,7 @@ begin
 	Result.Key := Shortcut.Key;
 	Result.Shift := Shortcut.Shift;
 	Key := TKeyBinding.Create(ID, Name, Result);
-	CurrentSection.Keys.Add(Key);
+	CurrentSection.AddKey(Key);
 end;
 
 function TShortcutManager.Bind(const ID: Variant; const Name: String;
@@ -472,12 +494,13 @@ begin
 			Log(TEXT_WARNING + 'Invalid shortcut "%s" when binding "%s/%s"!',
 				[KeyString, CurrentSection.Section, Name]);
 		Key := TKeyBinding.Create(ID, Name, Result);
-		CurrentSection.Keys.Add(Key);
+		CurrentSection.AddKey(Key);
 	end
 	else
 	// multiple shortcuts separated by '|'
 	with TStringList.Create do // multiple shortcuts are separated with '|'
 	try
+		Duplicates := dupIgnore;
 		Result.Key := 0;
 		Result.Shift := [];
 		Text := ReplaceText(KeyString, ' | ', #13#10);
