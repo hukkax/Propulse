@@ -687,7 +687,6 @@ begin
 	MouseCursor.Draw;
 
 	SDL_UpdateTexture(Video.Texture, nil, @Console.Bitmap.Bits[0], Console.Bitmap.Width*4);
-	SDL_RenderClear(Video.Renderer);
 	SDL_RenderCopy(Video.Renderer, Video.Texture, nil, nil);
 	SDL_RenderPresent(Video.Renderer);
 
@@ -1693,8 +1692,10 @@ begin
 	Module.SetModified(False);
 
 	{$IFDEF WINDOWS}
+{!!!
 	if Options.HighPriority then
 		SetPriorityClass(GetCurrentProcess, ABOVE_NORMAL_PRIORITY_CLASS);
+}
 	{$ENDIF}
 
 	SetFullScreen(Video.IsFullScreen, True);
