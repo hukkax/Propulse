@@ -554,7 +554,7 @@ var
 {$ENDIF}
 begin
 	{$IFDEF WINDOWS}
-	ShellExecute(0, 'open', PChar(Data), nil, nil, SW_SHOW);
+	ShellExecute(0, 'open', PChar(URL), nil, nil, SW_SHOW);
 	{$ELSE}
 	RunCommand('xdg-open', [URL], Foo);
 	{$ENDIF}
