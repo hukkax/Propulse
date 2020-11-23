@@ -94,3 +94,15 @@ src/include/bass/bass\.chm
 src/include/bass/bass\.txt
 
 src/screen/fx\.plasma\.pas
+
+propulse-win32/
+
+src/include/lazsdl2/bin/x86_64-win64/
+
+*.log~
+
+src/include/lazsdl2/bin/i386-win32/
+
+src/include/lazsdl2/bin/i386-linux/
+
+src/include/lazsdl2/bin/x86_64-linux/
