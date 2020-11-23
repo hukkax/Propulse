@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="12"/>
+    <Version Value="11"/>
     <General>
       <Flags>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
         <MainUnitHasCreateFormStatements Value="False"/>
         <MainUnitHasTitleStatement Value="False"/>
         <MainUnitHasScaledStatement Value="False"/>
-        <CompatibilityMode Value="True"/>
       </Flags>
       <SessionStorage Value="InIDEConfig"/>
+      <MainUnit Value="0"/>
       <Title Value="Propulse"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
@@ -30,7 +30,7 @@
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
             <Libraries Value=".."/>
-            <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\sdl2;include\bass"/>
+            <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\sdl2;include\bass;include\generics.collections\src"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -78,6 +78,12 @@
 -dDisableLCLJPEG
 -dDisableLCLPNM
 -dDisableLCLTIFF"/>
+            <OtherDefines Count="4">
+              <Define0 Value="RELEASE"/>
+              <Define1 Value="BASS_DYNAMIC"/>
+              <Define2 Value="DISABLE_SDL2_2_0_5"/>
+              <Define3 Value="DISABLE_SDL2_2_0_4"/>
+            </OtherDefines>
           </Other>
         </CompilerOptions>
       </Item2>
@@ -141,9 +147,6 @@
       <Version Value="2"/>
     </PublishOptions>
     <RunParams>
-      <local>
-        <CommandLineParams Value="--debug-log=C:/Projects/Propulse/debug.log"/>
-      </local>
       <FormatVersion Value="2"/>
       <Modes Count="1">
         <Mode0 Name="default">
@@ -454,7 +457,7 @@
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
       <Libraries Value=".."/>
-      <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\sdl2;include\bass"/>
+      <OtherUnitFiles Value="protracker;cwe;cwe\widgets;screen;dialog;include;include\sdl2;include\bass;include\generics.collections\src"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
