@@ -3,7 +3,7 @@ Propulse Tracker build instructions
 Requirements:
 
 - FreePascal 3.0+: http://www.freepascal.org/
-- Lazarus: http://www.lazarus-ide.org/ (or CodeTyphon)
+- Lazarus: http://www.lazarus-ide.org/
 
 The following headers are contained in the src/include directory:
 
@@ -34,12 +34,13 @@ Building on Windows:
 
 Building on Linux:
 
-- Install SDL2 development packages
-- Download the latest Linux build of BASS
-- Install/build libSOXR
-- Extract the appropriate libbass.so/libsoxr.so.0 into Propulse's root dir
-  or the default library path
-- Follow the above instructions for building on Windows
+- Install SDL2 development packages (libsdl2-dev)
+- Download the latest Linux build of BASS (un4seen.com)
+- (Optionally) Install/build libSOXR (libsoxr-dev)
+- Extract/copy libbass.so into Propulse's root dir or default library path
+- Start up Lazarus and build the project file, or from command line:
+  cd <propulse directory>
+  lazbuild --build-mode=Release src/Propulse.lpi
 
 Building on Mac (courtesy of @nilsding):
 
@@ -54,4 +55,4 @@ Building on Mac (courtesy of @nilsding):
 - Follow the above instructions for building on Windows
 
 -------------------------------------------------------------------------------
-hukka 2019-01-05 - hukkax@gmail.com - https://github.com/hukkax/Propulse
+hukka 2020-11-23 - hukkax@gmail.com - https://github.com/hukkax/Propulse
