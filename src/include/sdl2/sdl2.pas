@@ -400,12 +400,12 @@ end;
 //from "sdl_video.h"
 function SDL_WindowPos_IsUndefined(X: Variant): Variant;
 begin
-  Result := (X and $FFFF0000) = SDL_WINDOWPOS_UNDEFINED_MASK;
+  Result := (Cardinal(X) and $FFFF0000) = SDL_WINDOWPOS_UNDEFINED_MASK;
 end;
 
 function SDL_WindowPos_IsCentered(X: Variant): Variant;
 begin
-  Result := (X and $FFFF0000) = SDL_WINDOWPOS_CENTERED_MASK;
+  Result := (Cardinal(X) and $FFFF0000) = SDL_WINDOWPOS_CENTERED_MASK;
 end;
 
 //from "sdl_events.h"
