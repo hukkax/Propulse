@@ -419,7 +419,7 @@ end;
 procedure TSample.StoreBackup;
 begin
 	BackupLength := (Length * 2) and $FFFF;
-	SetLength(Backup, BackupLength);
+	SetLength(Backup, BackupLength + 1);
 	Move(Data[0], Backup[0], BackupLength);
 end;
 
