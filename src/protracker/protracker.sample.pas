@@ -891,11 +891,7 @@ begin
 			LastSampleFormat.Bitness := Wav.fmt.BitsPerSample;
 
 	        if SupportedFormat then
-				{$IFDEF BASS}
-				SupportedFormat := Wav.fmt.BitsPerSample = 8;
-				{$ELSE}
 				SupportedFormat := Wav.fmt.BitsPerSample in [8, 16, 24, 32];
-				{$ENDIF}
 
 			if not SupportedFormat then
 			begin
