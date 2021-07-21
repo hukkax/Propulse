@@ -1374,10 +1374,10 @@ begin
 
 				keyNoteC_lo..keyNoteB_hi:
 				begin
-					i := Integer(Scn) - Integer(keyNoteC_lo) + (Integer(PatternEditor.HighOctave) * 12);
-					if i < 36 then // go no higher than B-3
+					i := Integer(Scn) - Integer(keyNoteC_lo) + (Integer(PatternEditor.HighOctave) * 12) + 1;
+					if i <= 36 then // go no higher than B-3
 					begin
-						Module.PlaySample(i, Module.Samples.Count+0 , PatternEditor.Cursor.Channel);
+						Module.PlaySample(i, Module.Samples.Count , PatternEditor.Cursor.Channel);
 						Result := True;
 					end;
 				end;
