@@ -359,7 +359,7 @@ begin
 
 	//Type=Box	ID=AmpSlider	X1=71	X2=79
 	AmpSlider := TCWESlider.Create(Self, '', 'AmpSlider', Types.Rect(66, 6, 79-4, 7), True);
-	AmpSlider.Min := 0;
+	AmpSlider.Min := 1;
 	AmpSlider.Max := 100;
 	AmpSlider.OnChange := AmplificationChange;
 	RegisterLayoutControl(TCWEControl(AmpSlider), CTRLKIND_BOX, False, True, False);
@@ -1102,7 +1102,7 @@ end;
 
 procedure TEditorScreen.Show;
 begin
-	AmpSlider.Position := 100 - Trunc(Options.Audio.Amplification * 10);
+	AmpSlider.Position := 100 - Round(Options.Audio.Amplification * 10);
 	inherited;
 end;
 
