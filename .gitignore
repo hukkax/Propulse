@@ -50,6 +50,7 @@ Temporary Items
 backup
 lib
 Propulse
+Propulse-debug
 debug\.txt
 *.lps
 *.bak
@@ -64,7 +65,19 @@ debug\.txt
 *.pdf
 *.zip
 *.tar\.gz
-*.mod
+
+# modules
+modules/*
+*.[mM][oO][dD]
+*.[sS][tT][kK]
+[mM][oO][dD].*
+[sS][tT][kK].*
+*.[sS][tT][mM]
+*.[sS][tT][xX]
+*.[xX][mM]
+*.[iI][tT]
+*.[sS]3[mM]
+
 *.sh
 *.0
 data/palette/Image1\.png
@@ -106,3 +119,10 @@ src/include/lazsdl2/bin/i386-win32/
 src/include/lazsdl2/bin/i386-linux/
 
 src/include/lazsdl2/bin/x86_64-linux/
+
+# stuff from my Pascal LSP for VSCode
+GTAGS
+GRTAGS
+GPATH
+.vscode/GTEMP.pas
+link*.res

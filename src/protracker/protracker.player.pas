@@ -1,5 +1,5 @@
 (*
- * Based on PT2PLAY v1.3b by Olav "8bitbubsy" Sørensen - http://16-bits.org
+ * Based on PT2PLAY v1.3b by Olav "8bitbubsy" Sï¿½rensen - http://16-bits.org
  * BLEP (Band-Limited Step) and filter routines by aciddose
  *
  * Delphi port by hukka, April-August 2016
@@ -350,7 +350,7 @@ uses
 	FileStreamEx, fpwavwriter, fpwavformat,
 	ProTracker.Editor, ProTracker.Import,
 	ProTracker.Format.IT, ProTracker.Format.S3M, ProTracker.Format.P61,
-	CWE.Dialogs;
+	ProTracker.Format.STM, CWE.Dialogs;
 
 var
 	Mixing: Boolean;
@@ -1194,10 +1194,11 @@ var
 	os, i, j, patt, row, ch, loopOverflow: Integer;
 	s: TSample;
 	Note: PNote;
-	mightBeSTK, mightBeIT, lateVerSTKFlag: Boolean;
+	mightBeSTK, mightBeIT, lateVerSTKFlag, mightBeSTM: Boolean;
 	ModFile: TFileStreamEx;
 	bytes: array [0..3] of Byte;
 	sFile, WarnText: AnsiString;
+	sFile_Raw: array [0..15] of Byte;
 	Origin: Cardinal;
 
 	// powerpacker decrunch
@@ -1283,9 +1284,28 @@ begin
 	//
 	ModFile.SeekTo(Origin);
 	sFile := ModFile.ReadString(False, 4);
-
 	if sFile = 'IMPM' then
-		mightBeIT := True
+	begin
+		// OrdNum
+		ModFile.SeekTo(Origin + $20);
+		i := ModFile.Read16();
+		if i > 255 then
+			mightBeIT := False;
+		// InsNum
+		i := ModFile.Read16();
+		if i > 99 then
+			mightBeIT := False;
+		// SmpNum
+		i := ModFile.Read16();
+		if i > 99 then
+			mightBeIT := False;
+		// PatNum
+		i := ModFile.Read16();
+		if i > 250 then
+			mightBeIT := False;	
+
+		mightBeIT := True;
+	end
 	else
 	if sFile = 'PX20' then
 	begin
@@ -1336,6 +1356,23 @@ begin
 		ModFile.Write(modBuffer[0], ppUnpackLen);
 
 		Info.Filesize := ppUnpackLen;
+	end
+	else
+	begin
+		ModFile.SeekTo(Origin + $14);
+		ModFile.Read(sFile_Raw, $B);
+		for i := 0 to 7 do
+		begin
+			if (sFile_Raw[i] < 32) and (sFile_Raw[i] > 127) then
+				mightBeSTM := False;
+		end;
+		if (sFile_Raw[8] <> $1A) or (sFile_Raw[8] <> $02) then
+			mightBeSTM := False;
+		if sFile_Raw[9] <> $02 then
+			mightBeSTM := False;			
+		if (sFile_Raw[10] <> 2) and ((sFile_Raw[11] <> 0) and (sFile_Raw[11] <> 10) and (sFile_Raw[11] <> 20) and (sFile_Raw[11] <> 21)) then
+			mightBeSTM := False;
+		mightBeSTM := True;
 	end;
 
 	// get normal mod ID
@@ -1348,7 +1385,6 @@ begin
 	// ======================================================================
 	// Import Impulse Tracker module
 	// ======================================================================
-	// (this will break if a ST module's title begins with "IMPM"!)
 	//
 	if (Info.Format = FORMAT_UNKNOWN) then
 	begin
@@ -1373,6 +1409,18 @@ begin
 			goto Done;
 		end
 		else
+		(*
+		// currently doesn't work;
+		// it throws an out of range exception
+		// which i can't debug... :/
+		if mightBeSTM then
+		begin
+			// import STM
+			ImportedModule := TSTMModule.Create(Self, ModFile, SamplesOnly);
+			goto Done;
+		end
+		else
+		*)
 		begin
 			// import S3M
 			ModFile.SeekTo(Origin + $2C);
@@ -1430,8 +1478,8 @@ begin
 		lateVerSTKFlag := (s.Length > 9999); // Only used if mightBeSTK is set
 
 		if Info.Format = FORMAT_FEST then
-			// One more bit of precision, + inverted
-			s.Finetune := ((0 - ModFile.ReadByte and $1F) div 2)
+			// 8 bits of precision, + inverted
+			s.Finetune := (((0 - ModFile.ReadByte) shl 3) shr 4) and $0F
 		else
 			s.Finetune := ModFile.ReadByte and $0F;
 
