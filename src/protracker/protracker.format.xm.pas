@@ -1,6 +1,6 @@
 unit ProTracker.Format.XM;
 
-// XM loader for PoroTracker
+// XM loader for Propulse Tracker
 
 interface
 

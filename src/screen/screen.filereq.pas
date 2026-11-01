@@ -9,7 +9,7 @@ uses
 
 const
 	AmigaExts  = '[mod][p61][stk][nst][ust][nt][m15]';
-	Extensions_Module = '[mod][it][s3m][p61]'; // [.xm][.s3m]
+	Extensions_Module = '[mod][it][s3m][p61]'; // [.xm][.s3m][.stm]
 
 	STR_DIRECTORYUP = '<Parent>';
 	STR_BOOKMARKS   = '<Bookmarks>';

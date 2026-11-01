@@ -1,6 +1,6 @@
 unit ProTracker.Format.S3M;
 
-// Scream Tracker loader for Propulse Tracker
+// Scream Tracker v3.xx loader for Propulse Tracker
 // TODO: select channels to convert if >4
 
 interface
@@ -305,7 +305,7 @@ begin
 	if not SamplesOnly then
 	begin
 		ChangeScreen(TCWEScreen(LogScreen));
-		Log('$6Importing Scream Tracker Module.');
+		Log('$6Importing Scream Tracker v3.xx Module.');
 
 		ModFile.SeekTo($0);
 		ModFile.Read(Module.Info.Title[0], 20);
